@@ -112,11 +112,182 @@ Proof.
   auto.
 Qed.
 
+Lemma Ex_square_ge0
+  (X: {RV P -> R}):
+    0 <= `E (X `^2).
+Proof.
+  unfold Ex.
+  assert (\sum_(u in U) 0 = 0).
+  apply psumR_eq0P.
+  intros. lra.
+  intros. lra.
+  rewrite <- H.
+  apply leq_sumR.
+  intros.
+  unfold ambient_dist, "`^2", "`o".
+  rewrite <- (Rmult_0_r 0).
+  apply Rmult_le_compat.
+  lra. lra.
+  unfold "^".
+  rewrite Rmult_1_r.
+  apply Rle_0_sqr.
+  apply FDist.ge0.
+Qed.
+
+Lemma Ex_square_expansion
+  a b (X Y: {RV P -> R}):
+  `E ((a `cst* X `+ b `cst* Y) `^2) =
+  a * a * `E (X `^2) + b * b * `E (Y `^2) + 2 * a * b * `E (X `* Y:{RV P -> R}).
+Proof.
+assert (`E ((a `cst* X `+ b `cst* Y) `^2) = 
+`E ((a * a) `cst* (X `^2) `+ (b * b) `cst* (Y `^2) `+ (2 * a * b) `cst* (X `* Y))).
+apply eq_bigr.
+intros.
+unfold ambient_dist, "`cst*", "`+", "`^2", "`o", "^".
+nra.
+repeat rewrite E_add_RV in H.
+repeat rewrite E_scalel_RV in H.
+auto.
+Qed.
+
+Lemma Ex_square_eq0 X:
+(forall x, X x = 0 \/ P x = 0) <-> `E (X `^2: {RV P -> R}) = 0.
+Proof.
+split.
+- unfold Ex.
+  intros.
+  apply psumR_eq0P;
+  intros;
+  unfold ambient_dist, "`^2", "`o", "^";
+  pose proof (H a);
+  inversion H1;
+  nra.
+- intros H.
+  assert (( forall x : U, X x = 0 \/ P x = 0) <-> (forall x : U, (X `^2: {RV P -> R}) x = 0 \/ P x = 0)).
+  split;
+  intros;
+  pose proof (H0 x);
+  inversion H1;
+  unfold "`^2", "`o", "^" in *;
+  try nra.
+  apply H0.
+  assert (forall x : U, x \in U -> (X `^2: {RV P -> R}) x * P x = 0).
+  apply psumR_eq0P.
+  intros.
+  unfold "`^2", "`o", "^".
+  rewrite Rmult_1_r.
+  rewrite <- (Rmult_0_r 0).
+  apply Rmult_le_compat; try nra.
+  apply FDist.ge0.
+  unfold Ex, ambient_dist in H.
+  auto.
+  intros.
+  pose proof (H1 x).
+  rewrite inE in H2.
+  apply mulR_eq0.
+  auto.
+Qed.
+
 Lemma Cauchy_Schwarz_proba
   (X Y: {RV P -> R}): 
     Rsqr (`E (X `* Y: {RV P -> R})) <= `E (X `^2) * `E (Y `^2).
 Proof.
-  Admitted.
+  pose (a:=sqrt (`E (Y `^2))).
+  pose (b:=sqrt (`E (X `^2))).
+  assert (2 * a * b * (b * a) = a*a*`E (X `^2) + b*b*`E (Y `^2)) as H2ab.
+  {
+    rewrite <- (Rsqr_sqrt (`E (X `^2))).
+    rewrite <- (Rsqr_sqrt (`E (Y `^2))).
+    fold a.
+    fold b.
+    unfold Rsqr.
+    nra.
+    
+    apply Ex_square_ge0.
+    apply Ex_square_ge0.
+  }
+  destruct (Req_dec a 0).
+  {unfold a in e.
+  apply sqrt_eq_0 in e.
+  assert (forall y, Y y = 0 \/ P y = 0).
+  apply Ex_square_eq0. auto.
+  assert (`E (X `* Y: {RV P -> R}) = 0).
+  apply psumR_eq0P; intros;
+  pose proof (H a0); destruct H1; rewrite H1; lra.
+  unfold Rsqr.
+  nra.
+  apply Ex_square_ge0. }
+
+  destruct (Req_dec b 0).
+  {unfold b in e.
+  apply sqrt_eq_0 in e.
+  assert (forall x, X x = 0 \/ P x = 0).
+  apply Ex_square_eq0. auto.
+  assert (`E (X `* Y: {RV P -> R}) = 0).
+  apply psumR_eq0P; intros;
+  pose proof (H a0); destruct H1; rewrite H1; lra.
+  unfold Rsqr.
+  nra.
+  apply Ex_square_ge0. }
+
+  assert (0 < a).
+  {
+    apply sqrt_lt_R0.
+    destruct (Ex_square_ge0 Y).
+    auto.
+    unfold a in n.
+    rewrite <- H in n.
+    rewrite sqrt_0 in n.
+    contradiction.
+  }
+  assert (0 < b).
+  {
+    apply sqrt_lt_R0.
+    destruct (Ex_square_ge0 X).
+    auto.
+    unfold b in n0.
+    rewrite <- H0 in n0.
+    rewrite sqrt_0 in n0.
+    contradiction.
+  }
+  rewrite <- (Rsqr_sqrt (_ * _)).
+  rewrite sqrt_mult.
+  apply neg_pos_Rsqr_le.
+  {
+    fold a. fold b.
+    apply Rmult_le_reg_l with (r:=2 * a * b).
+    repeat apply Rmult_lt_0_compat; lra.
+    repeat rewrite <- Ropp_mult_distr_r.
+    apply Rplus_le_reg_l with (r:=2 * a * b * (b * a)).
+    rewrite Rplus_opp_r.
+    rewrite H2ab.
+    rewrite <- Ex_square_expansion.
+    apply Ex_square_ge0.
+  }
+  {
+    fold a. fold b.
+    apply Rmult_le_reg_l with (r:=2 * a * b).
+    repeat apply Rmult_lt_0_compat; lra.
+    apply Rplus_le_reg_r with (r:=-(2 * a * b * `E (X `* Y:{RV P -> R}))).
+    rewrite Rplus_opp_r.
+    rewrite H2ab.
+    rewrite <- (Rmult_opp_opp b).
+    rewrite Ropp_mult_distr_l.
+    rewrite Ropp_mult_distr_r.
+    rewrite <- Ex_square_expansion.
+    apply Ex_square_ge0.
+  }
+
+  apply Ex_square_ge0.
+  apply Ex_square_ge0.
+  rewrite <- (Rmult_0_r 0).
+  apply Rmult_le_compat.
+  lra. lra.
+  apply Ex_square_ge0.
+  apply Ex_square_ge0.
+  
+Qed.
+
 
 Lemma I_square F: Ind F = ((Ind F) `^2 : {RV P -> R}).
 Proof.
@@ -1461,7 +1632,7 @@ Proof.
   apply Pr_ge0.
   rewrite Pr_of_cplt.
   lra.
-Admitted.
+Qed.
 
 
 Require Import List.
