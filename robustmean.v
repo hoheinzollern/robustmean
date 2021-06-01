@@ -36,20 +36,6 @@ Lemma leq_sumR I r (P : pred I) (E1 E2 : I -> R) :
   \sum_(i <- r | P i) E1 i <= \sum_(i <- r | P i) E2 i.
 Proof. move=> leE12. elim/big_ind2: _ => // m1 m2 n1 n2. lra. Qed.
 
-(* Lemma leqif_sumR (I : finType) (P C : pred I) (E1 E2 : I -> R) :
-    (forall i, P i -> (E1 i <= (E2 i)) <-> C i) ->
-  (\sum_(i | P i) E1 i <= \sum_(i | P i) E2 i)%B <-> [forall (i | P i), C i %B].
-Proof.
-move=> leE12; rewrite -big_andE.
-elim/big_rec3: _ => // i Ci m1 m2 /leE12.
-Admitted.
-
-Lemma sumr_eq0 (I : finType) (P : pred I) (E : I -> R) :
-  (\sum_(i | P i) E i == 0)%B = [forall (i | P i), E i == 0%B].
-Proof. 
-(* by rewrite eq_sym -(@leqif_sumR I P _ (fun _ => 0) E) ?big1_eq. Qed. *)
-Admitted. *)
-
 End sets_functions.
 
 Section probability.
