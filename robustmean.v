@@ -908,7 +908,7 @@ Theorem robust_mean
   0 < eps -> eps <= 1/8 ->
   Pr P bad = eps -> Pr P drop = 4 * eps ->
   (* All the outliers exceeding the ε-quantile are eliminated: *)
-  [ set y in bad | `| X y - mu | >=? sqrt (sigma / eps) ] \subset drop ->
+  (forall y, y \in bad -> sqrt (sigma / eps) < `| X y - mu | -> y \in drop) ->
   `| mu_hat - mu | <=  8 * sqrt (sigma / eps).
 Proof.
   intros bad mu_hat mu sigma
@@ -1162,7 +1162,18 @@ Proof.
     apply FDist.ge0.
     unfold Ind.
     rewrite H2.
-    admit. (* follows from Hquantile_drop_bad *)
+    rewrite Rmult_1_r.
+    rewrite in_setD in H2.
+    apply andb_true_iff in H2.
+    destruct H2.
+    unfold "\notin" in H2.
+    destruct (i \in bad) eqn: e1.
+    destruct (Rlt_dec (sqrt (sigma / eps)) (`|X i - mu|) ).
+    rewrite Hquantile_drop_bad in H2.
+    inversion H2. auto. auto.
+    lra.
+    rewrite Hquantile_drop_bad in H2.
+    inversion H2. inversion H3. inversion H3.
     apply FDist.ge0.
     lra.
     apply Rlt_le.
