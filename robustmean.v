@@ -59,7 +59,7 @@ Proof.
       \sum_(a in U | X a == i) (X a * Ind (A:=U) F a * P a)
   ).
   apply eq_bigr.
-  intros.
+  move => i H.
   unfold Pr.
   rewrite big_distrr.
   simpl.
@@ -68,7 +68,7 @@ Proof.
     \sum_(i0 in finset (T:=U) (preim X (pred1 i)) :&: F) (X i0 * Ind (A:=U) F i0 * P i0)
   ).
   apply congr_big. auto. auto.
-  intros.
+  move => i0 H0. 
   destruct H0.
   rewrite in_setI in H.
   apply andb_true_iff in H.
@@ -119,11 +119,11 @@ Proof.
   unfold Ex.
   assert (\sum_(u in U) 0 = 0).
   apply psumR_eq0P.
-  intros. lra.
-  intros. lra.
+  move => a H. lra.
+  move => a H. lra.
   rewrite <- H.
   apply leq_sumR.
-  intros.
+  move => i H0.
   unfold ambient_dist, "`^2", "`o".
   rewrite <- (Rmult_0_r 0).
   apply Rmult_le_compat.
@@ -142,7 +142,7 @@ Proof.
 assert (`E ((a `cst* X `+ b `cst* Y) `^2) = 
 `E ((a * a) `cst* (X `^2) `+ (b * b) `cst* (Y `^2) `+ (2 * a * b) `cst* (X `* Y))).
 apply eq_bigr.
-intros.
+move => i H.
 unfold ambient_dist, "`cst*", "`+", "`^2", "`o", "^".
 nra.
 repeat rewrite E_add_RV in H.
@@ -477,7 +477,7 @@ Proof.
        
        rewrite mulNR.
        rewrite addR_opp.
-       rewrite <- (Rplus_eq_reg_r (Pr P (~: F) * `E_[X | (~: F)])   (`E_[X | F] * Pr P F)  ).
+       rewrite <- (Rplus_eq_reg_r (Pr P (~: F) * `E_[X | (~: F)])   (`E_[X | F] * Pr P F)  ) .
         *** lra.
         *** rewrite Rplus_assoc.
             rewrite (Rplus_opp_l (Pr P (~: F) * `E_[X | (~: F)]) ).
@@ -618,7 +618,7 @@ Proof.
 
     - (*0 <= ((1 - Pr P F) / Pr P F)²*)
     apply Rle_0_sqr.
-    - apply divR_ge0. 
+    - apply divR_ge0.   
       * lra. 
       * lra.
     - lra. 
@@ -1642,9 +1642,9 @@ Require Import Orders.
 Definition Average l := fold_left Rplus l 0 / INR (length l).
 
 Module ROrder <: TotalLeBool.
-  Definition t := R.
-  Definition leb := Rleb.
-  Lemma leb_total : forall x y : t, leb x y = true \/ leb y x = true.
+Definition t := R.
+Definition leb := Rleb.
+Lemma leb_total : forall x y : t, leb x y = true \/ leb y x = true.
   Proof.
     intros.
     unfold leb, Rleb.
