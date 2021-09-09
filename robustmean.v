@@ -7,28 +7,40 @@ From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext Rb
 From infotheo Require Import proba fdist.
 Require Import Setoid Ring.
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
 
 Local Open Scope proba_scope.
 Local Open Scope big_scope.
 Local Open Scope R_scope.
 
+(* Reset the default interpretation of "==" (which is overridden by Setoid) *)
+Local Open Scope bool_scope.
 
 Notation "X `* Y" := (fun x => X x * Y x) : proba_scope.
 
 
 Section sets_functions.
 
-Lemma set1U (X:finType) (A:{set X}) (x:X) : [set x] :&: A = if x \in A then [set x] else set0.
+Lemma set1I (X:finType) (x:X) (A:{set X}) :
+  [set x] :&: A = if x \in A then [set x] else set0.
 Proof.
-  destruct (x \in A) eqn:H0.
-  - by apply /setIidPl; rewrite sub1set.
-  - by apply /disjoint_setI0; rewrite disjoints1; rewrite H0.
+  case H0: (x \in A).
+  - by apply/setIidPl; rewrite sub1set.
+  - by apply/disjoint_setI0; rewrite disjoints1 H0.
 Qed.
 
-Lemma in_preim : forall (A:finType) (B:eqType) (a:A) (b:B) X,
+Lemma in_preim1 (A:finType) (B:eqType) (a:A) (b:B) X :
   (a \in finset (T:=A) (preim X (pred1 b))) -> X a = b.
+Proof. by rewrite in_set=> /eqP. Qed.
+
+Lemma in_preim1' (A:finType) (B:eqType) (a:A) (b:B) X :
+  (a \in finset (T:=A) (preim X (pred1 b))) = (X a == b).
 Proof.
-  move => A B i i0 X; rewrite in_set; move => /eqP-H; by [].
+  apply/idP; case H: (X a == b); first by move/eqP: H <-; rewrite inE /= eqxx.
+  by move: H=> /[swap] /in_preim1 ->; rewrite eqxx.
 Qed.
 
 Lemma leq_sumR I r (P : pred I) (E1 E2 : I -> R) :
@@ -75,7 +87,7 @@ Proof.
   destruct H.
   simpl in *.
   assert (X i0 = i).
-  apply in_preim. auto.
+  apply in_preim1. auto.
   rewrite H1.
   unfold Ind.
   destruct (i0 \in F).
@@ -1066,7 +1078,7 @@ Proof.
   lra.
   lra.
 Qed.
-
+Arguments Ind_one : clear implicits.
 
 Theorem robust_mean
   (good drop: {set U})
@@ -1634,6 +1646,7 @@ Proof.
   lra.
 Qed.
 
+End probability.
 
 Require Import List.
 Require Import Sorting.
