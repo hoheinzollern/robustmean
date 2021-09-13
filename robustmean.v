@@ -1,11 +1,11 @@
 From mathcomp Require Import all_ssreflect ssralg fingroup perm finalg matrix.
 From mathcomp Require boolp.
 From mathcomp Require Import Rstruct.
-Require Import Reals Lra Nsatz Psatz ROrderedType.
+Require Import Reals Lra ROrderedType.
 Require Import Coq.Logic.FunctionalExtensionality.
 From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext Rbigop.
 From infotheo Require Import proba fdist.
-Require Import Setoid Ring.
+(* Require Import Setoid Ring. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -16,9 +16,6 @@ Local Open Scope proba_scope.
 Local Open Scope big_scope.
 Local Open Scope R_scope.
 
-(* Reset the default interpretation of "==" (which is overridden by Setoid) *)
-Local Open Scope bool_scope.
-
 Notation "X `* Y" := (fun x => X x * Y x) : proba_scope.
 
 
@@ -27,14 +24,14 @@ Section sets_functions.
 Lemma set1I (X:finType) (x:X) (A:{set X}) :
   [set x] :&: A = if x \in A then [set x] else set0.
 Proof.
-  case H0: (x \in A).
+  case: ifPn => H0.
   - by apply/setIidPl; rewrite sub1set.
   - by apply/disjoint_setI0; rewrite disjoints1 H0.
 Qed.
 
 Lemma in_preim1 (A:finType) (B:eqType) (a:A) (b:B) X :
   (a \in finset (T:=A) (preim X (pred1 b))) -> X a = b.
-Proof. by rewrite in_set=> /eqP. Qed.
+Proof. by rewrite in_set => /eqP. Qed.
 
 Lemma in_preim1' (A:finType) (B:eqType) (a:A) (b:B) X :
   (a \in finset (T:=A) (preim X (pred1 b))) = (X a == b).
@@ -54,74 +51,39 @@ Section probability.
 
 Variables (U : finType) (P : fdist U).
 
-Lemma cEx_EXInd (X : {RV P -> R}) F: `E_[X | F] = `E (X `* Ind (A:=U) F : {RV P -> R}) / Pr P F.
+Lemma cEx_EXInd (X : {RV P -> R}) F :
+  `E_[X | F] = `E (X `* Ind (A:=U) F : {RV P -> R}) / Pr P F.
 Proof. 
-  unfold Pr.
+  unfold Pr. (* need some lemmas to avoid unfolds *)
   unfold cEx.
-  unfold Ex.
-  unfold ambient_dist.
-  unfold Rdiv.
-  rewrite <- big_distrl.
-  apply Rmult_eq_compat_r.
-  simpl.
-  assert (
-    \sum_(i <- fin_img (A:=U) (B:=R_eqType) X)
-      (i * Pr P (finset (T:=U) (preim X (pred1 i)) :&: F)) =
-    \sum_(i <- fin_img (A:=U) (B:=R_eqType) X)
-      \sum_(a in U | X a == i) (X a * Ind (A:=U) F a * P a)
-  ).
-  apply eq_bigr.
-  move => i H.
-  unfold Pr.
-  rewrite big_distrr.
-  simpl.
-  assert (
-    \sum_(i0 in finset (T:=U) (preim X (pred1 i)) :&: F) (i * P i0) =
-    \sum_(i0 in finset (T:=U) (preim X (pred1 i)) :&: F) (X i0 * Ind (A:=U) F i0 * P i0)
-  ).
-  apply congr_big. auto. auto.
-  move => i0 H0. 
-  destruct H0.
-  rewrite in_setI in H.
-  apply andb_true_iff in H.
-  destruct H.
-  simpl in *.
-  assert (X i0 = i).
-  apply in_preim1. auto.
-  rewrite H1.
-  unfold Ind.
-  destruct (i0 \in F).
-  lra.
-  inversion H0.
-  rewrite H0.
-  assert (
-    \sum_(i0 in finset (T:=U) (preim X (pred1 i)) :\: F) X i0 * Ind (A:=U) F i0 * P i0 = 0
-  ). (* This should be true because all elements of the sum are 0 *)
-  apply psumR_eq0P;
-  (intros;
-  rewrite in_setD in H1;
-  apply andb_true_iff in H1;
-  destruct H1;
-  unfold Ind;
-  destruct (a \in F);
-  inversion H1 || lra).
-  assert (
-    \sum_(i0 in finset (T:=U) (preim X (pred1 i))) X i0 * Ind (A:=U) F i0 * P i0 =
-    \sum_(i0 in finset (T:=U) (preim X (pred1 i)) :&: F) X i0 * Ind (A:=U) F i0 * P i0 +
-    \sum_(i0 in finset (T:=U) (preim X (pred1 i)) :\: F) X i0 * Ind (A:=U) F i0 * P i0
-  ).
-  apply big_setID.
-  rewrite H1 in H2.
-  rewrite Rplus_0_r in H2.
-  rewrite <- H2.
-  apply eq_bigl.
-  unfold eqfun.
-  intros.
-  rewrite in_set.
-  simpl. auto.
-  rewrite H.
-  rewrite <- sum_parti_finType.
-  auto.
+  rewrite -big_distrl /=.
+  congr (_ / _).
+  under eq_bigr=> i _.
+  - rewrite big_distrr.
+    have -> : 
+      \sum_(i0 in finset (preim X (pred1 i)) :&: F) (i * P i0) =
+      \sum_(i0 in finset (preim X (pred1 i)) :&: F)
+       (X i0 * Ind (A:=U) F i0 * P i0).
+    + apply congr_big => // i0.
+      rewrite in_setI.
+      move/andP => [+ H0].
+      rewrite in_preim1' => /eqP ->.
+      by rewrite /Ind H0 mulR1.
+    have H1:
+      \sum_(i0 in finset (preim X (pred1 i)) :\: F) X i0 * Ind F i0 * P i0 = 0.
+    (* This should be true because all elements of the sum are 0 *)
+    + rewrite big1 // => i1.
+      rewrite in_setD => /andP [H2 H3].
+      by rewrite /Ind (negbTE H2) mulR0 mul0R.
+    have :
+      \sum_(i0 in finset (preim X (pred1 i))) X i0 * Ind F i0 * P i0 =
+      \sum_(i0 in finset (preim X (pred1 i)) :&: F) X i0 * Ind F i0 * P i0 +
+      \sum_(i0 in finset (preim X (pred1 i)) :\: F) X i0 * Ind F i0 * P i0
+        by apply big_setID.
+    rewrite H1 addR0 => <-.
+    under eq_bigl do rewrite in_preim1'.
+    over.
+  by rewrite -sum_parti_finType.
 Qed.
 
 Lemma Ex_square_ge0
@@ -1347,8 +1309,7 @@ Proof.
     rewrite H2.
     rewrite Rmult_1_r.
     rewrite in_setD in H2.
-    apply andb_true_iff in H2.
-    destruct H2.
+    move: H2 => /andP [H2 H3].
     unfold "\notin" in H2.
     destruct (i \in bad) eqn: e1.
     destruct (Rlt_dec (sqrt (sigma / eps)) (`|X i - mu|) ).
