@@ -65,10 +65,9 @@ Proof.
       \sum_(i0 in finset (preim X (pred1 i)) :&: F)
        (X i0 * Ind (A:=U) F i0 * P i0).
     + apply congr_big => // i0.
-      rewrite in_setI.
-      move/andP => [+ H0].
-      rewrite in_preim1' => /eqP ->.
-      by rewrite /Ind H0 mulR1.
+      rewrite in_setI /Ind.
+      move/andP => [] /in_preim1 -> ->.
+      by rewrite mulR1.
     have H1:
       \sum_(i0 in finset (preim X (pred1 i)) :\: F) X i0 * Ind F i0 * P i0 = 0.
     (* This should be true because all elements of the sum are 0 *)
