@@ -85,26 +85,16 @@ Proof.
   by rewrite -sum_parti_finType.
 Qed.
 
+Lemma sq_RV_ge0 (X : {RV P -> R}) x : 0 <= (X `^2) x.
+Proof. exact: pow2_ge_0. Qed.
+
 Lemma Ex_square_ge0
   (X: {RV P -> R}):
     0 <= `E (X `^2).
 Proof.
   unfold Ex.
-  assert (\sum_(u in U) 0 = 0).
-  apply psumR_eq0P.
-  move => a H. lra.
-  move => a H. lra.
-  rewrite <- H.
-  apply leq_sumR.
-  move => i H0.
-  unfold ambient_dist, "`^2", "`o".
-  rewrite <- (Rmult_0_r 0).
-  apply Rmult_le_compat.
-  lra. lra.
-  unfold "^".
-  rewrite Rmult_1_r.
-  apply Rle_0_sqr.
-  apply FDist.ge0.
+  apply big_ind => //; first by apply addR_ge0.
+  by move=> *; apply mulR_ge0 => //; apply sq_RV_ge0.
 Qed.
 
 Lemma Ex_square_expansion
