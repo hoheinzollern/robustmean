@@ -1195,13 +1195,13 @@ Proof.
       rewrite Pr_diff in e.
       assert (Pr P (good :&: drop) = 0).
       lra.
-      assert (Pr P (finset (T:=U) (preim X (pred1 i)) :&: good :&: drop) = 0).
+      assert (Pr P (finset (preim X (pred1 i)) :&: good :&: drop) = 0).
       rewrite <- setIA.
-      assert (Pr P (finset (T:=U) (preim X (pred1 i)) :&: (good :&: drop)) <= Pr P ((good :&: drop)) ).
+      assert (Pr P (finset (preim X (pred1 i)) :&: (good :&: drop)) <= Pr P ((good :&: drop)) ).
       apply Pr_incl.
       apply subsetIr.
       rewrite H1 in H2.
-      destruct (Pr_ge0 P (finset (T:=U) (preim X (pred1 i)) :&: (good :&: drop))).
+      destruct (Pr_ge0 P (finset (preim X (pred1 i)) :&: (good :&: drop))).
       lra.
       lra.
       lra.
