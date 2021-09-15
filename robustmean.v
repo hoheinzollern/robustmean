@@ -444,7 +444,7 @@ Proof.
         *** lra.
         *** rewrite Rplus_assoc.
             rewrite (Rplus_opp_l (Pr P (~: F) * `E_[X | (~: F)]) ).
-            rewrite Rplus_0_r.
+            rewrite addR0.
             rewrite Rmult_comm.
             repeat rewrite cEx_EXInd.
             repeat
@@ -771,14 +771,14 @@ Proof.
   simpl.
   rewrite Rplus_assoc.
   rewrite Rplus_opp_l.
-  rewrite Rplus_0_r.
+  rewrite addR0.
   rewrite Rmult_assoc.
   rewrite Rinv_l.
   rewrite Rmult_1_r.
   apply Rplus_eq_reg_r with (r:= `E (X `* Ind (A:=U) G: {RV P -> R})).
   rewrite Rplus_assoc.
   rewrite Rplus_opp_l.
-  rewrite Rplus_0_r.
+  rewrite addR0.
   rewrite Rplus_0_l.
   unfold Ex.
   unfold ambient_dist.
@@ -1073,7 +1073,7 @@ Proof.
     unfold Rminus.
     rewrite Rplus_assoc.
     rewrite Rplus_opp_l.
-    rewrite Rplus_0_r.
+    rewrite addR0.
     unfold eps', Rdiv.
     rewrite <- Rmult_plus_distr_r.
     apply Rmult_eq_reg_r with (r:=Pr P (~: drop)).
@@ -1287,7 +1287,7 @@ Proof.
     inversion H1.
     lra.
     rewrite H1.
-    rewrite Rplus_0_r.
+    rewrite addR0.
     apply leq_sumR.
     intros.
     rewrite Rabs_mult.
@@ -1380,9 +1380,9 @@ Proof.
     destruct (Req_dec (Pr P (bad :\: drop)) 0).
     {
       rewrite e. rewrite Rmult_0_r.
-      rewrite Rplus_0_r.
+      rewrite addR0.
       rewrite e in H0.
-      rewrite Rplus_0_r in H0.
+      rewrite addR0 in H0.
       rewrite H0.
       unfold Rdiv.
       rewrite Rmult_assoc.
@@ -1495,7 +1495,7 @@ Proof.
     unfold Rminus.
     repeat rewrite Rplus_opp_r.
     repeat rewrite Rmult_0_r.
-    repeat rewrite Rplus_0_r.
+    repeat rewrite addR0.
     repeat rewrite Rmult_1_r.
     apply HEXbad_bound.
     unfold eps' in n.
