@@ -374,7 +374,7 @@ Proof.
 
     - unfold "`E". apply leq_sumR. intros.
     unfold Ind.   
-    destruct (i \in F).
+    case : ifPn.
     unfold ambient_dist. lra.
 
     - unfold ambient_dist. apply Rmult_le_compat_r.
