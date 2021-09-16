@@ -325,7 +325,7 @@ Proof.
     apply mulR_ge0.
     apply pow2_ge_0.
     unfold Ind.
-    destruct (u \in F).
+    case : ifPn.
     auto.
     auto.
     rewrite E_Ind.
