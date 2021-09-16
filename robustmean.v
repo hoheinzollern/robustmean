@@ -1607,8 +1607,8 @@ Definition Average l := fold_left Rplus l 0 / INR (length l).
 Module ROrder <: TotalLeBool.
 Definition t := R.
 Definition leb := Rleb.
-Lemma leb_total : forall x y : t, leb x y = true \/ leb y x = true.
-  Proof.
+Lemma leb_total  (x y : t) : leb x y = true \/ leb y x = true.
+Proof.
     intros.
     unfold leb, Rleb.
     destruct (Rle_dec x y).
