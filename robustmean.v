@@ -656,7 +656,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       - apply functional_extensionality. unfold "`^2". simpl. unfold "`o".
       unfold Ind.
       intros. simpl. 
-      destruct (x \in F). lra. lra.
+      case : ifPn. lra. lra.
       
       rewrite H3.
       - assert (((X `-cst mu) `^2) `* Ind (A:=U) F =
