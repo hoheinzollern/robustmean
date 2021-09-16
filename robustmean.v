@@ -478,7 +478,7 @@ Proof.
             rewrite in_setC.
             unfold "\notin".
 
-            destruct (i \in F).
+            case : ifPn.
             rewrite addR0. lra.
             lra.
                   + rewrite Pr_of_cplt. lra. 
