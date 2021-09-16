@@ -88,14 +88,8 @@ Qed.
 Lemma sq_RV_ge0 (X : {RV P -> R}) x : 0 <= (X `^2) x.
 Proof. exact: pow2_ge_0. Qed.
 
-Lemma Ex_square_ge0
-  (X: {RV P -> R}):
-    0 <= `E (X `^2).
-Proof.
-  unfold Ex.
-  apply big_ind => //; first by apply addR_ge0.
-  by move=> *; apply mulR_ge0 => //; apply sq_RV_ge0.
-Qed.
+Lemma Ex_square_ge0 (X: {RV P -> R}) : 0 <= `E (X `^2).
+Proof. apply/Ex_ge0/sq_RV_ge0. Qed.
 
 Lemma Ex_square_expansion
   a b (X Y: {RV P -> R}):
@@ -1408,7 +1402,7 @@ Proof.
       auto.
       rewrite in_setD in H3.
       rewrite in_setC in H3.
-      case : ifPn.
+      move: H3; case: (i \in drop)=> H3.
       simpl.
       auto.
       destruct (i \in good).
