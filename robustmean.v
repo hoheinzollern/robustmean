@@ -638,7 +638,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       apply mulR_ge0.
       apply pow2_ge_0.
       unfold Ind.
-      destruct (u \in F).
+      case : ifPn.
       auto.
       auto.
       rewrite E_Ind.
