@@ -263,7 +263,7 @@ Qed.
 Lemma I_double F: Ind F = ((Ind F) `* (Ind F) : {RV P -> R}).
 Proof.
   apply functional_extensionality; unfold Ind; intros x.
-  by destruct (x \in F) eqn:H0;
+  by case : ifPn => H0;
   unfold "`o";
   destruct (x \in F) eqn:H1; lra.
 Qed.
