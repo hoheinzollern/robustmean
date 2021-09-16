@@ -149,78 +149,50 @@ Lemma Cauchy_Schwarz_proba
   (X Y: {RV P -> R}): 
     Rsqr (`E (X `* Y: {RV P -> R})) <= `E (X `^2) * `E (Y `^2).
 Proof.
-  pose (a:=sqrt (`E (Y `^2))).
-  pose (b:=sqrt (`E (X `^2))).
-  assert (2 * a * b * (b * a) = a*a*`E (X `^2) + b*b*`E (Y `^2)) as H2ab.
-  {
-    rewrite <- (Rsqr_sqrt (`E (X `^2))).
-    rewrite <- (Rsqr_sqrt (`E (Y `^2))).
-    fold a.
-    fold b.
-    unfold Rsqr.
-    nra.
-    
-    apply Ex_square_ge0.
-    apply Ex_square_ge0.
-  }
-  destruct (Req_dec a 0).
-  {unfold a in e.
-  apply sqrt_eq_0 in e.
-  assert (forall y, Y y = 0 \/ P y = 0).
-  apply Ex_square_eq0. auto.
-  assert (`E (X `* Y: {RV P -> R}) = 0).
-  apply psumR_eq0P; intros;
-  pose proof (H a0); destruct H1; rewrite H1; lra.
-  unfold Rsqr.
-  nra.
-  apply Ex_square_ge0. }
+  pose a:=sqrt (`E (Y `^2)).
+  pose b:=sqrt (`E (X `^2)).
+  have H2ab : 2 * a * b * (b * a) = a*a*`E (X `^2) + b*b*`E (Y `^2).
+    rewrite -(Rsqr_sqrt (`E (X `^2))); last exact: Ex_square_ge0.
+    rewrite -(Rsqr_sqrt (`E (Y `^2))); last exact: Ex_square_ge0. 
+    by rewrite -/a -/b /Rsqr; nra.
+  have [a0|a0] := Req_dec a 0.
+    apply sqrt_eq_0 in a0; last exact: Ex_square_ge0.
+    have HY : forall y, Y y = 0 \/ P y = 0 by apply /Ex_square_eq0/a0.
+    have -> : `E (X `* Y: {RV P -> R}) = 0.
+      apply psumR_eq0P => u uU.
+        by case : (HY u) => -> ; rewrite mulR0 ?mul0R; apply leRR.
+      by case : (HY u) => -> ; rewrite mulR0 ?mul0R. 
+    by rewrite Rsqr_0; apply/mulR_ge0; apply Ex_square_ge0.
 
-  destruct (Req_dec b 0).
-  {unfold b in e.
-  apply sqrt_eq_0 in e.
-  assert (forall x, X x = 0 \/ P x = 0).
-  apply Ex_square_eq0. auto.
-  assert (`E (X `* Y: {RV P -> R}) = 0).
-  apply psumR_eq0P; intros;
-  pose proof (H a0); destruct H1; rewrite H1; lra.
-  unfold Rsqr.
-  nra.
-  apply Ex_square_ge0. }
+  have [b0|b0] := Req_dec b 0.
+    apply sqrt_eq_0 in b0; last exact: Ex_square_ge0.
+    have HX : (forall x, X x = 0 \/ P x = 0) by apply /Ex_square_eq0/b0.
+    have -> : `E (X `* Y: {RV P -> R}) = 0.
+      apply psumR_eq0P => u uU.
+        by case : (HX u) => -> ; rewrite ?mulR0 ?mul0R; apply leRR.
+      by case : (HX u) => -> ; rewrite ?mulR0 ?mul0R. 
+    by rewrite Rsqr_0; apply/mulR_ge0; apply Ex_square_ge0.
 
-  assert (0 < a).
-  {
-    apply sqrt_lt_R0.
-    destruct (Ex_square_ge0 Y).
-    auto.
-    unfold a in n.
-    rewrite <- H in n.
-    rewrite sqrt_0 in n.
-    contradiction.
-  }
-  assert (0 < b).
-  {
-    apply sqrt_lt_R0.
-    destruct (Ex_square_ge0 X).
-    auto.
-    unfold b in n0.
-    rewrite <- H0 in n0.
-    rewrite sqrt_0 in n0.
-    contradiction.
-  }
-  rewrite <- (Rsqr_sqrt (_ * _)).
-  rewrite sqrt_mult.
+  have {}a0 : 0 < a (*removes a0 hypothesis and reuse it*)
+    by apply/ltR_neqAle; split; [exact/nesym|exact/sqrt_pos].
+  
+  have {}b0 : 0 < b
+    by apply/ltR_neqAle; split; [exact/nesym|exact/sqrt_pos].
+
+  rewrite -(Rsqr_sqrt (_ * _)); last by apply/mulR_ge0; apply Ex_square_ge0.
+  rewrite sqrt_mult; [|exact: Ex_square_ge0|exact: Ex_square_ge0].
+ 
   apply neg_pos_Rsqr_le.
-  {
     fold a. fold b.
     apply Rmult_le_reg_l with (r:=2 * a * b).
     repeat apply Rmult_lt_0_compat; lra.
-    repeat rewrite <- Ropp_mult_distr_r.
+    repeat rewrite -Ropp_mult_distr_r.
     apply Rplus_le_reg_l with (r:=2 * a * b * (b * a)).
     rewrite Rplus_opp_r.
     rewrite H2ab.
-    rewrite <- Ex_square_expansion.
+    rewrite -Ex_square_expansion.
     apply Ex_square_ge0.
-  }
+
   {
     fold a. fold b.
     apply Rmult_le_reg_l with (r:=2 * a * b).
