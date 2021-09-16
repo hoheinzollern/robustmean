@@ -343,7 +343,7 @@ Proof.
     - apply functional_extensionality. unfold "`^2". simpl. unfold "`o".
     unfold Ind.
     intros. simpl. 
-    destruct (x \in F). lra. lra.
+    case : ifPn. lra. lra.
     
     rewrite H2. 
     - assert (((X `-cst `E X) `^2) `* Ind (A:=U) F =
