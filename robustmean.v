@@ -1408,7 +1408,7 @@ Proof.
       auto.
       rewrite in_setD in H3.
       rewrite in_setC in H3.
-      destruct (i \in drop).
+      case : ifPn.
       simpl.
       auto.
       destruct (i \in good).
