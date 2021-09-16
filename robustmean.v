@@ -1279,7 +1279,7 @@ Proof.
     rewrite <- Rabs_R0.
     apply congr1.
     unfold Ind.
-    destruct (a \in bad :\: drop) eqn:abd.
+    case : ifPn => abd.
     unfold "\in" in abd.
     simpl in abd.
     rewrite abd in H1.
