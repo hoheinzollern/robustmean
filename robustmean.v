@@ -1020,7 +1020,7 @@ Proof.
     apply functional_extensionality.
     intros.
     unfold Ind.
-    destruct (x \in F); nra.
+    case : ifPn; nra.
   }
   rewrite I_mult.
   rewrite E_Ind.
