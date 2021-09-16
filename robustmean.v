@@ -689,7 +689,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       apply leq_sumR.
       intros.
       unfold Ind, ambient_dist, mu.
-      destruct (i \in F) eqn:HiF.
+      case : ifPn => HiF.
       assert (i \in G) as HiG.
       rewrite <- sub1set.
       apply: subset_trans; last exact H0.
