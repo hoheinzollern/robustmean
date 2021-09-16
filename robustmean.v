@@ -183,15 +183,12 @@ Proof.
   rewrite sqrt_mult; [|exact: Ex_square_ge0|exact: Ex_square_ge0].
  
   apply neg_pos_Rsqr_le.
-    fold a. fold b.
-    apply Rmult_le_reg_l with (r:=2 * a * b).
-    repeat apply Rmult_lt_0_compat; lra.
-    repeat rewrite -Ropp_mult_distr_r.
-    apply Rplus_le_reg_l with (r:=2 * a * b * (b * a)).
-    rewrite Rplus_opp_r.
-    rewrite H2ab.
-    rewrite -Ex_square_expansion.
-    apply Ex_square_ge0.
+    rewrite -/a -/b -(@leR_pmul2r (2 * a * b)); last first.
+      by apply mulR_gt0 => //; apply mulR_gt0.
+    rewrite -subR_ge0 mulNR subR_opp addRC mulRC H2ab. 
+    rewrite (mulRC (`E (X `* Y))) -Ex_square_expansion.
+      (* is Ex_square_expansion really a good lemma? *)
+    by apply Ex_square_ge0.
 
   {
     fold a. fold b.
