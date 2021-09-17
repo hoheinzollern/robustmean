@@ -2,10 +2,8 @@ From mathcomp Require Import all_ssreflect ssralg fingroup perm finalg matrix.
 From mathcomp Require boolp.
 From mathcomp Require Import Rstruct.
 Require Import Reals Lra ROrderedType.
-Require Import Coq.Logic.FunctionalExtensionality.
 From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext Rbigop.
 From infotheo Require Import proba fdist.
-(* Require Import Setoid Ring. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -13,7 +11,6 @@ Unset Printing Implicit Defensive.
 
 
 Local Open Scope proba_scope.
-Local Open Scope big_scope.
 Local Open Scope R_scope.
 
 Notation "X `* Y" := (fun x => X x * Y x) : proba_scope.
@@ -203,21 +200,12 @@ Proof.
     rewrite <- Ex_square_expansion.
     apply Ex_square_ge0.
   }
-
-  apply Ex_square_ge0.
-  apply Ex_square_ge0.
-  rewrite <- (Rmult_0_r 0).
-  apply Rmult_le_compat.
-  lra. lra.
-  apply Ex_square_ge0.
-  apply Ex_square_ge0.
-  
 Qed.
 
 
 Lemma I_square F: Ind F = ((Ind F) `^2 : {RV P -> R}).
 Proof.
-  apply functional_extensionality; unfold Ind; intros x.
+  apply boolp.funext=> x; unfold Ind.
   by destruct (x \in F) eqn:H0;
   unfold "`^2", "`o";
   destruct (x \in F) eqn:H1; lra.
@@ -225,7 +213,7 @@ Qed.
 
 Lemma I_double F: Ind F = ((Ind F) `* (Ind F) : {RV P -> R}).
 Proof.
-  apply functional_extensionality; unfold Ind; intros x.
+  apply boolp.funext=> x; unfold Ind.
   by case : ifPn => H0;
   unfold "`o";
   destruct (x \in F) eqn:H1; lra.
@@ -262,8 +250,8 @@ Proof.
     rewrite <- (Rabs_mult).
     apply congr1.
     assert (((X `-cst `E X) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- `E X `cst* Ind (A:=U) F : {RV P -> R})).
-    apply functional_extensionality.
-    intros. unfold "`-", "`cst*", "`-cst".
+    apply boolp.funext=> u.
+    unfold "`-", "`cst*", "`-cst".
     lra.
     rewrite H0.
     rewrite E_sub_RV.
@@ -303,17 +291,16 @@ Proof.
     simpl.
     assert ( (X `-cst `E X ) `* ((Ind (A:=U) F : {RV P -> R}) )  =
     (X `-cst `E X)  `*  (Ind (A:=U) F : {RV P -> R})  `*  (Ind (A:=U) F : {RV P -> R}) ).
-    - apply functional_extensionality. unfold "`^2". simpl. unfold "`o".
+    - apply boolp.funext=> u. unfold "`^2". simpl. unfold "`o".
     unfold Ind.
-    intros. simpl. 
+    simpl. 
     case : ifPn. lra. lra.
     
     rewrite H2. 
     - assert (((X `-cst `E X) `^2) `* Ind (A:=U) F =
     (((X `-cst `E X) `* Ind (A:=U) F) `^2: {RV P -> R})).
     rewrite I_square.
-    apply functional_extensionality.
-    intros.
+    apply boolp.funext=> u.
     rewrite -> I_square at 1.
     unfold "`^2". simpl. 
     unfold "`o". lra.
@@ -575,8 +562,8 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       rewrite <- (Rabs_mult).
       apply congr1.
       assert (((X `-cst mu) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- mu `cst* Ind (A:=U) F : {RV P -> R})).
-      apply functional_extensionality.
-      intros. unfold "`-", "`cst*", "`-cst".
+      apply boolp.funext=> u.
+      unfold "`-", "`cst*", "`-cst".
       lra.
       rewrite H1.
       rewrite E_sub_RV.
@@ -616,17 +603,16 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       simpl.
       assert ( (X `-cst mu ) `* ((Ind (A:=U) F : {RV P -> R}) )  =
       (X `-cst mu)  `*  (Ind (A:=U) F : {RV P -> R})  `*  (Ind (A:=U) F : {RV P -> R}) ).
-      - apply functional_extensionality. unfold "`^2". simpl. unfold "`o".
+      - apply boolp.funext=> u. unfold "`^2". simpl. unfold "`o".
       unfold Ind.
-      intros. simpl. 
+      simpl. 
       case : ifPn. lra. lra.
       
       rewrite H3.
       - assert (((X `-cst mu) `^2) `* Ind (A:=U) F =
       (((X `-cst mu) `* Ind (A:=U) F) `^2: {RV P -> R})).
       rewrite I_square.
-      apply functional_extensionality.
-      intros.
+      apply boolp.funext=> u.
       rewrite -> I_square at 1.
       unfold "`^2". simpl. 
       unfold "`o". lra.
@@ -980,8 +966,7 @@ Proof.
   rewrite cEx_EXInd.
   assert (Ind F `* Ind F = Ind F) as I_mult.
   {
-    apply functional_extensionality.
-    intros.
+    apply boolp.funext=> u.
     unfold Ind.
     case : ifPn; nra.
   }
