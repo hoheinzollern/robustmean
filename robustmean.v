@@ -1038,8 +1038,7 @@ Proof.
     apply Rmult_le_compat.
     lra. lra.
     apply Pr_ge0.
-    apply Rlt_le.
-    apply Rinv_0_lt_compat.
+    apply/Rlt_le/Rinv_0_lt_compat.
     rewrite Pr_of_cplt.
     lra.
   }
