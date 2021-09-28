@@ -1157,8 +1157,7 @@ Proof.
     lra.
     auto.
     assert (Pr P (good :\: drop) <= Pr P good).
-    apply Pr_incl.
-    apply subsetDl.
+    apply/Pr_incl/subsetDl.
     lra.
     apply subsetDl.
   }
