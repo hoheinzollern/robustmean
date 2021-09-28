@@ -570,8 +570,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       rewrite Rmult_assoc.
       rewrite Rinv_r.
       rewrite Rmult_1_r.
-      apply Rplus_eq_compat_r.
-      apply cEx_EXInd.
+      apply/Rplus_eq_compat_r/cEx_EXInd.
       lra.
       apply PrPF_pos.
     }
