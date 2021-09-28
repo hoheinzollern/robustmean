@@ -654,8 +654,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       auto.
       lra.
       lra.
-      apply Rlt_le.
-      apply Rinv_0_lt_compat.
+      apply/Rlt_le/Rinv_0_lt_compat.
       lra.
       auto.
       auto.
