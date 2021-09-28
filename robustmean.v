@@ -231,8 +231,7 @@ Proof.
   unfold "`^2", "`o", "^".
   apply mulR_ge0.
   rewrite Rmult_1_r.
-  apply Rle_0_sqr.
-  apply FDist.ge0.
+  apply Rle_0_sqr. auto. 
 Qed.
 
 (*prove A1 and A3 for later use*)
