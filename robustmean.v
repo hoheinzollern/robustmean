@@ -1001,8 +1001,7 @@ Proof.
   assert (Pr P (good :&: drop) <= 4 * eps) as Hmax_good_drop.
   {
     rewrite <- Hdrop_ratio.
-    apply Pr_incl.
-    apply subsetIr.
+    apply/Pr_incl/subsetIr.
   }
   pose (eps' := Pr P (bad :\: drop) / Pr P (~: drop)).
   assert (Pr P (good :\: drop) / Pr P (~: drop) = 1 - eps') as Hcompl.
