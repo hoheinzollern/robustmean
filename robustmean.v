@@ -454,7 +454,7 @@ Proof.
 
     rewrite <- Rmult_1_l at 1.
     rewrite <- Rmult_assoc. 
-    apply leR_pmul; try (apply Rlt_le; apply invR_gt0); try lra.
+    apply leR_pmul; try (apply/Rlt_le/invR_gt0); try lra.
     apply leR_inv. assumption. 
     lra.
   }
