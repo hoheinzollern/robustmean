@@ -1052,8 +1052,7 @@ Proof.
     rewrite Rinv_l.
     rewrite Rmult_1_l.
     rewrite Rmult_1_r.
-    apply Pr_incl.
-    apply subsetDr.
+    apply/Pr_incl/subsetDr.
     rewrite Pr_of_cplt.
     lra.
   }
