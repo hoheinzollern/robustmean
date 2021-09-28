@@ -913,8 +913,7 @@ Proof.
       apply Rle_0_sqr.
       rewrite Pr_diff.
       rewrite HGnF_F.
-      apply Rlt_le.
-      apply Rmult_lt_0_compat.
+      apply/Rlt_le/Rmult_lt_0_compat.
       nra.
       apply Rinv_0_lt_compat.
       nra.
