@@ -990,8 +990,7 @@ Proof.
   {
     rewrite <- Ropp_involutive.
     rewrite <- Ropp_involutive at 1.
-    apply Ropp_eq_compat.
-    apply (Rplus_eq_reg_l 1).
+    apply/Ropp_eq_compat/(Rplus_eq_reg_l 1).
     assert (1 + - Pr P good = 1 - Pr P good).
     auto.
     rewrite H.
