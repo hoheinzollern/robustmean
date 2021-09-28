@@ -1241,7 +1241,7 @@ Proof.
     inversion H2. inversion H3. inversion H3.
     apply FDist.ge0.
     lra.
-    apply/Rlt_le/Rinv_0_lt_compat.
+    apply/Rlt_le/Rinv_0_lt_compat. 
     lra.
     lra.
   }
@@ -1322,8 +1322,7 @@ Proof.
       repeat rewrite cEx_EXInd.
       rewrite H0.
       unfold Rdiv.
-      apply Rmult_eq_compat_r.
-      apply congr_big.
+      apply/Rmult_eq_compat_r/congr_big.
       auto.
       auto.
       intros.
