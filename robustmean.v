@@ -1123,8 +1123,7 @@ Proof.
       apply eq_bigr.
       intros.
       rewrite e.
-      apply Rmult_eq_compat_r.
-      apply Rmult_eq_compat_l.
+      apply/Rmult_eq_compat_r/Rmult_eq_compat_l.
       rewrite setIDA.
       rewrite Pr_diff.
       rewrite Pr_diff in e.
