@@ -260,8 +260,7 @@ Proof.
     rewrite Rmult_assoc.
     rewrite Rinv_r.
     rewrite Rmult_1_r.
-    apply Rplus_eq_compat_r.
-    apply cEx_EXInd.
+    apply/Rplus_eq_compat_r/cEx_EXInd.
     lra.
     apply PrPF_pos.
   }
