@@ -240,8 +240,7 @@ Lemma cEx_var (X : {RV P -> R}) F : 0 < Pr P F  ->
 Proof.
   intros.
   assert (0 <= / Pr P F) as PrPF_pos.
-  apply Rlt_le.
-  apply invR_gt0.
+  apply/Rlt_le/invR_gt0.
   auto.
   assert ( Rabs ( `E_[ X | F ] - `E X )  =  Rabs (`E ((X `-cst `E X) `* Ind F: {RV P -> R})) / Pr P F ).
   { unfold Rdiv.
