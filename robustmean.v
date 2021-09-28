@@ -1359,7 +1359,7 @@ Proof.
       move: H3; case: (i \in drop)=> H3.
       simpl.
       auto.
-      destruct (i \in good).
+      move: H3; case: (i \in good)=> H3.
       simpl.
       auto.
       simpl.
