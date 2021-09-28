@@ -659,7 +659,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       auto.
       auto.
     }
-  Qed.
+  Qed. 
 
 Lemma cEx_Inv' (X: {RV P -> R}) (F G : {set U}) :
   0 < Pr P F -> F \subset G -> Pr P F < Pr P G ->
@@ -774,8 +774,7 @@ Proof.
   destruct (i \in F) eqn:H1;
   rewrite H1; lra.
   apply FDist.ge0.
-  apply Rlt_le.
-  apply Rinv_0_lt_compat.
+  apply/Rlt_le/Rinv_0_lt_compat.
   auto.
 Qed.
 
