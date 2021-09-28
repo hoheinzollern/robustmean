@@ -922,8 +922,7 @@ Proof.
       rewrite Rinv_mult_distr.
       rewrite <- Rmult_assoc.
       apply Rmult_le_compat_r.
-      apply Rlt_le.
-      apply Rinv_0_lt_compat.
+      apply/Rlt_le/Rinv_0_lt_compat.
       lra.
       repeat rewrite Rmult_assoc.
       apply Rmult_le_compat_l.
