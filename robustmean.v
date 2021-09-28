@@ -1481,8 +1481,7 @@ Proof.
   rewrite <- (sqrt_Rsqr (1-eps')).
   rewrite <- (sqrt_Rsqr (8+-eps')).
   repeat rewrite <- sqrt_mult.
-  apply sqrt_le_1_alt.
-  apply Rmult_le_compat.
+  apply/sqrt_le_1_alt/Rmult_le_compat.
   apply Rmult_le_reg_r with (r:=delta).
   lra.
   rewrite Rmult_assoc.
