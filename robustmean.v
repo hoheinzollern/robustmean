@@ -550,8 +550,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
   Proof.
     intros.
     assert (0 <= / Pr P F) as PrPF_pos.
-    apply Rlt_le.
-    apply invR_gt0.
+    apply/Rlt_le/invR_gt0.
     auto.
     assert ( `| `E_[ X | F ] - mu |  =  `| `E ((X `-cst mu) `* Ind F: {RV P -> R}) | / Pr P F ).
     { unfold Rdiv.
