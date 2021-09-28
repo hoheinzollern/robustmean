@@ -1241,8 +1241,7 @@ Proof.
     inversion H2. inversion H3. inversion H3.
     apply FDist.ge0.
     lra.
-    apply Rlt_le.
-    apply Rinv_0_lt_compat.
+    apply/Rlt_le/Rinv_0_lt_compat.
     lra.
     lra.
   }
