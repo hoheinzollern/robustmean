@@ -2,19 +2,17 @@ From mathcomp Require Import all_ssreflect ssralg fingroup perm finalg matrix.
 From mathcomp Require boolp.
 From mathcomp Require Import Rstruct.
 Require Import Reals Lra ROrderedType.
-From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext Rbigop.
-From infotheo Require Import proba fdist.
+From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext.
+From infotheo Require Import Rbigop proba fdist.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-
 Local Open Scope proba_scope.
 Local Open Scope R_scope.
 
 Notation "X `* Y" := (fun x => X x * Y x) : proba_scope.
-
 
 Section sets_functions.
 
@@ -50,290 +48,173 @@ Variables (U : finType) (P : fdist U).
 
 Lemma cEx_EXInd (X : {RV P -> R}) F :
   `E_[X | F] = `E (X `* Ind (A:=U) F : {RV P -> R}) / Pr P F.
-Proof. 
-  unfold Pr. (* need some lemmas to avoid unfolds *)
-  unfold cEx.
-  rewrite -big_distrl /=.
-  congr (_ / _).
-  under eq_bigr=> i _.
-  - rewrite big_distrr.
-    have -> : 
-      \sum_(i0 in finset (preim X (pred1 i)) :&: F) (i * P i0) =
-      \sum_(i0 in finset (preim X (pred1 i)) :&: F)
-       (X i0 * Ind (A:=U) F i0 * P i0).
-    + apply congr_big => // i0.
-      rewrite in_setI /Ind.
-      move/andP => [] /in_preim1 -> ->.
-      by rewrite mulR1.
-    have H1:
-      \sum_(i0 in finset (preim X (pred1 i)) :\: F) X i0 * Ind F i0 * P i0 = 0.
-    (* This should be true because all elements of the sum are 0 *)
-    + rewrite big1 // => i1.
-      rewrite in_setD => /andP [H2 H3].
-      by rewrite /Ind (negbTE H2) mulR0 mul0R.
-    have :
-      \sum_(i0 in finset (preim X (pred1 i))) X i0 * Ind F i0 * P i0 =
-      \sum_(i0 in finset (preim X (pred1 i)) :&: F) X i0 * Ind F i0 * P i0 +
-      \sum_(i0 in finset (preim X (pred1 i)) :\: F) X i0 * Ind F i0 * P i0
-        by apply big_setID.
-    rewrite H1 addR0 => <-.
-    under eq_bigl do rewrite in_preim1'.
-    over.
-  by rewrite -sum_parti_finType.
+Proof.
+rewrite /Pr /cEx (* need some lemmas to avoid unfolds *) -big_distrl /=.
+congr (_ / _).
+under eq_bigr => i _.
+  rewrite big_distrr.
+  have -> :
+    \sum_(i0 in finset (preim X (pred1 i)) :&: F) (i * P i0) =
+    \sum_(i0 in finset (preim X (pred1 i)) :&: F)
+     (X i0 * @Ind U F i0 * P i0).
+    apply congr_big => // i0.
+    rewrite in_setI /Ind => /andP[] /in_preim1 -> ->.
+    by rewrite mulR1.
+  have H1 :
+    \sum_(i0 in finset (preim X (pred1 i)) :\: F) X i0 * Ind F i0 * P i0 = 0.
+  (* This should be true because all elements of the sum are 0 *)
+    rewrite big1 // => i1.
+    rewrite in_setD => /andP [H2 H3].
+    by rewrite /Ind (negbTE H2) mulR0 mul0R.
+  have :
+    \sum_(i0 in finset (preim X (pred1 i))) X i0 * Ind F i0 * P i0 =
+    \sum_(i0 in finset (preim X (pred1 i)) :&: F) X i0 * Ind F i0 * P i0 +
+    \sum_(i0 in finset (preim X (pred1 i)) :\: F) X i0 * Ind F i0 * P i0
+    by apply big_setID.
+  rewrite H1 addR0 => <-.
+  under eq_bigl do rewrite in_preim1'.
+  by over.
+by rewrite -sum_parti_finType.
 Qed.
 
 Lemma sq_RV_ge0 (X : {RV P -> R}) x : 0 <= (X `^2) x.
 Proof. exact: pow2_ge_0. Qed.
 
-Lemma Ex_square_ge0 (X: {RV P -> R}) : 0 <= `E (X `^2).
-Proof. apply/Ex_ge0/sq_RV_ge0. Qed.
+Lemma Ex_square_ge0 (X : {RV P -> R}) : 0 <= `E (X `^2).
+Proof. exact/Ex_ge0/sq_RV_ge0. Qed.
 
-Lemma Ex_square_expansion
-  a b (X Y: {RV P -> R}):
+Lemma Ex_square_expansion a b (X Y : {RV P -> R}):
   `E ((a `cst* X `+ b `cst* Y) `^2) =
   a * a * `E (X `^2) + b * b * `E (Y `^2) + 2 * a * b * `E (X `* Y:{RV P -> R}).
 Proof.
-assert (`E ((a `cst* X `+ b `cst* Y) `^2) = 
-`E ((a * a) `cst* (X `^2) `+ (b * b) `cst* (Y `^2) `+ (2 * a * b) `cst* (X `* Y))).
-apply eq_bigr.
-move => i H.
+suff : `E ((a `cst* X `+ b `cst* Y) `^2) =
+       `E ((a * a) `cst* (X `^2) `+
+       (b * b) `cst* (Y `^2) `+ (2 * a * b) `cst* (X `* Y)).
+  by rewrite !E_add_RV !E_scalel_RV.
+apply eq_bigr => i H.
 unfold ambient_dist, "`cst*", "`+", "`^2", "`o", "^".
 nra.
-repeat rewrite E_add_RV in H.
-repeat rewrite E_scalel_RV in H.
-auto.
 Qed.
 
-Lemma Ex_square_eq0 X:
-(forall x, X x = 0 \/ P x = 0) <-> `E (X `^2: {RV P -> R}) = 0.
+Lemma Ex_square_eq0 X :
+  (forall x, X x = 0 \/ P x = 0) <-> `E (X `^2 : {RV P -> R}) = 0.
 Proof.
-split.
-- unfold Ex.
-  intros.
-  apply psumR_eq0P;
-  intros;
-  unfold ambient_dist, "`^2", "`o", "^";
-  pose proof (H a);
-  inversion H1;
-  nra.
-- intros H.
-  assert (( forall x : U, X x = 0 \/ P x = 0) <-> (forall x : U, (X `^2: {RV P -> R}) x = 0 \/ P x = 0)).
-  split;
-  intros;
-  pose proof (H0 x);
-  inversion H1;
-  unfold "`^2", "`o", "^" in *;
-  try nra.
-  apply H0.
-  assert (forall x : U, x \in U -> (X `^2: {RV P -> R}) x * P x = 0).
-  apply psumR_eq0P.
-  intros.
-  unfold "`^2", "`o", "^".
-  rewrite Rmult_1_r.
-  rewrite <- (Rmult_0_r 0).
-  apply Rmult_le_compat; try nra.
-  apply FDist.ge0.
-  unfold Ex, ambient_dist in H.
-  auto.
-  intros.
-  pose proof (H1 x).
-  rewrite inE in H2.
-  apply mulR_eq0.
-  auto.
+split=> [XP|EX20].
+- rewrite /Ex big1// => u _.
+  have [|->] := XP u; last by rewrite mulR0.
+  by rewrite /sq_RV /comp_RV /= => ->; rewrite !mul0R.
+- have XP : forall x, x \in U -> (X `^2: {RV P -> R}) x * P x = 0.
+    apply: ((psumR_eq0P _).1 EX20).
+    by move=> u _; apply/mulR_ge0; [exact: sq_RV_ge0|exact: FDist.ge0].
+  move=> x.
+  have := XP x.
+  rewrite inE => /(_ erefl) /mulR_eq0[|->]; last by right.
+  by rewrite /sq_RV /comp_RV /= mulR1 => /mulR_eq0[|] ->; left.
 Qed.
 
-Lemma Cauchy_Schwarz_proba
-  (X Y: {RV P -> R}): 
-    Rsqr (`E (X `* Y: {RV P -> R})) <= `E (X `^2) * `E (Y `^2).
+Lemma Cauchy_Schwarz_proba (X Y : {RV P -> R}):
+  Rsqr (`E (X `* Y : {RV P -> R})) <= `E (X `^2) * `E (Y `^2).
 Proof.
-  pose a:=sqrt (`E (Y `^2)).
-  pose b:=sqrt (`E (X `^2)).
-  have H2ab : 2 * a * b * (b * a) = a*a*`E (X `^2) + b*b*`E (Y `^2).
-    rewrite -(Rsqr_sqrt (`E (X `^2))); last exact: Ex_square_ge0.
-    rewrite -(Rsqr_sqrt (`E (Y `^2))); last exact: Ex_square_ge0. 
-    by rewrite -/a -/b /Rsqr; nra.
-  have [a0|a0] := Req_dec a 0.
-    apply sqrt_eq_0 in a0; last exact: Ex_square_ge0.
-    have HY : forall y, Y y = 0 \/ P y = 0 by apply /Ex_square_eq0/a0.
-    have -> : `E (X `* Y: {RV P -> R}) = 0.
-      apply psumR_eq0P => u uU.
-        by case : (HY u) => -> ; rewrite mulR0 ?mul0R; apply leRR.
-      by case : (HY u) => -> ; rewrite mulR0 ?mul0R. 
-    by rewrite Rsqr_0; apply/mulR_ge0; apply Ex_square_ge0.
-
-  have [b0|b0] := Req_dec b 0.
-    apply sqrt_eq_0 in b0; last exact: Ex_square_ge0.
-    have HX : (forall x, X x = 0 \/ P x = 0) by apply /Ex_square_eq0/b0.
-    have -> : `E (X `* Y: {RV P -> R}) = 0.
-      apply psumR_eq0P => u uU.
-        by case : (HX u) => -> ; rewrite ?mulR0 ?mul0R; apply leRR.
-      by case : (HX u) => -> ; rewrite ?mulR0 ?mul0R. 
-    by rewrite Rsqr_0; apply/mulR_ge0; apply Ex_square_ge0.
-
-  have {}a0 : 0 < a (*removes a0 hypothesis and reuse it*)
-    by apply/ltR_neqAle; split; [exact/nesym|exact/sqrt_pos].
-  
-  have {}b0 : 0 < b
-    by apply/ltR_neqAle; split; [exact/nesym|exact/sqrt_pos].
-
-  rewrite -(Rsqr_sqrt (_ * _)); last by apply/mulR_ge0; apply Ex_square_ge0.
-  rewrite sqrt_mult; [|exact: Ex_square_ge0|exact: Ex_square_ge0].
- 
-  apply neg_pos_Rsqr_le.
-    rewrite -/a -/b -(@leR_pmul2r (2 * a * b)); last first.
-      by apply mulR_gt0 => //; apply mulR_gt0.
-    rewrite -subR_ge0 mulNR subR_opp addRC mulRC H2ab. 
-    rewrite (mulRC (`E (X `* Y))) -Ex_square_expansion.
-      (* is Ex_square_expansion really a good lemma? *)
-    by apply Ex_square_ge0.
-
-  {
-    fold a. fold b.
-    apply Rmult_le_reg_l with (r:=2 * a * b).
-    repeat apply Rmult_lt_0_compat; lra.
-    apply Rplus_le_reg_r with (r:=-(2 * a * b * `E (X `* Y:{RV P -> R}))).
-    rewrite Rplus_opp_r.
-    rewrite H2ab.
-    rewrite <- (Rmult_opp_opp b).
-    rewrite Ropp_mult_distr_l.
-    rewrite Ropp_mult_distr_r.
-    rewrite <- Ex_square_expansion.
-    apply Ex_square_ge0.
-  }
+pose a := sqrt (`E (Y `^2)).
+pose b := sqrt (`E (X `^2)).
+have H2ab : 2 * a * b * (b * a) = a * a * `E (X `^2) + b * b * `E (Y `^2).
+  rewrite -(Rsqr_sqrt (`E (X `^2))); last exact: Ex_square_ge0.
+  rewrite -(Rsqr_sqrt (`E (Y `^2))); last exact: Ex_square_ge0.
+  by rewrite -/a -/b /Rsqr; nra.
+have [a0|a0] := Req_dec a 0.
+  apply sqrt_eq_0 in a0; last exact: Ex_square_ge0.
+  have HY : forall y, Y y = 0 \/ P y = 0 by apply/Ex_square_eq0/a0.
+  have -> : `E (X `* Y: {RV P -> R}) = 0.
+    apply psumR_eq0P => u uU.
+      by case : (HY u) => -> ; rewrite mulR0 ?mul0R; apply leRR.
+    by case : (HY u) => -> ; rewrite mulR0 ?mul0R.
+  by rewrite Rsqr_0; apply/mulR_ge0; apply Ex_square_ge0.
+have [b0|b0] := Req_dec b 0.
+  apply sqrt_eq_0 in b0; last exact: Ex_square_ge0.
+  have HX : forall x, X x = 0 \/ P x = 0 by apply /Ex_square_eq0/b0.
+  have -> : `E (X `* Y: {RV P -> R}) = 0.
+    apply psumR_eq0P => u uU.
+      by case : (HX u) => -> ; rewrite ?mulR0 ?mul0R; apply leRR.
+    by case : (HX u) => -> ; rewrite ?mulR0 ?mul0R.
+  by rewrite Rsqr_0; apply/mulR_ge0; apply Ex_square_ge0.
+have {}a0 : 0 < a (*removes a0 hypothesis and reuse it*)
+  by apply/ltR_neqAle; split; [exact/nesym|exact/sqrt_pos].
+have {}b0 : 0 < b
+  by apply/ltR_neqAle; split; [exact/nesym|exact/sqrt_pos].
+rewrite -(Rsqr_sqrt (_ * _)); last by apply/mulR_ge0; apply Ex_square_ge0.
+rewrite sqrt_mult; [|exact: Ex_square_ge0|exact: Ex_square_ge0].
+rewrite -/a -/b.
+apply: neg_pos_Rsqr_le.
+- rewrite -(@leR_pmul2r (2 * a * b)); last first.
+    by apply mulR_gt0 => //; apply mulR_gt0.
+  rewrite -subR_ge0 mulNR subR_opp addRC mulRC H2ab.
+  by rewrite (mulRC (`E (X `* Y))) -Ex_square_expansion; exact: Ex_square_ge0.
+- apply/(@leR_pmul2l (2 * a * b)); first by do 2 apply: mulR_gt0 => //.
+  apply/subR_ge0; rewrite H2ab -(Rmult_opp_opp b) -addR_opp -mulNR -mulRN.
+  by rewrite -Ex_square_expansion; exact: Ex_square_ge0.
 Qed.
 
-
-Lemma I_square F: Ind F = ((Ind F) `^2 : {RV P -> R}).
+Lemma I_square F : Ind F = ((Ind F) `^2 : {RV P -> R}).
 Proof.
-  apply boolp.funext=> x; unfold Ind.
-  by destruct (x \in F) eqn:H0;
-  unfold "`^2", "`o";
-  destruct (x \in F) eqn:H1; lra.
+rewrite boolp.funeqE /Ind => x.
+by rewrite /sq_RV /comp_RV /=; case: ifPn => xF /=; rewrite ?(mulR0,mulR1).
 Qed.
 
-Lemma I_double F: Ind F = ((Ind F) `* (Ind F) : {RV P -> R}).
+Lemma I_double F : Ind F = ((Ind F) `* (Ind F) : {RV P -> R}).
 Proof.
-  apply boolp.funext=> x; unfold Ind.
-  by case : ifPn => H0;
-  unfold "`o";
-  destruct (x \in F) eqn:H1; lra.
+by rewrite [LHS]I_square boolp.funeqE => u; rewrite /sq_RV /comp_RV mulRR.
 Qed.
 
 (*
 Lemma I_mult_one F : (Ind (A:=U) F : {RV P -> R}) `* 1 = Ind (A:=U) F.
 (F: {RV P -> R}): (Ind (A:=U) F: {RV P -> R}) `* 1 = (Ind (A:=U) F : {RV P -> R}). *)
 
-(*variance >= 0*)
 Lemma variance_nonneg (X : {RV P -> R}) : 0 <= `V X.
 Proof.
-  unfold "`V", "`E" at 1. unfold ambient_dist. 
-  apply sumR_ge0. intros.
-  unfold "`^2", "`o", "^".
-  apply mulR_ge0.
-  rewrite Rmult_1_r.
-  apply Rle_0_sqr. auto. 
+by apply: sumR_ge0 => u _; apply mulR_ge0 => //; apply: sq_RV_ge0.
 Qed.
 
 (*prove A1 and A3 for later use*)
-Lemma cEx_var (X : {RV P -> R}) F : 0 < Pr P F  -> 
+Lemma cEx_var (X : {RV P -> R}) F : 0 < Pr P F  ->
   `| `E_[ X | F ] - `E X | <= sqrt (`V X / Pr P F ).
 Proof.
-  intros.
-  assert (0 <= / Pr P F) as PrPF_pos.
-  apply/Rlt_le/invR_gt0.
-  auto.
-  assert ( Rabs ( `E_[ X | F ] - `E X )  =  Rabs (`E ((X `-cst `E X) `* Ind F: {RV P -> R})) / Pr P F ).
-  { unfold Rdiv.
-    rewrite <- (Rabs_pos_eq (/Pr P F)).
-    rewrite <- (Rabs_mult).
-    apply congr1.
-    assert (((X `-cst `E X) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- `E X `cst* Ind (A:=U) F : {RV P -> R})).
-    apply boolp.funext=> u.
-    unfold "`-", "`cst*", "`-cst".
-    lra.
-    rewrite H0.
-    rewrite E_sub_RV.
-    rewrite Rmult_plus_distr_r.
-    rewrite E_scalel_RV.
-    rewrite E_Ind.
-    rewrite Ropp_mult_distr_l_reverse.
-    rewrite Rmult_assoc.
-    rewrite Rinv_r.
-    rewrite Rmult_1_r.
-    apply/Rplus_eq_compat_r/cEx_EXInd.
-    lra.
-    apply PrPF_pos.
-  }
-  rewrite H0.
-  assert (0 <= (`E ((X `-cst `E X) `^2 `* Ind (A:=U) F: {RV P -> R}) * `E (Ind (A:=U) F:{RV P -> R}))).
-  {
-    apply mulR_ge0.
-    apply Ex_ge0.
-    intros.
-    apply mulR_ge0.
-    apply pow2_ge_0.
-    unfold Ind.
-    case : ifPn.
-    auto.
-    auto.
-    rewrite E_Ind.
-    auto.
-  }
-  apply leR_trans with (y := sqrt ( mknonnegreal (`E (((X `-cst `E X) `^2) `* Ind (A:=U) F: {RV P -> R}) * `E (Ind (A:=U) F:{RV P -> R})) H1) / Pr P F).
-  { unfold Rdiv.  
-    apply Rmult_le_compat_r.
-    apply PrPF_pos.
-    rewrite <- sqrt_Rsqr_abs.
-    apply sqrt_le_1_alt.
-    simpl.
-    assert ( (X `-cst `E X ) `* ((Ind (A:=U) F : {RV P -> R}) )  =
-    (X `-cst `E X)  `*  (Ind (A:=U) F : {RV P -> R})  `*  (Ind (A:=U) F : {RV P -> R}) ).
-    - apply boolp.funext=> u. unfold "`^2". simpl. unfold "`o".
-    unfold Ind.
-    simpl. 
-    case : ifPn. lra. lra.
-    
-    rewrite H2. 
-    - assert (((X `-cst `E X) `^2) `* Ind (A:=U) F =
-    (((X `-cst `E X) `* Ind (A:=U) F) `^2: {RV P -> R})).
-    rewrite I_square.
-    apply boolp.funext=> u.
-    rewrite -> I_square at 1.
-    unfold "`^2". simpl. 
-    unfold "`o". lra.
-    
-    - rewrite H3.
-    rewrite -> I_square at 1.
-    
-    apply Cauchy_Schwarz_proba.
-  }
-  { unfold Rdiv. unfold nonneg. 
-    rewrite <- (sqrt_Rsqr (/ Pr P F)).
-    rewrite <- sqrt_mult_alt.
-
-    - apply sqrt_le_1_alt.
-    unfold "`V".
-    rewrite sqrt_Rsqr. unfold Rsqr. rewrite <- Rmult_assoc.
-    apply Rmult_le_compat_r.
-    apply PrPF_pos.
-    rewrite E_Ind. rewrite Rmult_assoc.
-    rewrite Rinv_r. rewrite Rmult_1_r.
-
-    - unfold "`E". apply leq_sumR. intros.
-    unfold Ind.   
-    destruct (i \in F).
-    unfold ambient_dist. lra.
-
-    - unfold ambient_dist. apply Rmult_le_compat_r.
-    apply FDist.ge0.
-    rewrite Rmult_0_r.
-    unfold "`^2". unfold "`o".
-    apply pow2_ge_0.
-    lra.
-    apply PrPF_pos.
-    apply H1.
-    apply PrPF_pos.
-  }
+move=> PF_gt0.
+have PrPF_pos : 0 <= / Pr P F by apply/Rlt_le/invR_gt0.
+have -> : `| `E_[ X | F ] - `E X | =
+         `| (`E ((X `-cst `E X) `* Ind F: {RV P -> R})) | / Pr P F.
+  rewrite /Rdiv -(Rabs_pos_eq (/Pr P F)); last exact/PrPF_pos.
+  rewrite -(Rabs_mult);  congr (`| _ |).
+  have -> : (X `-cst `E X) `* @Ind U F =
+           (X `* @Ind U F `- `E X `cst* @Ind U F : {RV P -> R}).
+    by apply boolp.funext => u; unfold "`-", "`cst*", "`-cst"; lra.
+  rewrite E_sub_RV mulRDl E_scalel_RV E_Ind mulNR -mulRA.
+  rewrite Rinv_r ?mulR1; last exact/eqP/gtR_eqF.
+  exact/Rplus_eq_compat_r/cEx_EXInd.
+have H0 : 0 <= `E ((X `-cst `E X) `^2 `* @Ind U F : {RV P -> R}) *
+              `E (@Ind U F : {RV P -> R}).
+  apply: mulR_ge0; last by rewrite E_Ind; exact: Pr_ge0.
+  apply: Ex_ge0 => u; apply: mulR_ge0; [exact: sq_RV_ge0|].
+  by rewrite /Ind; case: ifPn.
+apply (@leR_trans (sqrt (mknonnegreal (`E (((X `-cst `E X) `^2) `*
+                                          @Ind U F : {RV P -> R}) *
+                                       `E (@Ind U F : {RV P -> R})) H0) / Pr P F)).
+  rewrite /Rdiv; apply leR_pmul2r; first exact/invR_gt0.
+  rewrite -sqrt_Rsqr_abs; apply sqrt_le_1_alt => /=.
+  have -> : (X `-cst `E X ) `* ((@Ind U F : {RV P -> R})) =
+      (X `-cst `E X) `* (@Ind U F : {RV P -> R}) `* (@Ind U F : {RV P -> R}).
+    by rewrite [in LHS]I_double boolp.funeqE => x; rewrite mulRA.
+  have -> : ((X `-cst `E X) `^2) `* @Ind U F =
+      (((X `-cst `E X) `* @Ind U F) `^2 : {RV P -> R}).
+    rewrite I_square; apply boolp.funext => u.
+    by rewrite {1}I_square /sq_RV /comp_RV /=; lra.
+  by rewrite -> I_square at 1; exact: Cauchy_Schwarz_proba.
+rewrite /nonneg /Rdiv -(sqrt_Rsqr (/ Pr P F)) // -sqrt_mult_alt //.
+apply sqrt_le_1_alt.
+rewrite /Var sqrt_Rsqr // /Rsqr mulRA leR_pmul2r; last exact/invR_gt0.
+rewrite E_Ind -mulRA Rinv_r ?mulR1; last exact/eqP/gtR_eqF.
+apply leq_sumR => u uU.
+rewrite /Ind; case: (u \in F); first by unfold ambient_dist; lra.
+by rewrite mulR0 mul0R; apply: mulR_ge0; [exact: sq_RV_ge0|exact: FDist.ge0].
 Qed.
 
 Lemma cEx_Inv (X: {RV P -> R}) F :
@@ -349,7 +230,7 @@ Proof.
   rewrite (Rmult_comm (Pr P F) ((1 - Pr P F))).
   rewrite (Rmult_assoc ((1 - Pr P F)) (Pr P F) (/ Pr P F)).
   rewrite -> (Rinv_r (Pr P F)).
-   * rewrite Rmult_1_r.
+   * rewrite mulR1.
   
 
   (*If `|`E_[X | F] - `E X| is positive, 
@@ -398,7 +279,7 @@ Proof.
             (rewrite Rmult_comm;
             rewrite Rmult_assoc;
             rewrite Rinv_l;
-            try rewrite Rmult_1_r).
+            try rewrite mulR1).
             unfold Ex.
 
             rewrite <- big_split.
@@ -506,7 +387,7 @@ Proof.
 
     repeat rewrite Rmult_assoc;
     rewrite Rinv_l.
-    rewrite Rmult_1_r;
+    rewrite mulR1;
     apply Rmult_le_reg_r with (r := (Pr P F * Pr P F)). nra.
     
     repeat rewrite Rmult_assoc;
@@ -569,7 +450,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       rewrite Ropp_mult_distr_l_reverse.
       rewrite Rmult_assoc.
       rewrite Rinv_r.
-      rewrite Rmult_1_r.
+      rewrite mulR1.
       apply/Rplus_eq_compat_r/cEx_EXInd.
       lra.
       apply PrPF_pos.
@@ -627,7 +508,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       apply Rmult_le_compat_r.
       apply PrPF_pos.
       rewrite E_Ind. repeat rewrite Rmult_assoc.
-      rewrite Rinv_r. rewrite Rinv_l. repeat rewrite Rmult_1_r.
+      rewrite Rinv_r. rewrite Rinv_l. repeat rewrite mulR1.
   
       - unfold "`E".
       apply leq_sumR.
@@ -688,7 +569,7 @@ Proof.
   repeat rewrite Rmult_plus_distr_r.
   repeat rewrite Rmult_assoc.
   repeat rewrite Rinv_l.
-  repeat rewrite Rmult_1_r.
+  repeat rewrite mulR1.
   rewrite <- Rabs_Ropp.
   apply congr1.
   apply Rplus_eq_reg_r with (r := 
@@ -717,7 +598,7 @@ Proof.
   rewrite addR0.
   rewrite Rmult_assoc.
   rewrite Rinv_l.
-  rewrite Rmult_1_r.
+  rewrite mulR1.
   apply Rplus_eq_reg_r with (r:= `E (X `* Ind (A:=U) G: {RV P -> R})).
   rewrite Rplus_assoc.
   rewrite Rplus_opp_l.
@@ -766,7 +647,7 @@ Proof.
   apply sumR_ge0. intros.
   unfold "`^2", "`o", "^".
   apply mulR_ge0.
-  rewrite Rmult_1_r.
+  rewrite mulR1.
   apply mulR_ge0.
   apply mulR_ge0.
   apply Rle_0_sqr.
@@ -797,7 +678,7 @@ Proof.
       apply Rinv_0_lt_compat; auto.
       rewrite Rmult_assoc.
       rewrite Rinv_r.
-      rewrite Rmult_1_r.
+      rewrite mulR1.
       auto.
       lra.
     }
@@ -811,7 +692,7 @@ Proof.
       apply Rmult_le_compat_r with (r:= Pr P G) in H0.
       rewrite Rmult_assoc in H0.
       rewrite Rinv_l in H0.
-      rewrite Rmult_1_r in H0.
+      rewrite mulR1 in H0.
       all: nra.
     }
     destruct (Rle_or_lt delta (1/2)).
@@ -831,7 +712,7 @@ Proof.
       delta * (Pr P G * / Pr P G) * (Pr P F * / Pr P F)).
       lra.
       rewrite H4.
-      repeat rewrite Rinv_r; repeat rewrite Rmult_1_r.
+      repeat rewrite Rinv_r; repeat rewrite mulR1.
       rewrite Rmult_1_l.
       rewrite Rinv_l.
       rewrite Rmult_1_l.
@@ -879,7 +760,7 @@ Proof.
       nra.
       rewrite Rmult_assoc.
       rewrite Rinv_l.
-      rewrite Rmult_1_r.
+      rewrite mulR1.
       rewrite Rmult_assoc.
       rewrite (Rmult_comm (/ _)).
       rewrite <-Rmult_assoc.
@@ -888,11 +769,11 @@ Proof.
       nra. lra.
       rewrite (Rmult_assoc _ (/ _)).
       rewrite Rinv_l.
-      rewrite Rmult_1_r.
+      rewrite mulR1.
       apply Rmult_le_compat_r with (r:= Pr P G) in H0.
       rewrite Rmult_assoc in H0.
       rewrite Rinv_l in H0.
-      rewrite Rmult_1_r in H0.
+      rewrite mulR1 in H0.
       rewrite (Rmult_comm (Pr P G)).
       rewrite Rmult_assoc.
       apply Rmult_le_compat.
@@ -934,7 +815,7 @@ Proof.
       rewrite <- Rmult_assoc.
       rewrite (Rmult_assoc (1 - delta)).
       rewrite Rinv_r.
-      rewrite Rmult_1_r.
+      rewrite mulR1.
       rewrite (Rmult_comm 2).
       repeat rewrite Rmult_assoc.
       apply Rmult_le_compat_l.
@@ -1017,7 +898,7 @@ Proof.
     rewrite Rmult_assoc.
     rewrite Rinv_l.
     rewrite Rmult_1_l.
-    rewrite Rmult_1_r.
+    rewrite mulR1.
     rewrite <- Pr_union_disj.
     apply congr1.
     rewrite <- setDUl.
@@ -1051,7 +932,7 @@ Proof.
     rewrite Rmult_assoc.
     rewrite Rinv_l.
     rewrite Rmult_1_l.
-    rewrite Rmult_1_r.
+    rewrite mulR1.
     apply/Pr_incl/subsetDr.
     rewrite Pr_of_cplt.
     lra.
@@ -1068,7 +949,7 @@ Proof.
     lra.
     rewrite (Rmult_assoc _ (/ _)).
     rewrite Rinv_l.
-    rewrite Rmult_1_r.
+    rewrite mulR1.
     rewrite Rmult_plus_distr_r.
     rewrite Ropp_mult_distr_l.
     rewrite (Rmult_assoc _ (/ _)).
@@ -1080,7 +961,7 @@ Proof.
     lra.
     repeat rewrite (Rmult_assoc _ (/_)).
     rewrite Rinv_l.
-    repeat rewrite Rmult_1_r.
+    repeat rewrite mulR1.
     lra.
     lra.
   }
@@ -1109,7 +990,7 @@ Proof.
     rewrite Ropp_mult_distr_l.
     rewrite (Rmult_assoc _ (/ _)).
     rewrite Rinv_l.
-    rewrite Rmult_1_r.
+    rewrite mulR1.
     lra.
     lra.
   }
@@ -1166,7 +1047,7 @@ Proof.
   ) as HEXbad_bound.
   {
     intros Pr_bd.
-    rewrite <- (Rmult_1_r mu).
+    rewrite <- (mulR1 mu).
     rewrite <- (Ind_one (bad :\: drop)).
     rewrite cEx_EXInd.
     rewrite cEx_EXInd.
@@ -1195,7 +1076,7 @@ Proof.
     auto.
     rewrite Rmult_assoc.
     rewrite Rinv_l.
-    rewrite Rmult_1_r.
+    rewrite mulR1.
     apply Rle_trans with (r2 := \sum_(i in U) `|((X i - mu) * Ind (A:=U) (bad :\: drop) i * P i)|).
     apply leR_sumR_Rabs.
     unfold Pr.
@@ -1228,7 +1109,7 @@ Proof.
     apply FDist.ge0.
     unfold Ind.
     rewrite H2.
-    rewrite Rmult_1_r.
+    rewrite mulR1.
     rewrite in_setD in H2.
     move: H2 => /andP [H2 H3].
     unfold "\notin" in H2.
@@ -1318,7 +1199,7 @@ Proof.
       unfold Rdiv.
       rewrite Rmult_assoc.
       rewrite Rinv_r.
-      rewrite Rmult_1_r.
+      rewrite mulR1.
       repeat rewrite cEx_EXInd.
       rewrite H0.
       unfold Rdiv.
@@ -1355,7 +1236,7 @@ Proof.
     repeat rewrite cEx_EXInd.
     repeat rewrite Rmult_assoc.
     repeat rewrite Rinv_l.
-    repeat rewrite Rmult_1_r.
+    repeat rewrite mulR1.
     unfold "`E".
     rewrite <- big_split.
     apply congr_big.
@@ -1379,7 +1260,7 @@ Proof.
   rewrite HEX_not_drop.
   assert (eps' + Pr P (good :\: drop) / Pr P (~: drop) = 1).
   nra.
-  rewrite <- (Rmult_1_r mu).
+  rewrite <- (mulR1 mu).
   rewrite <- H0.
   rewrite Rmult_plus_distr_l.
   unfold Rdiv at 1.
@@ -1416,7 +1297,7 @@ Proof.
     repeat rewrite Rmult_0_r.
     repeat rewrite Rplus_0_l.
     repeat rewrite Rminus_0_r.
-    repeat rewrite Rmult_1_r.
+    repeat rewrite mulR1.
     auto.
   }
   destruct (Req_dec eps' 1).
@@ -1426,7 +1307,7 @@ Proof.
     repeat rewrite Rplus_opp_r.
     repeat rewrite Rmult_0_r.
     repeat rewrite addR0.
-    repeat rewrite Rmult_1_r.
+    repeat rewrite mulR1.
     apply HEXbad_bound.
     unfold eps' in n.
     unfold Rdiv in n.
@@ -1447,7 +1328,7 @@ Proof.
     repeat rewrite Rmult_0_r.
     repeat rewrite Rplus_0_l.
     repeat rewrite Rminus_0_r.
-    repeat rewrite Rmult_1_r.
+    repeat rewrite mulR1.
     apply HEXgood_bound.
   }
   apply Rplus_le_compat;
@@ -1496,7 +1377,7 @@ Proof.
   lra.
   rewrite Rmult_assoc.
   rewrite Rinv_l.
-  rewrite Rmult_1_r.
+  rewrite mulR1.
   apply Rmult_le_reg_l with (r:=eps).
   lra.
   repeat rewrite <- Rmult_assoc.
@@ -1510,7 +1391,7 @@ Proof.
   rewrite Ropp_mult_distr_l.
   rewrite (Rmult_assoc _ (/ _)).
   rewrite Rinv_l.
-  rewrite Rmult_1_r.
+  rewrite mulR1.
   rewrite Rmult_assoc.
   rewrite Rmult_plus_distr_r.
   rewrite Ropp_plus_distr.
