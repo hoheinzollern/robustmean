@@ -217,106 +217,81 @@ rewrite /Ind; case: (u \in F); first by unfold ambient_dist; lra.
 by rewrite mulR0 mul0R; apply: mulR_ge0; [exact: sq_RV_ge0|exact: FDist.ge0].
 Qed.
 
+Lemma cEx_cptl (X: {RV P -> R}) F:
+  0 < Pr P F -> Pr P F < 1 ->
+    `E_[X | F] * Pr P F + `E_[X | (~: F)] * Pr P (~: F) = `E X.
+Proof.
+  move => PrFgt0 PrFlt1.
+  repeat rewrite cEx_EXInd.
+  unfold Rdiv.
+  repeat rewrite big_distrl.
+  rewrite -big_split.
+  apply congr_big; auto.
+  move => i HiU. simpl.
+  unfold "`p_", Ind.
+  repeat rewrite -mulRA.
+  repeat rewrite mulVR.
+  repeat rewrite mulR1.
+  rewrite in_setC.
+  destruct (i \in F); simpl; lra.
+  all: apply Pr_gt0; try rewrite Pr_of_cplt; lra.
+Qed.
+
+Lemma cEx_Inv_int (X: {RV P -> R}) F:
+0 < Pr P F -> Pr P F < 1 ->
+  Pr P F * (`E_[X | F] - `E X) = Pr P (~: F) * - (`E_[X | (~: F)] - `E X).
+Proof.
+  move => H H0.
+  rewrite mulRDr oppRD mulRDr oppRK mulRN mulRN.
+  repeat rewrite cEx_EXInd.
+  (repeat have ->: forall x y, x != 0 -> x * (y / x) = y
+  by move => x y Hz; rewrite mulRC -mulRA mulVR; last by []; rewrite mulR1);
+  try apply Pr_gt0; try rewrite Pr_of_cplt; try lra.
+  apply Rplus_eq_reg_r with (r:= Pr P F * `E X).
+  rewrite -addRA Rplus_opp_l addR0 -addRA addRC.
+  apply Rplus_eq_reg_r with (r:=`E (X `* Ind (~: F):{RV P -> R})).
+  rewrite -addRA Rplus_opp_l addR0 -big_split.
+  rewrite mulRDl -addRA mulNR Rplus_opp_l addR0 mul1R.
+  apply congr_big; auto.
+  move => i HiU. simpl.
+  unfold "`p_".
+  rewrite -mulRDl.
+  congr (_ * _).
+  unfold Ind.
+  rewrite in_setC.
+  elim (i \in F); simpl; lra.
+Qed.
+
 Lemma cEx_Inv (X: {RV P -> R}) F :
   0 < Pr P F -> Pr P F < 1 ->
   `| `E_[X | F] - `E X| = (1 - Pr P F) / Pr P F * `| `E_[X | (~: F)] - `E X|.
 Proof.
-  intros.
-  
-  apply Rmult_eq_reg_l with (r := (Pr P F)).
-  - rewrite <- Rmult_assoc.
-  rewrite divRE.
-  rewrite <- Rmult_assoc.
-  rewrite (Rmult_comm (Pr P F) ((1 - Pr P F))).
-  rewrite (Rmult_assoc ((1 - Pr P F)) (Pr P F) (/ Pr P F)).
-  rewrite -> (Rinv_r (Pr P F)).
-   * rewrite mulR1.
-  
-
-  (*If `|`E_[X | F] - `E X| is positive, 
-  then `|`E_[X | (~: F)] - `E X| is negative and vice versa*)
-  rewrite <- (Rabs_pos_eq (Pr P F)) at 1.
-  rewrite <- (Rabs_pos_eq (1 - Pr P F)).
-  rewrite <- Rabs_mult. rewrite <- Rabs_mult.
-  rewrite <- Rabs_Ropp.
-  apply congr1. (*injectivity*)
-
-  (*- (Pr P F * (`E_[X | F] - `E X)) = (1 - Pr P F) * (`E_[X | (~: F)] - `E X)*)
-  apply Rmult_eq_reg_r with (r := -1).
-  rewrite mulRN1. rewrite mulRN1.
-  rewrite Ropp_involutive.
-
-       rewrite Ropp_mult_distr_l.
-       rewrite <- Pr_of_cplt.
-       rewrite Rmult_minus_distr_l.
-       rewrite Rmult_minus_distr_l.
-       rewrite (Ropp_mult_distr_l_reverse (Pr P (~: F)) (`E X)).
-       rewrite Rmult_comm. 
-       rewrite (Rmult_comm (Pr P F ) (`E X ) ).
-       
-       rewrite -> Pr_of_cplt at 2.
-       rewrite Rmult_minus_distr_r.
-       rewrite Rmult_1_l.
-       rewrite (Rmult_comm (Pr P F) (`E X ) ).
-       rewrite Ropp_minus_distr.
-       rewrite subRB.
-       rewrite Rplus_comm. 
-       rewrite <- addR_opp. rewrite <- addR_opp.
-       rewrite Ropp_mult_distr_r.
-       rewrite <- Rplus_assoc.
-       apply Rplus_eq_compat_r.
-       
-       rewrite mulNR.
-       rewrite addR_opp.
-       rewrite <- (Rplus_eq_reg_r (Pr P (~: F) * `E_[X | (~: F)])   (`E_[X | F] * Pr P F)  ) .
-        *** lra.
-        *** rewrite Rplus_assoc.
-            rewrite (Rplus_opp_l (Pr P (~: F) * `E_[X | (~: F)]) ).
-            rewrite addR0.
-            rewrite Rmult_comm.
-            repeat rewrite cEx_EXInd.
-            repeat
-            (rewrite Rmult_comm;
-            rewrite Rmult_assoc;
-            rewrite Rinv_l;
-            try rewrite mulR1).
-            unfold Ex.
-
-            rewrite <- big_split.
-            unfold ambient_dist.
-            (*Search (\big[_/_]_(_ <- _) _ = \big[_/_]_(_ <- _) _).*)
-            apply congr_big.
-            auto.
-            auto.
-            intros.
-            (*unfold Radd_comoid.*)
-            (*unfold Ind. simpl.*)
-            
-            rewrite (Rmult_comm (X i) (if i \in F then R1 else R0)).
-            rewrite (Rmult_comm (X i) (if i \in ~: F then R1 else R0)).
-            rewrite Rmult_assoc.
-            rewrite Rmult_assoc. 
-            rewrite Rmult_comm.
-            rewrite (Rmult_comm (if i \in ~: F then R1 else R0)).
-            rewrite <- (Rmult_plus_distr_l (X i * P i)).
-            simpl.
-            (*apply FDist.f1.*)
-            
-            (*Search (_ \in ~: _ ).*)
-            rewrite in_setC.
-            unfold "\notin".
-
-            case : ifPn.
-            rewrite addR0. lra.
-            lra.
-                  + rewrite Pr_of_cplt. lra. 
-                  + (*Pr P F <> 0*) lra.
-
-      ** (*-1 <> 0*) lra.
-      ** (*0 <= 1 - Pr P F*) lra.
-      ** (*0 <= Pr P F*) lra.
-    * (*Pr P F <> 0*) lra.
-  - (*Pr P F <> 0*) lra.
+  move => H H0.
+  have PrF_ne0: Pr P F <> 0 by lra.
+  apply (eqR_mul2l PrF_ne0).
+  rewrite mulRA.
+  have ->: Pr P F * ((1 - Pr P F) / Pr P F) = 1 - Pr P F.
+  rewrite mulRC -mulRA mulVR; last by apply Pr_gt0. by rewrite mulR1.
+  rewrite -Pr_of_cplt.
+  have: 0 <= `E_[X | F] - `E X \/ `E_[X | F] - `E X < 0 by apply Rle_or_lt.
+  case => [Hdiff_ge0|Hdiff_lt0].
+  - rewrite geR0_norm; last by [].
+    rewrite cEx_Inv_int; try lra.
+    rewrite leR0_norm. auto.
+    apply Rmult_le_compat_l with (r:= Pr P F) in Hdiff_ge0; last lra.
+    rewrite mulR0 in Hdiff_ge0.
+    rewrite cEx_Inv_int in Hdiff_ge0; try lra.
+    rewrite -(Rmult_0_r (Pr P (~:F))) in Hdiff_ge0.
+    apply Rmult_le_reg_l in Hdiff_ge0; last rewrite Pr_of_cplt; lra.
+  - rewrite ltR0_norm; last by [].
+    rewrite mulRN cEx_Inv_int; try lra.
+    rewrite mulRN oppRK.
+    rewrite gtR0_norm. auto.
+    apply Rmult_lt_compat_l with (r:= Pr P F) in Hdiff_lt0; last lra.
+    rewrite mulR0 in Hdiff_lt0.
+    rewrite cEx_Inv_int in Hdiff_lt0; try lra.
+    rewrite -(Rmult_0_r (Pr P (~:F))) in Hdiff_lt0.
+    apply Rmult_lt_reg_l in Hdiff_lt0; last rewrite Pr_of_cplt; lra.
 Qed.
 
 Lemma resilience (delta: R) (X : {RV P -> R}) F:
