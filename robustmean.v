@@ -46,6 +46,9 @@ Section probability.
 
 Variables (U : finType) (P : fdist U).
 
+Lemma Ind_ge0 (X : {set U}) (x : U) : 0 <= Ind X x.
+Proof. by rewrite /Ind; case: ifPn. Qed.
+
 Lemma cEx_EXInd (X : {RV P -> R}) F :
   `E_[X | F] = `E (X `* Ind (A:=U) F : {RV P -> R}) / Pr P F.
 Proof.
@@ -408,57 +411,44 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
     have PrPF_pos : 0 <= / Pr P F. 
      by apply/Rlt_le/invR_gt0.
     
-    have H1 : ( `| `E_[ X | F ] - mu |  =  `| `E ((X `-cst mu) `* Ind F: {RV P -> R}) | / Pr P F ).
-     unfold Rdiv.
-      rewrite -(Rabs_pos_eq (/Pr P F)).
-       rewrite -(Rabs_mult).
+    have -> : ( `| `E_[ X | F ] - mu |  =  `| `E ((X `-cst mu) `* Ind F: {RV P -> R}) | / Pr P F ).
+     rewrite divRE.
+      rewrite -(geR0_norm (/Pr P F)) //.
+       rewrite -normRM.
        apply congr1.
-       have H1 :  ((X `-cst mu) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- mu `cst* Ind (A:=U) F : {RV P -> R}).
+       have -> :  ((X `-cst mu) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- mu `cst* Ind (A:=U) F : {RV P -> R}).
         apply boolp.funext=> u.
-        unfold "`-", "`cst*", "`-cst".
+        rewrite /sub_RV /scalel_RV /trans_min_RV.
         lra.
-       rewrite H1.
-       rewrite E_sub_RV.
-       rewrite Rmult_plus_distr_r.
-       rewrite E_scalel_RV.
-       rewrite E_Ind.
-       rewrite Ropp_mult_distr_l_reverse.
-       rewrite Rmult_assoc.
-       rewrite Rinv_r.
-        rewrite mulR1.
-        by apply/Rplus_eq_compat_r/cEx_EXInd.
-       lra.
-     by apply PrPF_pos.
-    
-    rewrite H1.
+       rewrite E_sub_RV mulRDl E_scalel_RV E_Ind mulNR
+               -mulRA mulRV ?gtR_eqF // mulR1.
+       by apply/Rplus_eq_compat_r/cEx_EXInd.
     have H2 : (0 <= (`E ((X `-cst mu) `^2 `* Ind (A:=U) F: {RV P -> R}) * `E (Ind (A:=U) F:{RV P -> R}))).
       apply mulR_ge0.
-       apply Ex_ge0.
-       intros.
-       apply mulR_ge0.
-        by apply pow2_ge_0.
-       unfold Ind.
-       case : ifPn.
-        by auto.
-       by auto.
-      rewrite E_Ind.
-      by auto.
-    
-    apply leR_trans with (y := sqrt ( mknonnegreal (`E (((X `-cst mu) `^2) `* Ind (A:=U) F: {RV P -> R}) * `E (Ind (A:=U) F:{RV P -> R})) H2) / Pr P F).
+       apply Ex_ge0 => u.
+       by apply mulR_ge0; [apply pow2_ge_0 | apply Ind_ge0].
+      by rewrite E_Ind.
+    pose y :=
+      sqrt (
+            (`E (((X `-cst mu) `^2)
+                   `* Ind (A:=U) F: {RV P -> R})
+             * `E (Ind (A:=U) F:{RV P -> R}))
+            )
+           / Pr P F.
+    apply leR_trans with (y := y).
     { unfold Rdiv.  
       apply Rmult_le_compat_r.
       apply PrPF_pos.
       rewrite -sqrt_Rsqr_abs.
       apply sqrt_le_1_alt.
       simpl.
-      assert ( (X `-cst mu ) `* ((Ind (A:=U) F : {RV P -> R}) )  =
-      (X `-cst mu)  `*  (Ind (A:=U) F : {RV P -> R})  `*  (Ind (A:=U) F : {RV P -> R}) ).
+      have H1: ( (X `-cst mu ) `* ((Ind (A:=U) F : {RV P -> R}) )  =
+      (X `-cst mu)  `*  (Ind (A:=U) F : {RV P -> R})  `*  (Ind (A:=U) F : {RV P -> R}) :> {RV (P) -> (R)}).
       - apply boolp.funext=> u. rewrite /sq_RV/comp_RV/=.
       unfold Ind.
       simpl. 
       case : ifPn. lra. lra.
-      
-      rewrite H3.
+      rewrite H1.
       - assert (((X `-cst mu) `^2) `* Ind (A:=U) F =
       (((X `-cst mu) `* Ind (A:=U) F) `^2: {RV P -> R})).
       rewrite I_square.
@@ -466,53 +456,30 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       rewrite -> I_square at 1.
       rewrite /sq_RV/comp_RV/=.
       lra.
-      
-      - rewrite H4.
+      - rewrite H3.
       rewrite -> I_square at 1.
-      
       apply Cauchy_Schwarz_proba.
     }
-    { unfold Rdiv. unfold nonneg. 
-      rewrite -(sqrt_Rsqr (/ Pr P F)).
-      rewrite -sqrt_mult_alt.
-  
-      - apply sqrt_le_1_alt.
-      unfold var, cVar. rewrite cEx_EXInd.
-      rewrite sqrt_Rsqr. unfold Rsqr. rewrite -Rmult_assoc.
-      apply Rmult_le_compat_r.
-      apply PrPF_pos.
-      rewrite E_Ind. repeat rewrite Rmult_assoc.
-      rewrite Rinv_r. rewrite Rinv_l. repeat rewrite mulR1.
-  
-      - unfold "`E".
-      apply leq_sumR.
-      intros.
-      unfold Ind, ambient_dist, mu.
+    { 
+      rewrite /y !divRE.
+      rewrite -(sqrt_Rsqr (/ Pr P F)) //.
+      rewrite -sqrt_mult_alt //.
+      apply sqrt_le_1_alt.
+      rewrite /var /cVar cEx_EXInd.
+      rewrite sqrt_Rsqr /Rsqr // mulRA.
+      apply leR_wpmul2r; first by apply PrPF_pos.
+      rewrite E_Ind -!mulRA mulRV ?gtR_eqF // mulVR ?mulR1;
+        last by rewrite ?gtR_eqF //; apply/(ltR_leR_trans H)/Pr_incl.
+      apply leq_sumR => i iU.
+      rewrite /Ind /ambient_dist /mu.
+      apply leR_wpmul2r => //.
+      apply leR_wpmul2l; first exact: sq_RV_ge0.
       case : ifPn => HiF.
-      assert (i \in G) as HiG.
-      rewrite -sub1set.
-      apply: subset_trans; last exact H0.
-      rewrite sub1set.
-      auto.
-
-      rewrite HiG.
-      nra.
-      destruct (i \in G);
-      apply Rmult_le_compat_r;
-      try apply FDist.ge0;
-      apply Rmult_le_compat_l;
-      try (rewrite /sq_RV/comp_RV/=; 
-      apply pow2_ge_0);
-      try nra.
-      assert (Pr P F <= Pr P G).
-      apply Pr_incl.
-      auto.
-      lra.
-      lra.
-      apply/Rlt_le/Rinv_0_lt_compat.
-      lra.
-      auto.
-      auto.
+      have -> // : i \in G.
+        rewrite -sub1set.
+        apply: subset_trans; last exact H0.
+        by rewrite sub1set.
+      by case (i \in G).
     }
   Qed. 
 
