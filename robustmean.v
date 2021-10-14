@@ -308,8 +308,8 @@ Proof.
     apply Rmult_le_compat_l.
     apply variance_nonneg. 
 
-    rewrite <- Rmult_1_l at 1.
-    rewrite <- Rmult_assoc. 
+    rewrite -Rmult_1_l at 1.
+    rewrite -Rmult_assoc. 
     apply leR_pmul; try (apply/Rlt_le/invR_gt0); try lra.
     apply leR_inv. assumption. 
     lra.
@@ -327,15 +327,15 @@ Proof.
     
     - (*(1 - Pr P F) / Pr P F * sqrt (`V X / Pr P (~: F)) <=
     sqrt (`V X * 2 * (1 - delta) / delta)*) 
-    rewrite <- (Rabs_pos_eq ((1 - Pr P F) / Pr P F )).
-    rewrite <- sqrt_Rsqr_abs;
-    rewrite <- sqrt_mult_alt.
+    rewrite -(Rabs_pos_eq ((1 - Pr P F) / Pr P F )).
+    rewrite -sqrt_Rsqr_abs;
+    rewrite -sqrt_mult_alt.
     apply sqrt_le_1_alt;
     (*((1 - Pr P F) / Pr P F)² * (`V X / Pr P (~: F)) <=
 `V X * 2 * (1 - delta) / delta*)
     (*Search (?x / ?y = ?x * _).*)
     repeat rewrite divRE;
-    rewrite <- Rmult_assoc;
+    rewrite -Rmult_assoc;
     (*Search (?x * ?y  = ?y * ?x ).*)
     rewrite (Rmult_comm ((1 - Pr P F) * / Pr P F)²  (`V X));
     (*rewrite (Rmult_assoc (`V X ) (2 * (1 - delta) * / delta)).*)
@@ -349,7 +349,7 @@ Proof.
 
     rewrite Pr_of_cplt; 
     rewrite (Rmult_comm (/ Pr P F) (/ (1 - Pr P F)));
-    rewrite <- (Rmult_assoc (1 - Pr P F) (/ (1 - Pr P F)));
+    rewrite -(Rmult_assoc (1 - Pr P F) (/ (1 - Pr P F)));
     (*Search (/?x * ?x).*)
     rewrite Rinv_r.
     (*Search (1 * _).*)
@@ -368,15 +368,15 @@ Proof.
     repeat rewrite Rmult_assoc;
     rewrite (Rmult_comm (delta));
     rewrite  (Rmult_assoc (Pr P F));
-    rewrite <- (Rmult_assoc (/ Pr P F ) (Pr P F));
+    rewrite -(Rmult_assoc (/ Pr P F ) (Pr P F));
     rewrite Rinv_l.
     rewrite Rmult_1_l;
-    rewrite <- (Rmult_assoc (/ Pr P F));
+    rewrite -(Rmult_assoc (/ Pr P F));
     rewrite Rinv_l.
     rewrite Rmult_1_l. 
 
     (*Search (?x * ?y <= ?z * ?u).*)
-    repeat rewrite <- Rmult_assoc;
+    repeat rewrite -Rmult_assoc;
     apply Rmult_le_compat.
 
     lra. lra. nra.
@@ -410,8 +410,8 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
     
     assert ( `| `E_[ X | F ] - mu |  =  `| `E ((X `-cst mu) `* Ind F: {RV P -> R}) | / Pr P F ).
     { unfold Rdiv.
-      rewrite <- (Rabs_pos_eq (/Pr P F)).
-      rewrite <- (Rabs_mult).
+      rewrite -(Rabs_pos_eq (/Pr P F)).
+      rewrite -(Rabs_mult).
       apply congr1.
       have H1 :  ((X `-cst mu) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- mu `cst* Ind (A:=U) F : {RV P -> R}).
        apply boolp.funext=> u.
