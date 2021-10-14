@@ -432,19 +432,18 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
     
     rewrite H1.
     have H2 : (0 <= (`E ((X `-cst mu) `^2 `* Ind (A:=U) F: {RV P -> R}) * `E (Ind (A:=U) F:{RV P -> R}))).
-    {
       apply mulR_ge0.
-      apply Ex_ge0.
-      intros.
-      apply mulR_ge0.
-      apply pow2_ge_0.
-      unfold Ind.
-      case : ifPn.
-      auto.
-      auto.
+       apply Ex_ge0.
+       intros.
+       apply mulR_ge0.
+        by apply pow2_ge_0.
+       unfold Ind.
+       case : ifPn.
+        by auto.
+       by auto.
       rewrite E_Ind.
-      auto.
-    }
+      by auto.
+    
     apply leR_trans with (y := sqrt ( mknonnegreal (`E (((X `-cst mu) `^2) `* Ind (A:=U) F: {RV P -> R}) * `E (Ind (A:=U) F:{RV P -> R})) H2) / Pr P F).
     { unfold Rdiv.  
       apply Rmult_le_compat_r.
