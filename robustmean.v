@@ -413,10 +413,10 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       rewrite <- (Rabs_pos_eq (/Pr P F)).
       rewrite <- (Rabs_mult).
       apply congr1.
-      assert (((X `-cst mu) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- mu `cst* Ind (A:=U) F : {RV P -> R})).
-      apply boolp.funext=> u.
-      unfold "`-", "`cst*", "`-cst".
-      lra.
+      have H1 :  ((X `-cst mu) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- mu `cst* Ind (A:=U) F : {RV P -> R}).
+       apply boolp.funext=> u.
+       unfold "`-", "`cst*", "`-cst".
+       lra.
       rewrite H1.
       rewrite E_sub_RV.
       rewrite Rmult_plus_distr_r.
