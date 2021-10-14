@@ -449,7 +449,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
     { unfold Rdiv.  
       apply Rmult_le_compat_r.
       apply PrPF_pos.
-      rewrite <- sqrt_Rsqr_abs.
+      rewrite -sqrt_Rsqr_abs.
       apply sqrt_le_1_alt.
       simpl.
       assert ( (X `-cst mu ) `* ((Ind (A:=U) F : {RV P -> R}) )  =
@@ -474,12 +474,12 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       apply Cauchy_Schwarz_proba.
     }
     { unfold Rdiv. unfold nonneg. 
-      rewrite <- (sqrt_Rsqr (/ Pr P F)).
-      rewrite <- sqrt_mult_alt.
+      rewrite -(sqrt_Rsqr (/ Pr P F)).
+      rewrite -sqrt_mult_alt.
   
       - apply sqrt_le_1_alt.
       unfold var, cVar. rewrite cEx_EXInd.
-      rewrite sqrt_Rsqr. unfold Rsqr. rewrite <- Rmult_assoc.
+      rewrite sqrt_Rsqr. unfold Rsqr. rewrite -Rmult_assoc.
       apply Rmult_le_compat_r.
       apply PrPF_pos.
       rewrite E_Ind. repeat rewrite Rmult_assoc.
@@ -491,7 +491,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       unfold Ind, ambient_dist, mu.
       case : ifPn => HiF.
       assert (i \in G) as HiG.
-      rewrite <- sub1set.
+      rewrite -sub1set.
       apply: subset_trans; last exact H0.
       rewrite sub1set.
       auto.
