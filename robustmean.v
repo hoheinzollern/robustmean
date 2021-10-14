@@ -319,7 +319,7 @@ Proof.
     rewrite cEx_Inv.
     (*Search (?x <= ?y -> ?y <= ?z -> ?x <= ?z).*)
     apply Rle_trans with (r2 := ((1 - Pr P F) / Pr P F * sqrt (`V X / Pr P (~: F)))).
-    assert (0 < Pr P F). lra.
+    have : 0 < Pr P F. lra.
     
     apply Rmult_le_compat_l.
     - apply divR_ge0; lra.
