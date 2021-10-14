@@ -405,9 +405,9 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
   `| `E_[ X | F ] - mu | <= sqrt (var * Pr P G / Pr P F ).
   Proof.
     intros.
-    assert (0 <= / Pr P F) as PrPF_pos.
-    apply/Rlt_le/invR_gt0.
-    auto.
+    have PrPF_pos : 0 <= / Pr P F. 
+     by apply/Rlt_le/invR_gt0.
+    
     assert ( `| `E_[ X | F ] - mu |  =  `| `E ((X `-cst mu) `* Ind F: {RV P -> R}) | / Pr P F ).
     { unfold Rdiv.
       rewrite <- (Rabs_pos_eq (/Pr P F)).
