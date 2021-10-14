@@ -408,30 +408,30 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
     have PrPF_pos : 0 <= / Pr P F. 
      by apply/Rlt_le/invR_gt0.
     
-    assert ( `| `E_[ X | F ] - mu |  =  `| `E ((X `-cst mu) `* Ind F: {RV P -> R}) | / Pr P F ).
-    { unfold Rdiv.
+    have H1 : ( `| `E_[ X | F ] - mu |  =  `| `E ((X `-cst mu) `* Ind F: {RV P -> R}) | / Pr P F ).
+     unfold Rdiv.
       rewrite -(Rabs_pos_eq (/Pr P F)).
-      rewrite -(Rabs_mult).
-      apply congr1.
-      have H1 :  ((X `-cst mu) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- mu `cst* Ind (A:=U) F : {RV P -> R}).
-       apply boolp.funext=> u.
-       unfold "`-", "`cst*", "`-cst".
+       rewrite -(Rabs_mult).
+       apply congr1.
+       have H1 :  ((X `-cst mu) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- mu `cst* Ind (A:=U) F : {RV P -> R}).
+        apply boolp.funext=> u.
+        unfold "`-", "`cst*", "`-cst".
+        lra.
+       rewrite H1.
+       rewrite E_sub_RV.
+       rewrite Rmult_plus_distr_r.
+       rewrite E_scalel_RV.
+       rewrite E_Ind.
+       rewrite Ropp_mult_distr_l_reverse.
+       rewrite Rmult_assoc.
+       rewrite Rinv_r.
+        rewrite mulR1.
+        by apply/Rplus_eq_compat_r/cEx_EXInd.
        lra.
-      rewrite H1.
-      rewrite E_sub_RV.
-      rewrite Rmult_plus_distr_r.
-      rewrite E_scalel_RV.
-      rewrite E_Ind.
-      rewrite Ropp_mult_distr_l_reverse.
-      rewrite Rmult_assoc.
-      rewrite Rinv_r.
-      rewrite mulR1.
-      apply/Rplus_eq_compat_r/cEx_EXInd.
-      lra.
-      apply PrPF_pos.
-    }
+     by apply PrPF_pos.
+    
     rewrite H1.
-    assert (0 <= (`E ((X `-cst mu) `^2 `* Ind (A:=U) F: {RV P -> R}) * `E (Ind (A:=U) F:{RV P -> R}))).
+    have H2 : (0 <= (`E ((X `-cst mu) `^2 `* Ind (A:=U) F: {RV P -> R}) * `E (Ind (A:=U) F:{RV P -> R}))).
     {
       apply mulR_ge0.
       apply Ex_ge0.
