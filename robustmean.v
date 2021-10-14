@@ -453,7 +453,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       simpl.
       assert ( (X `-cst mu ) `* ((Ind (A:=U) F : {RV P -> R}) )  =
       (X `-cst mu)  `*  (Ind (A:=U) F : {RV P -> R})  `*  (Ind (A:=U) F : {RV P -> R}) ).
-      - apply boolp.funext=> u. unfold "`^2". simpl. unfold "`o".
+      - apply boolp.funext=> u. rewrite /sq_RV/comp_RV/=.
       unfold Ind.
       simpl. 
       case : ifPn. lra. lra.
@@ -464,8 +464,8 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       rewrite I_square.
       apply boolp.funext=> u.
       rewrite -> I_square at 1.
-      unfold "`^2". simpl. 
-      unfold "`o". lra.
+      rewrite /sq_RV/comp_RV/=.
+      lra.
       
       - rewrite H4.
       rewrite -> I_square at 1.
@@ -501,7 +501,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
       apply Rmult_le_compat_r;
       try apply FDist.ge0;
       apply Rmult_le_compat_l;
-      try (unfold "`^2", "`o";
+      try (rewrite /sq_RV/comp_RV/=; 
       apply pow2_ge_0);
       try nra.
       assert (Pr P F <= Pr P G).
@@ -619,7 +619,8 @@ Proof.
   unfold Rdiv.
   rewrite big_distrl. simpl. 
   apply sumR_ge0. intros.
-  unfold "`^2", "`o", "^".
+  rewrite /sq_RV/comp_RV/=.
+  unfold "^".
   apply mulR_ge0.
   rewrite mulR1.
   apply mulR_ge0.
