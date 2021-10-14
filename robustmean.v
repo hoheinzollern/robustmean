@@ -308,7 +308,7 @@ Proof.
     apply Rmult_le_compat_l.
     apply variance_nonneg. 
 
-    rewrite -Rmult_1_l at 1.
+    rewrite <- Rmult_1_l at 1.
     rewrite -Rmult_assoc. 
     apply leR_pmul; try (apply/Rlt_le/invR_gt0); try lra.
     apply leR_inv. assumption. 
@@ -531,12 +531,12 @@ Proof.
   apply Rmult_eq_reg_l with (r:=Pr P F).
   unfold Rdiv.
   rewrite (Rmult_comm (Pr P (G :\: F))).
-  repeat rewrite <- Rmult_assoc.
+  repeat rewrite -Rmult_assoc.
   rewrite Rinv_r.
   rewrite Rmult_1_l.
-  rewrite <- (Rabs_pos_eq (Pr _ F)).
-  rewrite <- (Rabs_pos_eq (Pr _ (G :\: F))).
-  repeat rewrite <- Rabs_mult.
+  rewrite -(Rabs_pos_eq (Pr _ F)).
+  rewrite -(Rabs_pos_eq (Pr _ (G :\: F))).
+  repeat rewrite -Rabs_mult.
   rewrite Rmult_comm.
   rewrite (Rmult_comm (Pr P (G :\: F))).
   repeat rewrite cEx_EXInd.
@@ -545,12 +545,12 @@ Proof.
   repeat rewrite Rmult_assoc.
   repeat rewrite Rinv_l.
   repeat rewrite mulR1.
-  rewrite <- Rabs_Ropp.
+  rewrite -Rabs_Ropp.
   apply congr1.
   apply Rplus_eq_reg_r with (r := 
   (`E (X `* Ind (A:=U) F : {RV P -> R}) + - (`E (X `* Ind (A:=U) G : {RV P -> R}) / Pr P G) * Pr P F)).
   rewrite Rplus_opp_l.
-  repeat rewrite <- Rplus_assoc.
+  repeat rewrite -Rplus_assoc.
   rewrite Ropp_mult_distr_l.
   assert (
     `E (X `* Ind (A:=U) (G :\: F) : {RV P -> R}) +
@@ -566,7 +566,7 @@ Proof.
   unfold Ex at 1.
   unfold Ex at 1.
   unfold ambient_dist.
-  rewrite <- big_split.
+  rewrite -big_split.
   simpl.
   rewrite Rplus_assoc.
   rewrite Rplus_opp_l.
@@ -585,15 +585,15 @@ Proof.
   auto.
   auto.
   intros.
-  rewrite <- Rmult_plus_distr_r.
+  rewrite -Rmult_plus_distr_r.
   apply Rmult_eq_compat_r.
-  rewrite <- Rmult_plus_distr_l.
+  rewrite -Rmult_plus_distr_l.
   unfold Ind.
   rewrite in_setD.
   unfold "\notin".
   destruct (i \in F) eqn:HiF.
   assert (i \in G) as HiG.
-  rewrite <- sub1set.
+  rewrite -sub1set.
   apply: subset_trans; last exact H0.
   rewrite sub1set.
   auto.
@@ -682,7 +682,7 @@ Proof.
       apply Rmult_le_reg_r with (r := delta * Pr P F / Pr P G).
       nra.
       unfold Rdiv.
-      repeat rewrite <- (Rmult_assoc).
+      repeat rewrite -(Rmult_assoc).
       assert (Pr P G * / Pr P F * delta * Pr P F * / Pr P G =
       delta * (Pr P G * / Pr P G) * (Pr P F * / Pr P F)).
       lra.
@@ -709,28 +709,28 @@ Proof.
       
       apply Rle_trans with (r2 := sqrt (`V_[ X | G] * (Pr P G * (1 - delta)) / (Pr P G * delta * delta))).
 
-      rewrite <- (Rabs_pos_eq (Pr P (G :\: F) / Pr P F)).
-      rewrite <- sqrt_Rsqr_abs;
-      rewrite <- sqrt_mult_alt.
+      rewrite -(Rabs_pos_eq (Pr P (G :\: F) / Pr P F)).
+      rewrite -sqrt_Rsqr_abs;
+      rewrite -sqrt_mult_alt.
       apply sqrt_le_1_alt.
       unfold Rdiv.
-      repeat rewrite <- Rmult_assoc.
+      repeat rewrite -Rmult_assoc.
       rewrite (Rmult_comm _  (`V_[X | G])).
       repeat rewrite Rmult_assoc;
       apply Rmult_le_compat_l. 
   
       apply cvariance_nonneg. auto.
 
-      repeat rewrite <- Rmult_assoc.
+      repeat rewrite -Rmult_assoc.
       rewrite Rmult_comm.
-      repeat rewrite <- Rmult_assoc.
+      repeat rewrite -Rmult_assoc.
       rewrite Rinv_l.
       rewrite Rmult_1_l.
       rewrite Rmult_comm.
       rewrite (Rmult_comm (/Pr P F)).
       rewrite Rmult_assoc.
-      rewrite <- Rinv_mult_distr.
-      rewrite <- Rmult_assoc.
+      rewrite -Rinv_mult_distr.
+      rewrite -Rmult_assoc.
       apply Rmult_le_reg_r with (r:=Pr P F * Pr P F).
       nra.
       rewrite Rmult_assoc.
@@ -776,7 +776,7 @@ Proof.
       apply sqrt_le_1_alt.
       unfold Rdiv.
       rewrite Rinv_mult_distr.
-      rewrite <- Rmult_assoc.
+      rewrite -Rmult_assoc.
       apply Rmult_le_compat_r.
       apply/Rlt_le/Rinv_0_lt_compat.
       lra.
@@ -785,9 +785,9 @@ Proof.
       apply cvariance_nonneg.
       lra.
       rewrite Rinv_mult_distr.
-      rewrite <- Rmult_assoc.
+      rewrite -Rmult_assoc.
       rewrite (Rmult_comm (Pr P G)).
-      rewrite <- Rmult_assoc.
+      rewrite -Rmult_assoc.
       rewrite (Rmult_assoc (1 - delta)).
       rewrite Rinv_r.
       rewrite mulR1.
@@ -850,13 +850,13 @@ Proof.
     assert (1 + - Pr P good = 1 - Pr P good).
     auto.
     rewrite H.
-    rewrite <- Pr_of_cplt.
+    rewrite -Pr_of_cplt.
     rewrite Hbad_ratio. nra.
   }
   (* On the other hand, we remove at most 4ε good points *)
   assert (Pr P (good :&: drop) <= 4 * eps) as Hmax_good_drop.
   {
-    rewrite <- Hdrop_ratio.
+    rewrite -Hdrop_ratio.
     apply/Pr_incl/subsetIr.
   }
   pose (eps' := Pr P (bad :\: drop) / Pr P (~: drop)).
@@ -868,20 +868,20 @@ Proof.
     rewrite Rplus_opp_l.
     rewrite addR0.
     unfold eps', Rdiv.
-    rewrite <- Rmult_plus_distr_r.
+    rewrite -Rmult_plus_distr_r.
     apply Rmult_eq_reg_r with (r:=Pr P (~: drop)).
     rewrite Rmult_assoc.
     rewrite Rinv_l.
     rewrite Rmult_1_l.
     rewrite mulR1.
-    rewrite <- Pr_union_disj.
+    rewrite -Pr_union_disj.
     apply congr1.
-    rewrite <- setDUl.
+    rewrite -setDUl.
     rewrite setUCr.
     rewrite setTD.
     auto.
-    rewrite <- setI_eq0.
-    rewrite <- setDIl.
+    rewrite -setI_eq0.
+    rewrite -setDIl.
     rewrite setICr.
     rewrite set0D.
     auto.
@@ -890,7 +890,7 @@ Proof.
   assert (0 <= eps') as Heps'pos.
   {
     unfold eps'.
-    rewrite <- (Rmult_0_l 0).
+    rewrite -(Rmult_0_l 0).
     apply Rmult_le_compat.
     lra. lra.
     apply Pr_ge0.
@@ -986,7 +986,7 @@ Proof.
       assert (Pr P (good :&: drop) = 0).
       lra.
       assert (Pr P (finset (preim X (pred1 i)) :&: good :&: drop) = 0).
-      rewrite <- setIA.
+      rewrite -setIA.
       assert (Pr P (finset (preim X (pred1 i)) :&: (good :&: drop)) <= Pr P ((good :&: drop)) ).
       apply/Pr_incl/subsetIr.
       rewrite H1 in H2.
@@ -1022,20 +1022,20 @@ Proof.
   ) as HEXbad_bound.
   {
     intros Pr_bd.
-    rewrite <- (mulR1 mu).
-    rewrite <- (Ind_one (bad :\: drop)).
+    rewrite -(mulR1 mu).
+    rewrite -(Ind_one (bad :\: drop)).
     rewrite cEx_EXInd.
     rewrite cEx_EXInd.
     unfold Rdiv.
     unfold Rminus.
     rewrite Ropp_mult_distr_l.
-    rewrite <- Rmult_assoc.
-    rewrite <- I_double.
-    rewrite <- Rmult_plus_distr_r.
+    rewrite -Rmult_assoc.
+    rewrite -I_double.
+    rewrite -Rmult_plus_distr_r.
     rewrite big_distrr.
     simpl.
     unfold "`E".
-    rewrite <- big_split.
+    rewrite -big_split.
     assert (
     \sum_(i in U) (X i * Ind (A:=U) (bad :\: drop) i * P i + - mu * (Ind (A:=U) (bad :\: drop) i * P i)) =
     \sum_(i in U) (X i - mu) * Ind (A:=U) (bad :\: drop) i * P i
@@ -1064,7 +1064,7 @@ Proof.
     intros.
     apply Rabs_pos.
     intros.
-    rewrite <- Rabs_R0.
+    rewrite -Rabs_R0.
     apply congr1.
     unfold Ind.
     case : ifPn => abd.
@@ -1114,9 +1114,9 @@ Proof.
     rewrite Rplus_opp_r.
     rewrite Ropp_minus_distr.
     unfold Rminus.
-    rewrite <- Rplus_assoc.
+    rewrite -Rplus_assoc.
     rewrite Rplus_comm.
-    rewrite <- Rplus_assoc.
+    rewrite -Rplus_assoc.
     rewrite Rplus_opp_l.
     rewrite Rplus_0_l.
     apply Pr_ge0.
@@ -1151,9 +1151,9 @@ Proof.
       rewrite Pr_set0.
       lra.
       rewrite H1.
-      rewrite <- Pr_union_eq.
+      rewrite -Pr_union_eq.
       assert (good :\: drop :|: bad :\: drop = ~: drop).
-      rewrite <- setDUl.
+      rewrite -setDUl.
       rewrite setUCr.
       rewrite setTD.
       auto.
@@ -1213,7 +1213,7 @@ Proof.
     repeat rewrite Rinv_l.
     repeat rewrite mulR1.
     unfold "`E".
-    rewrite <- big_split.
+    rewrite -big_split.
     apply congr_big.
     auto. auto.
     intros.
@@ -1235,8 +1235,8 @@ Proof.
   rewrite HEX_not_drop.
   assert (eps' + Pr P (good :\: drop) / Pr P (~: drop) = 1).
   nra.
-  rewrite <- (mulR1 mu).
-  rewrite <- H0.
+  rewrite -(mulR1 mu).
+  rewrite -H0.
   rewrite Rmult_plus_distr_l.
   unfold Rdiv at 1.
   rewrite Rmult_plus_distr_r.
@@ -1244,19 +1244,19 @@ Proof.
   rewrite Ropp_plus_distr.
   rewrite Rplus_assoc.
   rewrite Rplus_comm.
-  rewrite <- Rplus_assoc.
+  rewrite -Rplus_assoc.
   repeat rewrite Ropp_mult_distr_l.
   rewrite Rmult_assoc.
   rewrite Rmult_assoc.
-  rewrite <- Rmult_plus_distr_r.
+  rewrite -Rmult_plus_distr_r.
   rewrite Rplus_assoc.
-  rewrite <- Rmult_plus_distr_r.
+  rewrite -Rmult_plus_distr_r.
   rewrite (Rplus_comm (-mu)).
   apply Rle_trans with (r2 := 
   `|(`E_[X | (bad :\: drop)] + - mu) * eps'| +
   `|(`E_[X | (good :\: drop)] + - mu) * (1 - eps')|
   ).
-  rewrite <- Hcompl.
+  rewrite -Hcompl.
   apply Rabs_triang.
   rewrite Rabs_mult.
   rewrite Rabs_mult.
@@ -1308,7 +1308,7 @@ Proof.
   }
   apply Rplus_le_compat;
   try apply Rmult_le_compat_r;
-  try rewrite <- Hcompl;
+  try rewrite -Hcompl;
   try unfold eps';
   try apply Rmult_le_pos;
   try (apply Rlt_le; apply Rinv_0_lt_compat; rewrite Pr_of_cplt; nra);
@@ -1322,21 +1322,21 @@ Proof.
   repeat rewrite -> sqrt_mult.
   rewrite (Rmult_comm 8).
   repeat rewrite Rmult_assoc.
-  rewrite <- Rmult_plus_distr_l.
+  rewrite -Rmult_plus_distr_l.
   apply Rmult_le_compat_l.
   apply sqrt_pos.
   repeat rewrite <- Rmult_assoc.
-  repeat rewrite <- sqrt_mult.
+  repeat rewrite -sqrt_mult.
   apply Rplus_le_reg_l with (r:=- (sqrt (/ eps) * eps' )).
-  rewrite <- Rplus_assoc.
+  rewrite -Rplus_assoc.
   rewrite Rplus_opp_l.
   rewrite Rplus_0_l.
   rewrite Rplus_comm.
   rewrite Ropp_mult_distr_r.
-  rewrite <- Rmult_plus_distr_l.
-  rewrite <- (sqrt_Rsqr (1-eps')).
-  rewrite <- (sqrt_Rsqr (8+-eps')).
-  repeat rewrite <- sqrt_mult.
+  rewrite -Rmult_plus_distr_l.
+  rewrite -(sqrt_Rsqr (1-eps')).
+  rewrite -(sqrt_Rsqr (8+-eps')).
+  repeat rewrite -sqrt_mult.
   apply/sqrt_le_1_alt/Rmult_le_compat.
   apply Rmult_le_reg_r with (r:=delta).
   lra.
@@ -1355,7 +1355,7 @@ Proof.
   rewrite mulR1.
   apply Rmult_le_reg_l with (r:=eps).
   lra.
-  repeat rewrite <- Rmult_assoc.
+  repeat rewrite -Rmult_assoc.
   rewrite Rinv_r.
   rewrite Rmult_1_l.
   unfold delta, Rminus.
@@ -1370,7 +1370,7 @@ Proof.
   rewrite Rmult_assoc.
   rewrite Rmult_plus_distr_r.
   rewrite Ropp_plus_distr.
-  rewrite <- Ropp_mult_distr_l.
+  rewrite -Ropp_mult_distr_l.
   rewrite Ropp_involutive.
   rewrite Rmult_plus_distr_r.
   rewrite (Rmult_assoc _ (/ _)).
