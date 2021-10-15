@@ -793,10 +793,11 @@ Proof.
 Qed.
 Arguments Ind_one : clear implicits.
 
-Theorem robust_mean
-  (good drop: {set U})
-  (X: {RV P -> R})
-  (eps: R):
+(* TODO: move *)
+Lemma eqR_divl_mulr (z x y : R) : z != 0 -> (x = y / z) <-> (x * z = y).
+Proof. by move=> z0; split; move/esym/eqR_divr_mulr => /(_ z0) ->. Qed.
+
+Theorem robust_mean (good drop: {set U}) (X : {RV P -> R}) (eps : R):
   let bad := ~: good in
   let mu_hat := `E_[ X | ~: drop ] in
   let mu := `E_[ X | good ] in
@@ -809,290 +810,140 @@ Theorem robust_mean
 Proof.
 move=> bad mu_hat mu sigma Hmin_outliers Hmax_outliers Hbad_ratio Hdrop_ratio
   Hquantile_drop_bad.
-have H : Pr P good = 1 - eps.
-  rewrite -[RHS]oppRK -[LHS]oppRK; congr (- _); apply/(Rplus_eq_reg_l 1).
-  by rewrite addR_opp -Pr_of_cplt Hbad_ratio; nra.
+have H : Pr P good = 1 - eps by apply/esym/subR_eq; rewrite -Hbad_ratio Pr_cplt.
 (* On the other hand, we remove at most 4ε good points *)
-have Hmax_good_drop : Pr P (good :&: drop) <= 4 * eps.
+have max_good_drop : Pr P (good :&: drop) <= 4 * eps.
   by rewrite -Hdrop_ratio; exact/Pr_incl/subsetIr.
 pose eps' := Pr P (bad :\: drop) / Pr P (~: drop).
 have Hcompl : Pr P (good :\: drop) / Pr P (~: drop) = 1 - eps'.
-  apply Rplus_eq_reg_r with (r := eps').
-  rewrite -addRA Rplus_opp_l addR0 /eps' /Rdiv -mulRDl.
-  apply Rmult_eq_reg_r with (r := Pr P (~: drop)); last by rewrite Pr_of_cplt; lra.
-  rewrite mul1R -mulRA Rinv_l ?mulR1; last by rewrite Pr_of_cplt; lra.
-  rewrite -Pr_union_disj; first by rewrite -setDUl setUCr setTD.
+  apply/esym/subR_eq; rewrite /eps' -mulRDl -Pr_union_disj.
+    by rewrite -setDUl setUCr setTD mulRV// Pr_of_cplt; apply/eqP; lra.
   by rewrite -setI_eq0 -setDIl setICr set0D.
-have Heps'pos : 0 <= eps'.
+have eps'_ge0 : 0 <= eps'.
   by apply: mulR_ge0 => //; apply/ltRW/invR_gt0; rewrite Pr_of_cplt; lra.
-have Heps'le1 : eps' <= 1.
-  unfold eps'.
-  apply Rmult_le_reg_r with (r := Pr P (~: drop)); first by rewrite Pr_of_cplt; lra.
-  rewrite mul1R -mulRA Rinv_l ?mulR1; last by rewrite Pr_of_cplt; lra.
-  exact/Pr_incl/subsetDr.
+have eps'_le1 : eps' <= 1.
+  rewrite /eps'; apply/leR_pdivr_mulr; first by rewrite Pr_of_cplt; lra.
+  by rewrite mul1R; exact/Pr_incl/subsetDr.
 (* Remaining good points: 1 - (4 * eps) / (1 - eps) *)
 pose delta := 1 - (4 * eps) / (1 - eps).
-have Hmin_good_remain : delta <= Pr P (good :\: drop) / Pr P good.
-  unfold delta.
-  rewrite Pr_diff H.
+have min_good_remain : delta <= Pr P (good :\: drop) / Pr P good.
+  rewrite /delta Pr_diff H.
   apply: (@leR_trans ((1 - eps - 4 * eps) / (1 - eps))).
-    apply Rmult_le_reg_r with (r:=1-eps); first lra.
-    rewrite -(mulRA _ (/ _)) Rinv_l ?mulR1; last lra.
+    apply/leR_pdivl_mulr; first lra.
     by rewrite mulRDl -mulNR -(mulRA _ (/ _)) Rinv_l; lra.
-  apply Rmult_le_reg_r with (r:= 1-eps); first lra.
-  repeat rewrite (Rmult_assoc _ (/_)).
-  by rewrite Rinv_l ?mulR1; lra.
-have Hdelta_pos : 0 < delta.
-  unfold delta.
-  apply Rmult_lt_reg_r with (r := 1-eps); first lra.
+  apply/leR_pdivr_mulr; first lra.
+  rewrite -[X in _ <= X]mulRA mulVR ?mulR1; first lra.
+  by apply/eqP; lra.
+have delta_gt0 : 0 < delta.
+  apply (@ltR_pmul2r (1 - eps)); first lra.
   by rewrite mul0R mulRDl mul1R -mulNR -mulRA Rinv_l; lra.
-have Hdelta_le1 : delta <= 1.
-  unfold delta.
-  apply Rmult_le_reg_r with (r:=1-eps); first lra.
+have delta_le1 : delta <= 1.
+  apply (@leR_pmul2r (1 - eps)); first lra.
   by rewrite mul1R mulRDl mul1R -mulNR -mulRA Rinv_l ?mulR1; lra.
-have HEXgood_bound : `| `E_[X | good :\: drop ] - `E_[X | good] | <=
+have Exgood_bound : `| `E_[X | good :\: drop ] - `E_[X | good] | <=
                      sqrt (`V_[X | good] * 2 * (1 - delta) / delta).
-  destruct (Req_dec (Pr P (good :\: drop)) (Pr P good)).
-  - have -> : `E_[X | (good :\: drop)] = `E_[X | good].
-      apply eq_bigr => i _.
-      rewrite e.
-      apply/Rmult_eq_compat_r/Rmult_eq_compat_l.
-      rewrite setIDA.
-      rewrite Pr_diff.
-      rewrite Pr_diff in e.
-      apply/subR_eq; rewrite addRC; apply/subR_eq; rewrite subRR.
-      rewrite -setIA.
-      apply/eqR_le; split => //.
-      have : Pr P (finset (preim X (pred1 i)) :&: (good :&: drop)) <= Pr P (good :&: drop).
-        exact/Pr_incl/subsetIr.
-      lra.
-    unfold Rminus.
-    by rewrite Rplus_opp_r Rabs_R0; exact: sqrt_pos.
+  have [gdg|gdg] := eqVneq (Pr P (good :\: drop)) (Pr P good).
+  - suff : `E_[X | (good :\: drop)] = `E_[X | good].
+      by move=> ->; rewrite subRR normR0; exact: sqrt_pos.
+    apply: eq_bigr => i _; rewrite gdg; congr (_ * _ * _).
+    rewrite setIDA Pr_diff -setIA.
+    (* NB: lemma? *)
+    apply/subR_eq; rewrite addRC; apply/subR_eq; rewrite subRR; apply/esym.
+    move: gdg; rewrite Pr_diff => /subR_eq; rewrite addRC => /subR_eq.
+    by rewrite subRR [in X in _ -> X]setIC => /esym; exact: Pr_domin_setI.
   - apply resilience'.
-    + unfold delta.
-      apply Rmult_lt_reg_r with (r := 1 - eps); first lra.
-      by rewrite mul0R mulRDl ?mul1R -mulNR -(mulRA _ (/ _)) Rinv_l; lra.
+    + apply (@ltR_pmul2r (1 - eps)); first lra.
+      by rewrite mul0R; apply: mulR_gt0 => //; lra.
     + lra.
-    + suff : Pr P (good :\: drop) <= Pr P good by lra.
+    + suff : Pr P (good :\: drop) <= Pr P good by move/eqP in gdg; lra.
       exact/Pr_incl/subsetDl.
     + exact: subsetDl.
-have HEXbad_bound :
-  0 < Pr P (bad :\: drop) -> `| `E_[ X | bad :\: drop ] - mu | <= sqrt (sigma / eps).
+have Exbad_bound : 0 < Pr P (bad :\: drop) ->
+    `| `E_[ X | bad :\: drop ] - mu | <= sqrt (sigma / eps).
   move=> Pr_bd.
   rewrite -(mulR1 mu) -(Ind_one (bad :\: drop)); last lra.
-  rewrite 2!cEx_EXInd.
-  rewrite /Rdiv /Rminus.
-  rewrite -mulNR.
-  rewrite mulRA.
-  rewrite -I_double.
-  rewrite -mulRDl.
-  rewrite big_distrr /=.
-  unfold "`E".
-  rewrite -big_split.
-  have -> :
-    \sum_(i in U) (X i * Ind (A:=U) (bad :\: drop) i * P i + - mu * (Ind (A:=U) (bad :\: drop) i * P i)) =
-    \sum_(i in U) (X i - mu) * Ind (A:=U) (bad :\: drop) i * P i.
-    apply congr_big.
-    auto. auto.
-    intros.
-    lra.
-  rewrite normRM.
-  rewrite (Rabs_pos_eq (/ _)); last exact/ltRW/invR_gt0.
-  apply Rmult_le_reg_r with (r:=Pr P (bad :\: drop)) => //.
-  rewrite Rmult_assoc.
-  rewrite Rinv_l ?mulR1; last lra.
-  apply Rle_trans with (r2 := \sum_(i in U) `|((X i - mu) * Ind (A:=U) (bad :\: drop) i * P i)|).
-    exact: leR_sumR_Rabs.
-  unfold Pr.
-  rewrite big_distrr /=.
-  rewrite (bigID (pred_of_set (bad :\: drop))) /=.
-  have -> : \sum_(i | ~~ (pred_of_set (bad :\: drop)) i) `|(X i - mu) * Ind (A:=U) (bad :\: drop) i * P i| = 0.
-    apply psumR_eq0P.
-    - by intros; apply Rabs_pos.
-    - intros.
-      rewrite -Rabs_R0.
-      apply congr1.
-      unfold Ind.
-      case : ifPn => abd.
-        unfold "\in" in abd.
-        simpl in abd.
-        by rewrite abd in H0.
-      simpl in H0.
-      inversion H0.
-      lra.
-  rewrite addR0.
-  apply leq_sumR => i H0.
-  rewrite normRM (Rabs_pos_eq (P i)) //.
-  apply Rmult_le_compat_r => //.
-  unfold Ind.
-  rewrite H0 mulR1.
-  move: H0; rewrite in_setD => /andP [H2 H3].
-  destruct (i \in bad) eqn: e1 => //.
-  destruct (Rlt_dec (sqrt (sigma / eps)) (`|X i - mu|) ).
-    by rewrite Hquantile_drop_bad in H2.
-  lra.
-have Hmax_bad_remain : Pr P (bad :\: drop) <= eps / Pr P (~: drop).
+  rewrite 2!cEx_EXInd -addR_opp -mulNR mulRA -I_double -mulRDl big_distrr /=.
+  rewrite /Ex -big_split /= [X in `|X */ _|](_ : _ =
+      \sum_(i in U) (X i - mu) * @Ind U (bad :\: drop) i * P i); last first.
+    by apply: eq_bigr => u _; rewrite -mulRA mulNR addR_opp -mulRBl mulRA.
+  rewrite normRM (geR0_norm (/ _)); last exact/ltRW/invR_gt0.
+  apply/leR_pdivr_mulr => //; apply: (leR_trans (leR_sumR_Rabs _)).
+  rewrite (bigID [pred i | i \in bad :\: drop]) /=.
+  rewrite [X in _ + X]big1 ?addR0; last first.
+    by move=> u /negbTE abaddrop; rewrite /Ind abaddrop mulR0 mul0R normR0.
+  rewrite /Pr big_distrr /=; apply leq_sumR => i ibaddrop.
+  rewrite normRM (geR0_norm (P i))//; apply: leR_wpmul2r => //.
+  rewrite /Ind ibaddrop mulR1.
+  move: ibaddrop; rewrite inE => /andP[idrop ibad].
+  by rewrite leRNgt => /Hquantile_drop_bad => /(_ ibad); apply/negP.
+have max_bad_remain : Pr P (bad :\: drop) <= eps / Pr P (~: drop).
   rewrite Pr_of_cplt Hdrop_ratio Pr_diff Hbad_ratio.
-  apply Rle_trans with (r2 := eps).
-    apply Rplus_le_reg_r with (r:=- (eps - Pr P (bad :&: drop))).
-    rewrite Rplus_opp_r.
-    rewrite Ropp_minus_distr.
-    unfold Rminus.
-    by rewrite addRCA (addRC eps) Rplus_opp_l addR0.
-  apply Rmult_le_reg_r with (r := 1 - 4* eps); first lra.
-  by rewrite -(mulRA eps) Rinv_l; nra.
-have HEX_not_drop :
-  `E_[ X | ~: drop ]  =
-    (`E_[ X | good :\: drop ] * Pr P (good :\: drop)
-    + `E_[ X | bad :\: drop ] * Pr P (bad :\: drop)) / Pr P (~: drop).
-  have H0 : Pr P (good :\: drop) + Pr P (bad :\: drop) = Pr P (~: drop).
-    have -> : Pr P (good :\: drop) + Pr P (bad :\: drop) =
-      Pr P (good :\: drop) + Pr P (bad :\: drop) - Pr P ((good :\: drop) :&: (bad :\: drop)).
-      have -> : (good :\: drop) :&: (bad :\: drop) = set0.
-        by rewrite !setDE setIACA setIid setICr set0I.
-      by rewrite Pr_set0; lra.
-    rewrite -Pr_union_eq.
-    suff : good :\: drop :|: bad :\: drop = ~: drop by move=> ->.
-    by rewrite -setDUl setUCr setTD.
-  have H1 : Pr P (good :\: drop) > 0 by rewrite Pr_diff H; lra.
-  destruct (Req_dec (Pr P (bad :\: drop)) 0).
-    rewrite e. rewrite Rmult_0_r.
-    rewrite addR0.
-    rewrite e in H0.
-    rewrite addR0 in H0.
-    rewrite H0.
-    unfold Rdiv.
-    rewrite Rmult_assoc.
-    rewrite Rinv_r.
-    rewrite mulR1.
-    repeat rewrite cEx_EXInd.
-    rewrite H0.
-    unfold Rdiv.
-    apply/Rmult_eq_compat_r/congr_big.
-    auto.
-    auto.
-    intros.
-    unfold ambient_dist.
-    repeat rewrite Rmult_assoc.
-    apply Rmult_eq_compat_l.
-    unfold Ind.
-    rewrite in_setD.
-    rewrite in_setC.
-    unfold "\notin".
-    assert (i \in bad :\: drop -> P i = 0).
-    apply Pr_set0P.
-    auto.
-    rewrite in_setD in H3.
-    rewrite in_setC in H3.
-    move: H3; case: (i \in drop)=> H3.
-    simpl.
-    auto.
-    move: H3; case: (i \in good)=> H3.
-    simpl.
-    auto.
-    simpl.
-    rewrite H3.
-    lra.
-    auto.
-    rewrite Pr_of_cplt.
-    lra.
-  apply (Rmult_eq_reg_r (Pr P (~: drop))).
-  repeat rewrite cEx_EXInd.
-  repeat rewrite Rmult_assoc.
-  repeat rewrite Rinv_l.
-  repeat rewrite mulR1.
-  unfold "`E".
-  rewrite -big_split.
-  apply congr_big.
-  auto. auto.
-  intros.
-  simpl.
-  unfold ambient_dist, Ind.
-  repeat rewrite in_setD.
-  rewrite in_setC.
-  unfold "\notin".
-  destruct (i \in drop).
-  simpl. lra.
-  simpl.
-  unfold bad. rewrite in_setC.
-  destruct (i \in good); simpl; nra.
-  auto.
-  nra.
-  rewrite Pr_of_cplt; nra.
-  rewrite Pr_of_cplt; nra.
-unfold mu_hat.
-rewrite HEX_not_drop.
-assert (eps' + Pr P (good :\: drop) / Pr P (~: drop) = 1).
-nra.
+  apply: (@leR_trans eps); first exact/leR_subl_addr/leR_addl.
+  by apply/leR_pdivl_mulr; [lra|nra].
+have Ex_not_drop : `E_[ X | ~: drop ] =
+    (`E_[ X | good :\: drop ] * Pr P (good :\: drop) +
+     `E_[ X | bad :\: drop ] * Pr P (bad :\: drop))
+    / Pr P (~: drop).
+  have good_bad : Pr P (good :\: drop) + Pr P (bad :\: drop) = Pr P (~: drop).
+    rewrite -(_ : good :\: drop :|: bad :\: drop = ~: drop); last first.
+      by rewrite -setDUl setUCr setTD.
+    rewrite Pr_union_eq.
+    apply/subR_eq; rewrite subR_opp addRC; apply/esym/subR_eq; rewrite subRR.
+    suff : (good :\: drop) :&: (bad :\: drop) = set0.
+      by move=> ->; rewrite Pr_set0.
+    by rewrite !setDE setIACA setIid setICr set0I.
+  have [bd0|/eqP bd0 {good_bad}] := eqVneq (Pr P (bad :\: drop)) 0.
+  - rewrite bd0 addR0 in good_bad.
+    rewrite bd0 mulR0 addR0 good_bad.
+    rewrite /Rdiv -mulRA mulRV ?mulR1; last first.
+      by apply/Pr_gt0; rewrite -good_bad Pr_diff H; lra.
+    rewrite 2!cEx_EXInd good_bad; congr (_ / _).
+    apply/eq_bigr => u _.
+    rewrite /ambient_dist -!mulRA; congr (_ * _).
+    (* NB: lemma? *)
+    rewrite /Ind !inE.
+    have bad_drop0 : u \in bad :\: drop -> P u = 0 by apply Pr_set0P.
+    case: ifPn => idrop //=.
+    by case: ifPn => // igood; rewrite bad_drop0 ?mulR0// !inE idrop.
+  - apply/eqR_divl_mulr; first by rewrite Pr_of_cplt; apply/eqP; nra.
+    rewrite !cEx_EXInd -!mulRA.
+    rewrite Rinv_l ?mulR1; last by rewrite Pr_of_cplt; nra.
+    rewrite Rinv_l ?mulR1; last nra.
+    rewrite Rinv_l // mulR1.
+    rewrite [in RHS]/Ex -big_split; apply: eq_bigr => i _ /=.
+    rewrite /ambient_dist -!mulRA -mulRDr -mulRDl ; congr (X i * (_ * _)).
+    (* NB: lemma? *)
+    rewrite /Ind !inE; case: ifPn => //=; rewrite ?(addR0,add0R)//.
+    by case: ifPn => //=; rewrite ?(addR0,add0R).
 rewrite -(mulR1 mu).
-rewrite -H0.
-rewrite Rmult_plus_distr_l.
-unfold Rdiv at 1.
-rewrite mulRDl.
-unfold Rminus.
-rewrite Ropp_plus_distr.
-rewrite Rplus_assoc.
-rewrite Rplus_comm.
-rewrite -Rplus_assoc.
-repeat rewrite -mulNR.
-rewrite Rmult_assoc.
-rewrite Rmult_assoc.
-rewrite -mulRDl.
-rewrite Rplus_assoc.
-rewrite -mulRDl.
-rewrite (Rplus_comm (-mu)).
-apply Rle_trans with (r2 :=
-  `|(`E_[X | (bad :\: drop)] + - mu) * eps'| +
-  `|(`E_[X | (good :\: drop)] + - mu) * (1 - eps')|).
-  rewrite -Hcompl.
-  by apply Rabs_triang.
-rewrite 2!normRM.
-rewrite (Rabs_pos_eq (eps')); last lra.
-rewrite (Rabs_pos_eq (1 - eps')); last lra.
-apply Rle_trans with (r2 :=
-  sqrt (`V_[ X | good] / eps) * (eps') +
-  sqrt (`V_[ X | good] * 2 * (1 - delta) / delta) * (1 - eps')).
-  destruct (Req_dec eps' 0).
-    rewrite e.
+rewrite (_ : 1 = eps' + Pr P (good :\: drop) / Pr P (~: drop)); last first.
+  by rewrite Hcompl addRCA addR_opp subRR addR0.
+rewrite (mulRDr mu) -addR_opp oppRD.
+rewrite /mu_hat Ex_not_drop divRDl.
+rewrite {2}/Rdiv -(mulRA `E_[X | _]) -divRE -/eps'.
+rewrite Hcompl.
+rewrite {1}/Rdiv -(mulRA `E_[X | _]) -divRE.
+rewrite Hcompl.
+rewrite -addRA addRC addRA -!mulNR -(mulRDl _ _ eps').
+rewrite -addRA -mulRDl.
+rewrite (addRC (-mu)).
+apply: (leR_trans (Rabs_triang _ _)).
+rewrite 2!normRM (geR0_norm eps'); last lra.
+rewrite (geR0_norm (1 - eps')); last lra.
+apply: (@leR_trans (sqrt (`V_[ X | good] / eps) * eps' +
+    sqrt (`V_[ X | good] * 2 * (1 - delta) / delta) * (1 - eps'))).
+  have [->|/eqP eps'0] := eqVneq eps' 0.
     by rewrite !(mulR0,add0R,subR0,mulR1).
-  destruct (Req_dec eps' 1).
-    rewrite e.
-    unfold Rminus.
-    repeat rewrite Rplus_opp_r.
-    repeat rewrite Rmult_0_r.
-    repeat rewrite addR0.
-    repeat rewrite mulR1.
-    apply HEXbad_bound.
-    unfold eps' in n.
-    unfold Rdiv in n.
-    apply Rmult_neq_0_reg in n.
-    destruct n.
-    apply ltR_neqAle.
-    split.
-    auto.
-    by apply Pr_ge0.
-  destruct (Req_dec (Pr P (bad :\: drop)) 0).
-    assert (eps' = 0) as eps'eq0.
-    unfold eps'.
-    rewrite e.
-    nra.
-    rewrite eps'eq0.
-    repeat rewrite Rmult_0_r.
-    repeat rewrite Rplus_0_l.
-    repeat rewrite Rminus_0_r.
-    repeat rewrite mulR1.
-    exact: HEXgood_bound.
-  apply Rplus_le_compat;
-    try apply Rmult_le_compat_r;
-    try rewrite -Hcompl;
-    try unfold eps';
-    try apply Rmult_le_pos;
-    try (apply Rlt_le; apply Rinv_0_lt_compat; rewrite Pr_of_cplt; nra);
-    try apply Pr_ge0.
-    exact/HEXbad_bound/Pr_gt0/eqP.
-  exact HEXgood_bound.
-unfold sigma, Rdiv.
-rewrite !sqrt_mult //; last 8 first.
+  have [->|/eqP eps'1] := eqVneq eps' 1.
+    rewrite !(subRR,mulR0,addR0,mulR1); apply: Exbad_bound.
+    apply Pr_gt0; apply: contra_notN eps'0 => /eqP.
+    by rewrite /eps' => ->; rewrite div0R.
+  have [bd0|bd0] := eqVneq (Pr P (bad :\: drop)) 0.
+    by exfalso; apply/eps'0; rewrite /eps' bd0 div0R.
+  apply: leR_add; (apply/leR_pmul2r; first lra).
+  - exact/Exbad_bound/Pr_gt0.
+  - exact: Exgood_bound.
+rewrite /sigma /Rdiv !sqrt_mult //; last 8 first.
   - by apply: cvariance_nonneg; lra.
   - lra.
   - by apply: mulR_ge0; [apply: cvariance_nonneg; lra|lra].
@@ -1102,38 +953,26 @@ rewrite !sqrt_mult //; last 8 first.
   - by apply/ltRW/invR_gt0; lra.
   - by apply: cvariance_nonneg; lra.
   - by apply/ltRW/invR_gt0; lra.
-rewrite (Rmult_comm 8).
-repeat rewrite Rmult_assoc.
-rewrite -Rmult_plus_distr_l.
-apply Rmult_le_compat_l; first exact: sqrt_pos.
-repeat rewrite <- Rmult_assoc.
-repeat rewrite -sqrt_mult; last first.
-  - lra.
-  - lra.
-  - by apply/ltRW/invR_gt0; lra.
-  - by apply: mulR_ge0; lra.
-apply Rplus_le_reg_l with (r:=- (sqrt (/ eps) * eps' )).
-rewrite addRA Rplus_opp_l add0R addRC -mulRN -mulRDr.
-rewrite -(sqrt_Rsqr (1 - eps')); last lra.
-rewrite -(sqrt_Rsqr (8 + - eps')); last lra.
-rewrite -!sqrt_mult; last 4 first.
+rewrite (mulRC 8) -!mulRA -mulRDr; apply: leR_wpmul2l; first exact: sqrt_pos.
+rewrite mulRA -sqrt_mult; [|lra|lra].
+rewrite mulRA -sqrt_mult; [|lra|]; last by apply/ltRW/invR_gt0; lra.
+rewrite addRC; apply/leR_subr_addr.
+rewrite -mulRBr -(sqrt_Rsqr (1 - eps')); last lra.
+rewrite -(sqrt_Rsqr (8 - eps')); last lra.
+rewrite -sqrt_mult; last 2 first.
+  - by apply/mulR_ge0; [lra|apply/ltRW/invR_gt0; lra].
+  - exact: Rle_0_sqr.
+rewrite -sqrt_mult; last 2 first.
   - by apply/ltRW/invR_gt0; lra.
   - exact: Rle_0_sqr.
-  - apply/mulR_ge0; [lra|].
-    by apply/ltRW/invR_gt0; lra.
-  - exact: Rle_0_sqr.
-apply/sqrt_le_1_alt/Rmult_le_compat.
-- apply: mulR_ge0; [lra|].
-  by apply/ltRW/invR_gt0; lra.
+apply/sqrt_le_1_alt/leR_pmul.
+- by apply: mulR_ge0; [lra|apply/ltRW/invR_gt0; lra].
 - exact: Rle_0_sqr.
-- apply Rmult_le_reg_r with (r := delta); first lra.
-  rewrite -mulRA Rinv_l ?mulR1; last lra.
-  apply Rmult_le_reg_l with (r := eps); first lra.
-  rewrite! mulRA Rinv_r ?mul1R; last lra.
-  apply Rmult_le_reg_r with (r := 1 + - eps); first lra.
-  rewrite mulRDl mul1R -mulNR.
-  rewrite -(mulRA _ (/ _)) Rinv_l ?mulR1; last lra.
-  rewrite -mulRA mulRDl oppRD oppRK mulRDl -(mulRA _ (/ _)) Rinv_l; [nra|lra].
+- rewrite -divRE; apply/leR_pdivr_mulr; first lra.
+  rewrite (mulRC _ delta) -divRE; apply/leR_pdivl_mulr; first lra.
+  rewrite mulRC mulRA; apply/(@leR_pmul2r (1 - eps)); first lra.
+  rewrite mulRDl mul1R -mulNR -(mulRA _ (/ _)) Rinv_l ?mulR1; last lra.
+  by rewrite -mulRA mulRDl oppRD oppRK mulRDl -(mulRA _ (/ _)) Rinv_l; [nra|lra].
 - by apply/Rsqr_incr_1; lra.
 Qed.
 
