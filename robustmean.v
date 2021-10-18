@@ -776,20 +776,13 @@ Infix ">=?" := Rgeb : R_scope.
 Lemma Ind_one F :
   Pr P F <> 0 -> `E_[Ind F : {RV P -> R} | F] = 1.
 Proof.
-  intros.
+  move => H.
   rewrite cEx_EXInd.
-  assert (Ind F `* Ind F = Ind F) as I_mult.
-  {
+  have I_mult : (Ind F `* Ind F = Ind F). 
     apply boolp.funext=> u.
     unfold Ind.
     case : ifPn; nra.
-  }
-  rewrite I_mult.
-  rewrite E_Ind.
-  rewrite divRE.
-  rewrite Rinv_r.
-  lra.
-  lra.
+  rewrite I_mult E_Ind divRE Rinv_r //.
 Qed.
 Arguments Ind_one : clear implicits.
 
