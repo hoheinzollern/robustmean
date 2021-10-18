@@ -12,6 +12,7 @@ Unset Printing Implicit Defensive.
 Local Open Scope proba_scope.
 Local Open Scope R_scope.
 
+(* This thing should not only be a notation, but be given a locked definition and an appropriate unfolding lemma. Preferably, a ring structure should also be declared *)
 Notation "X `* Y" := (fun x => X x * Y x) : proba_scope.
 
 Section sets_functions.
@@ -40,16 +41,31 @@ Lemma leq_sumR I r (P : pred I) (E1 E2 : I -> R) :
   \sum_(i <- r | P i) E1 i <= \sum_(i <- r | P i) E2 i.
 Proof. move=> leE12. elim/big_ind2: _ => // m1 m2 n1 n2. lra. Qed.
 
+Lemma Ind_subset (A : finType) (X Y : {set A}) :
+  X \subset Y <-> forall a, Ind X a <= Ind Y a.
+Proof.
+rewrite /Ind; split => H.
+  by move=> a; case: ifPn; [move/(subsetP H) -> | case: (a \in Y)].
+apply/subsetP => a aX.  
+move: (H a); rewrite aX; case: (a \in Y) => //.
+by move/leRNgt/(_ Rlt_0_1).
+Qed.
+
 End sets_functions.
 
 Section probability.
 
 Variables (U : finType) (P : fdist U).
 
+Lemma sq_RVE (X : {RV P -> R}) : X `^2 = X `* X.
+Proof.
+by rewrite /sq_RV /comp_RV /=; apply boolp.funext=> u; rewrite mulRA mulR1.
+Qed.
+
 Lemma Ind_ge0 (X : {set U}) (x : U) : 0 <= Ind X x.
 Proof. by rewrite /Ind; case: ifPn. Qed.
 
-Lemma cEx_EXInd (X : {RV P -> R}) F :
+Lemma cEx_ExInd (X : {RV P -> R}) F :
   `E_[X | F] = `E (X `* Ind (A:=U) F : {RV P -> R}) / Pr P F.
 Proof.
 rewrite /Pr /cEx (* need some lemmas to avoid unfolds *) -big_distrl /=.
@@ -177,47 +193,82 @@ Proof.
 by apply: sumR_ge0 => u _; apply mulR_ge0 => //; apply: sq_RV_ge0.
 Qed.
 
+Lemma cEx_sub (X : {RV P -> R}) (F G: {set U}) :
+  0 < Pr P F ->
+  F \subset G ->
+  `| `E_[ X | F ] - `E_[X | G] |
+= `| `E ((X `-cst `E_[X | G]) `* Ind F : {RV P -> R}) | / Pr P F.
+Proof.
+move=> /[dup] /Pr_gt0 PrPF_neq0 /invR_gt0 /ltRW PrPFV_ge0 FsubG.
+rewrite divRE -(geR0_norm (/Pr P F)) // -normRM.
+congr `| _ |.
+have->: (X `-cst `E_[X | G]) `* Ind F = X `* Ind F `- `E_[X | G] `cst* Ind F
+  by move=> ?; apply boolp.funext=> ?; rewrite mulRDl mulNR. 
+(* If we had declared the pointwise ring structure for RVs
+   (or more generally for real-valued functions),
+   we wouldn't need funext and could directly use lemmas for generic rings:
+   `rewrite mulrDl mulNr` *)
+by rewrite E_sub_RV mulRDl E_scalel_RV E_Ind mulNR -mulRA mulRV // mulR1 cEx_ExInd.
+Qed.
+
+Lemma Ex_cExT (X : {RV P -> R}) : `E X = `E_[X | [set: U]].
+Proof.
+rewrite /cEx.
+under eq_bigr do rewrite setIT Pr_setT divR1 -pr_eqE.
+(* The names of lemmas for Pr are inconsistent:
+   some begin with "Pr" while others "pr" *)
+by rewrite -Ex_comp_RV; congr `E.
+Qed.
+
+Definition cVar (X : {RV P -> R}) F
+  := let miu := `E_[X | F] in `E_[(X `-cst miu) `^2 | F].
+Notation "`V_[ X | F ]" := (cVar X F).
+
+Lemma Var_cVarT (X : {RV P -> R}) : `V X = `V_[X | [set: U]].
+Proof. by rewrite /cVar -!Ex_cExT. Qed.
+
+Lemma cEx_cVar (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  -> 
+  F \subset G ->
+  let mu := `E_[X | G] in
+  let var := `V_[X | G] in
+  `| `E_[ X | F ] - mu | <= sqrt (var * Pr P G / Pr P F ).
+Proof.
+move=> /[dup] /invR_gt0 /ltRW PrPFV_nneg /[dup] /invR_gt0
+        PrPFV_pos /[dup] /Pr_gt0 PrPF_neq0 PrPF_pos
+        /[dup] /(Pr_incl P) /(ltR_leR_trans PrPF_pos)
+        /[dup] /Pr_gt0 PrPG_neq0 PrPG_pos FsubG mu var.
+have -> : `| `E_[ X | F ] - mu |
+        = `| Ex P ((X `-cst mu) `* Ind F) | / Pr P F
+          by exact: cEx_sub.
+pose y := sqrt (Ex P (((X `-cst mu) `^2) `* Ind F) * Ex P (Ind F)) / Pr P F.
+apply leR_trans with (y := y).
+  rewrite divRE leR_pmul2r // -sqrt_Rsqr_abs.
+  apply sqrt_le_1_alt.
+  have -> : (X `-cst mu) `* Ind F = (X `-cst mu) `* Ind F `* Ind F
+    by rewrite {1}I_double boolp.funeqE=> u; rewrite mulRA.
+  apply/(leR_trans (Cauchy_Schwarz_proba _ _))/leR_eqVlt; left.
+  congr (_ * _); congr (`E _); last by rewrite -I_square.
+  by apply boolp.funext=> u; rewrite [in RHS]I_double !sq_RVE mulRCA !mulRA.
+rewrite /y divRE -(sqrt_Rsqr (/ Pr P F)) // -sqrt_mult_alt; last first.
+  move=> *; apply mulR_ge0; last by rewrite E_Ind.
+  by apply: Ex_ge0 => u; apply: mulR_ge0; [apply pow2_ge_0 | apply Ind_ge0].
+apply sqrt_le_1_alt.
+rewrite /var /cVar -/mu cEx_ExInd !E_Ind /Rsqr.
+rewrite mulRCA -!mulRA mulRV // mulR1 mulRC.
+rewrite [X in _ * X / _]mulRC mulRV // mulR1 divRE.
+apply leR_wpmul2r => //.
+apply leq_sumR=> i iU.
+rewrite -mulRA -[X in _ <= X]mulRA; apply leR_wpmul2l; first exact: sq_RV_ge0.
+by apply leR_pmul => //; [exact: Ind_ge0 | move/Ind_subset: FsubG | exact: leRR].
+Qed.
+
 (*prove A1 and A3 for later use*)
-Lemma cEx_var (X : {RV P -> R}) F : 0 < Pr P F  ->
+Lemma cEx_Var (X : {RV P -> R}) F : 0 < Pr P F  ->
   `| `E_[ X | F ] - `E X | <= sqrt (`V X / Pr P F ).
 Proof.
-move=> PF_gt0.
-have PrPF_pos : 0 <= / Pr P F by apply/Rlt_le/invR_gt0.
-have -> : `| `E_[ X | F ] - `E X | =
-         `| (`E ((X `-cst `E X) `* Ind F: {RV P -> R})) | / Pr P F.
-  rewrite /Rdiv -(Rabs_pos_eq (/Pr P F)); last exact/PrPF_pos.
-  rewrite -(Rabs_mult);  congr (`| _ |).
-  have -> : (X `-cst `E X) `* @Ind U F =
-           (X `* @Ind U F `- `E X `cst* @Ind U F : {RV P -> R}).
-    by apply boolp.funext => u; unfold "`-", "`cst*", "`-cst"; lra.
-  rewrite E_sub_RV mulRDl E_scalel_RV E_Ind mulNR -mulRA.
-  rewrite Rinv_r ?mulR1; last exact/eqP/gtR_eqF.
-  exact/Rplus_eq_compat_r/cEx_EXInd.
-have H0 : 0 <= `E ((X `-cst `E X) `^2 `* @Ind U F : {RV P -> R}) *
-              `E (@Ind U F : {RV P -> R}).
-  apply: mulR_ge0; last by rewrite E_Ind; exact: Pr_ge0.
-  apply: Ex_ge0 => u; apply: mulR_ge0; [exact: sq_RV_ge0|].
-  by rewrite /Ind; case: ifPn.
-apply (@leR_trans (sqrt (mknonnegreal (`E (((X `-cst `E X) `^2) `*
-                                          @Ind U F : {RV P -> R}) *
-                                       `E (@Ind U F : {RV P -> R})) H0) / Pr P F)).
-  rewrite /Rdiv; apply leR_pmul2r; first exact/invR_gt0.
-  rewrite -sqrt_Rsqr_abs; apply sqrt_le_1_alt => /=.
-  have -> : (X `-cst `E X ) `* ((@Ind U F : {RV P -> R})) =
-      (X `-cst `E X) `* (@Ind U F : {RV P -> R}) `* (@Ind U F : {RV P -> R}).
-    by rewrite [in LHS]I_double boolp.funeqE => x; rewrite mulRA.
-  have -> : ((X `-cst `E X) `^2) `* @Ind U F =
-      (((X `-cst `E X) `* @Ind U F) `^2 : {RV P -> R}).
-    rewrite I_square; apply boolp.funext => u.
-    by rewrite {1}I_square /sq_RV /comp_RV /=; lra.
-  by rewrite -> I_square at 1; exact: Cauchy_Schwarz_proba.
-rewrite /nonneg /Rdiv -(sqrt_Rsqr (/ Pr P F)) // -sqrt_mult_alt //.
-apply sqrt_le_1_alt.
-rewrite /Var sqrt_Rsqr // /Rsqr mulRA leR_pmul2r; last exact/invR_gt0.
-rewrite E_Ind -mulRA Rinv_r ?mulR1; last exact/eqP/gtR_eqF.
-apply leq_sumR => u uU.
-rewrite /Ind; case: (u \in F); first by unfold ambient_dist; lra.
-by rewrite mulR0 mul0R; apply: mulR_ge0; [exact: sq_RV_ge0|exact: FDist.ge0].
+move=> H; rewrite Ex_cExT Var_cVarT.
+move: (@cEx_cVar X F [set: U] H) => /=.
+by rewrite Pr_setT mulR1 subsetT; apply.
 Qed.
 
 Lemma cEx_cptl (X: {RV P -> R}) F:
@@ -225,7 +276,7 @@ Lemma cEx_cptl (X: {RV P -> R}) F:
     `E_[X | F] * Pr P F + `E_[X | (~: F)] * Pr P (~: F) = `E X.
 Proof.
   move => PrFgt0 PrFlt1.
-  repeat rewrite cEx_EXInd.
+  repeat rewrite cEx_ExInd.
   unfold Rdiv.
   repeat rewrite big_distrl.
   rewrite -big_split.
@@ -246,7 +297,7 @@ Lemma cEx_Inv_int (X: {RV P -> R}) F:
 Proof.
   move => H H0.
   rewrite mulRDr oppRD mulRDr oppRK mulRN mulRN.
-  repeat rewrite cEx_EXInd.
+  repeat rewrite cEx_ExInd.
   (repeat have ->: forall x y, x != 0 -> x * (y / x) = y
   by move => x y Hz; rewrite mulRC -mulRA mulVR; last by []; rewrite mulR1);
   try apply Pr_gt0; try rewrite Pr_of_cplt; try lra.
@@ -305,7 +356,7 @@ Proof.
   destruct (Rle_or_lt delta (1/2)).
   { (*Pr P F <= 1/2 , A.3 implies the desired result*)
     apply leR_trans with (y := sqrt (`V X / Pr P F )).
-    apply cEx_var. lra.
+    apply cEx_Var. lra.
     apply sqrt_le_1_alt. unfold Rdiv.
     repeat rewrite -> Rmult_assoc.
     apply Rmult_le_compat_l.
@@ -326,7 +377,7 @@ Proof.
     
     apply Rmult_le_compat_l.
     - apply divR_ge0; lra.
-    - apply cEx_var; rewrite Pr_of_cplt; lra.
+    - apply cEx_Var; rewrite Pr_of_cplt; lra.
     
     - (*(1 - Pr P F) / Pr P F * sqrt (`V X / Pr P (~: F)) <=
     sqrt (`V X * 2 * (1 - delta) / delta)*) 
@@ -397,92 +448,6 @@ Proof.
 
 Qed.
 
-Definition cVar (X : {RV P -> R}) F
-  := let miu := `E_[X | F] in `E_[(X `-cst miu) `^2 | F].
-Notation "`V_[ X | F ]" := (cVar X F).
-
-Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  -> 
-  F \subset G ->
-  let mu := `E_[X | G] in
-  let var := `V_[X | G] in
-  `| `E_[ X | F ] - mu | <= sqrt (var * Pr P G / Pr P F ).
-  Proof.
-    intros.
-    have PrPF_pos : 0 <= / Pr P F. 
-     by apply/Rlt_le/invR_gt0.
-    
-    have -> : ( `| `E_[ X | F ] - mu |  =  `| `E ((X `-cst mu) `* Ind F: {RV P -> R}) | / Pr P F ).
-     rewrite divRE.
-      rewrite -(geR0_norm (/Pr P F)) //.
-       rewrite -normRM.
-       apply congr1.
-       have -> :  ((X `-cst mu) `* Ind (A:=U) F) = (X `* Ind (A:=U) F `- mu `cst* Ind (A:=U) F : {RV P -> R}).
-        apply boolp.funext=> u.
-        rewrite /sub_RV /scalel_RV /trans_min_RV.
-        lra.
-       rewrite E_sub_RV mulRDl E_scalel_RV E_Ind mulNR
-               -mulRA mulRV ?gtR_eqF // mulR1.
-       by apply/Rplus_eq_compat_r/cEx_EXInd.
-    have H2 : (0 <= (`E ((X `-cst mu) `^2 `* Ind (A:=U) F: {RV P -> R}) * `E (Ind (A:=U) F:{RV P -> R}))).
-      apply mulR_ge0.
-       apply Ex_ge0 => u.
-       by apply mulR_ge0; [apply pow2_ge_0 | apply Ind_ge0].
-      by rewrite E_Ind.
-    pose y :=
-      sqrt (
-            (`E (((X `-cst mu) `^2)
-                   `* Ind (A:=U) F: {RV P -> R})
-             * `E (Ind (A:=U) F:{RV P -> R}))
-            )
-           / Pr P F.
-    apply leR_trans with (y := y).
-    { unfold Rdiv.  
-      apply Rmult_le_compat_r.
-      apply PrPF_pos.
-      rewrite -sqrt_Rsqr_abs.
-      apply sqrt_le_1_alt.
-      simpl.
-      have H1: ( (X `-cst mu ) `* ((Ind (A:=U) F : {RV P -> R}) )  =
-      (X `-cst mu)  `*  (Ind (A:=U) F : {RV P -> R})  `*  (Ind (A:=U) F : {RV P -> R}) :> {RV (P) -> (R)}).
-      - apply boolp.funext=> u. rewrite /sq_RV/comp_RV/=.
-      unfold Ind.
-      simpl. 
-      case : ifPn. lra. lra.
-      rewrite H1.
-      - assert (((X `-cst mu) `^2) `* Ind (A:=U) F =
-      (((X `-cst mu) `* Ind (A:=U) F) `^2: {RV P -> R})).
-      rewrite I_square.
-      apply boolp.funext=> u.
-      rewrite -> I_square at 1.
-      rewrite /sq_RV/comp_RV/=.
-      lra.
-      - rewrite H3.
-      rewrite -> I_square at 1.
-      apply Cauchy_Schwarz_proba.
-    }
-    { 
-      rewrite /y !divRE.
-      rewrite -(sqrt_Rsqr (/ Pr P F)) //.
-      rewrite -sqrt_mult_alt //.
-      apply sqrt_le_1_alt.
-      rewrite /var /cVar cEx_EXInd.
-      rewrite sqrt_Rsqr /Rsqr // mulRA.
-      apply leR_wpmul2r; first by apply PrPF_pos.
-      rewrite E_Ind -!mulRA mulRV ?gtR_eqF // mulVR ?mulR1;
-        last by rewrite ?gtR_eqF //; apply/(ltR_leR_trans H)/Pr_incl.
-      apply leq_sumR => i iU.
-      rewrite /Ind /ambient_dist /mu.
-      apply leR_wpmul2r => //.
-      apply leR_wpmul2l; first exact: sq_RV_ge0.
-      case : ifPn => HiF.
-      have -> // : i \in G.
-        rewrite -sub1set.
-        apply: subset_trans; last exact H0.
-        by rewrite sub1set.
-      by case (i \in G).
-    }
-  Qed. 
-
 Lemma cEx_Inv' (X: {RV P -> R}) (F G : {set U}) :
   0 < Pr P F -> F \subset G -> Pr P F < Pr P G ->
   `| `E_[X | F] - `E_[X | G]| = (Pr P (G :\: F)) / (Pr P F) * `| `E_[X | (G :\: F)] - `E_[X | G]|.
@@ -505,7 +470,7 @@ Proof.
   repeat rewrite -Rabs_mult.
   rewrite Rmult_comm.
   rewrite (Rmult_comm (Pr P (G :\: F))).
-  repeat rewrite cEx_EXInd.
+  repeat rewrite cEx_ExInd.
   unfold Rminus.
   repeat rewrite Rmult_plus_distr_r.
   repeat rewrite Rmult_assoc.
@@ -580,7 +545,7 @@ Lemma cvariance_nonneg (X : {RV P -> R}) F : 0 < Pr P F -> 0 <= `V_[X | F].
 Proof.
   intros.
   unfold cVar.
-  rewrite cEx_EXInd.
+  rewrite cEx_ExInd.
   unfold Ex.
   unfold ambient_dist.
   unfold Rdiv.
@@ -640,7 +605,7 @@ Proof.
     destruct (Rle_or_lt delta (1/2)).
     { (*Pr P F <= 1/2 , A.3 implies the desired result*)
       apply leR_trans with (y := sqrt (`V_[X | G] * Pr P G / Pr P F )).
-      apply cEx_var'. nra. auto.
+      apply cEx_cVar. nra. auto.
       apply sqrt_le_1_alt. unfold Rdiv.
       repeat rewrite -> Rmult_assoc.
       apply Rmult_le_compat_l.
@@ -672,7 +637,7 @@ Proof.
       
       apply Rmult_le_compat_l.
       - apply divR_ge0. rewrite Pr_diff. rewrite HGnF_F. lra. lra.
-      - apply cEx_var'. rewrite Pr_diff. rewrite HGnF_F. lra. apply subsetDl.
+      - apply cEx_cVar. rewrite Pr_diff. rewrite HGnF_F. lra. apply subsetDl.
       
       apply Rle_trans with (r2 := sqrt (`V_[ X | G] * (Pr P G * (1 - delta)) / (Pr P G * delta * delta))).
 
@@ -777,7 +742,7 @@ Lemma Ind_one F :
   Pr P F <> 0 -> `E_[Ind F : {RV P -> R} | F] = 1.
 Proof.
   intros.
-  rewrite cEx_EXInd.
+  rewrite cEx_ExInd.
   assert (Ind F `* Ind F = Ind F) as I_mult.
   {
     apply boolp.funext=> u.
@@ -880,7 +845,7 @@ have HEXbad_bound :
   0 < Pr P (bad :\: drop) -> `| `E_[ X | bad :\: drop ] - mu | <= sqrt (sigma / eps).
   move=> Pr_bd.
   rewrite -(mulR1 mu) -(Ind_one (bad :\: drop)); last lra.
-  rewrite 2!cEx_EXInd.
+  rewrite 2!cEx_ExInd.
   rewrite /Rdiv /Rminus.
   rewrite -mulNR.
   rewrite mulRA.
@@ -965,7 +930,7 @@ have HEX_not_drop :
     rewrite Rmult_assoc.
     rewrite Rinv_r.
     rewrite mulR1.
-    repeat rewrite cEx_EXInd.
+    repeat rewrite cEx_ExInd.
     rewrite H0.
     unfold Rdiv.
     apply/Rmult_eq_compat_r/congr_big.
@@ -997,7 +962,7 @@ have HEX_not_drop :
     rewrite Pr_of_cplt.
     lra.
   apply (Rmult_eq_reg_r (Pr P (~: drop))).
-  repeat rewrite cEx_EXInd.
+  repeat rewrite cEx_ExInd.
   repeat rewrite Rmult_assoc.
   repeat rewrite Rinv_l.
   repeat rewrite mulR1.
