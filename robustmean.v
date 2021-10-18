@@ -605,38 +605,30 @@ Lemma resilience' (delta: R) (X : {RV P -> R}) (F G: {set U}):
   0 < delta -> delta <= Pr P F / Pr P G -> Pr P F < Pr P G -> F \subset G ->
     `| `E_[ X | F ] - `E_[ X | G ] | <= sqrt (`V_[ X | G ] * 2 * (1-delta) / delta).
 Proof.
-    intros.
-    assert (0 < Pr P G) as HPrGpos.
-    {
-      apply Rle_lt_trans with (r2 := Pr P F).
-      apply Pr_ge0.
-      auto.
-    }
-    assert (0 < Pr P F) as HPrFpos.
-    {
-      apply Rlt_le_trans with (r2 := delta * Pr P G).
-      apply Rmult_lt_0_compat; lra.
+  move => H H0 H1 H2.
+  have HPrGpos : 0 < Pr P G.
+    apply Rle_lt_trans with (r2 := Pr P F).
+      by apply Pr_ge0.
+      by auto.
+  have HPrFpos : 0 < Pr P F.
+    apply Rlt_le_trans with (r2 := delta * Pr P G).
+      by apply Rmult_lt_0_compat; lra.
       apply Rmult_le_reg_r with (r := / Pr P G).
-      apply Rinv_0_lt_compat; auto.
-      rewrite Rmult_assoc.
-      rewrite Rinv_r.
-      rewrite mulR1.
-      auto.
-      lra.
-    }
-    assert (G :&: F = F) as HGnF_F.
-    {
-      apply: setIidPr.
-      auto.
-    }
-    assert (delta < 1) as Hdelta_pos.
-    {
-      apply Rmult_le_compat_r with (r:= Pr P G) in H0.
+        apply Rinv_0_lt_compat; auto.
+      rewrite Rmult_assoc Rinv_r.
+        by rewrite mulR1. 
+        by lra.
+    
+  have HGnF_F : G :&: F = F.
+    apply: setIidPr.
+    by auto.
+    
+  have Hdelta_pos : delta < 1.
+    apply Rmult_le_compat_r with (r:= Pr P G) in H0.
       rewrite Rmult_assoc in H0.
       rewrite Rinv_l in H0.
-      rewrite mulR1 in H0.
-      all: nra.
-    }
+        rewrite mulR1 in H0. nra. nra. nra.
+      
     destruct (Rle_or_lt delta (1/2)).
     { (*Pr P F <= 1/2 , A.3 implies the desired result*)
       apply leR_trans with (y := sqrt (`V_[X | G] * Pr P G / Pr P F )).
