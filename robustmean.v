@@ -631,35 +631,36 @@ Proof.
       by nra. 
     by nra.
       
-    destruct (Rle_or_lt delta (1/2)).
-    { (*Pr P F <= 1/2 , A.3 implies the desired result*)
+    case H3 : (Rle_or_lt delta (1/2)).
+    (*Pr P F <= 1/2 , A.3 implies the desired result*)
       apply leR_trans with (y := sqrt (`V_[X | G] * Pr P G / Pr P F )).
-      apply cEx_var'. nra. auto.
+        apply cEx_var'. by nra. 
+      by auto.
       apply sqrt_le_1_alt. unfold Rdiv.
       repeat rewrite -> Rmult_assoc.
       apply Rmult_le_compat_l.
-      apply cvariance_nonneg. auto.
+        apply cvariance_nonneg. by auto.
       apply Rle_trans with (r2 := 1/delta).
-      apply Rmult_le_reg_r with (r := delta * Pr P F / Pr P G).
-      nra.
+        apply Rmult_le_reg_r with (r := delta * Pr P F / Pr P G).
+          by nra.
       unfold Rdiv.
       repeat rewrite -(Rmult_assoc).
       assert (Pr P G * / Pr P F * delta * Pr P F * / Pr P G =
       delta * (Pr P G * / Pr P G) * (Pr P F * / Pr P F)).
-      lra.
+        by lra.
       rewrite H4.
-      repeat rewrite Rinv_r; repeat rewrite mulR1.
-      rewrite Rmult_1_l.
-      rewrite Rinv_l.
-      rewrite Rmult_1_l.
-      all: try lra.
+          repeat rewrite Rinv_r; repeat rewrite mulR1.
+          rewrite Rmult_1_l.
+          rewrite Rinv_l.
+            rewrite Rmult_1_l.
+            all: try lra.
       apply Rmult_le_reg_r with (r:= delta).
-      lra.
+        by lra.
       repeat rewrite Rmult_assoc.
       repeat rewrite Rinv_l.
-      lra.
-      lra.
-    }
+        by lra.
+      by lra.
+    
     { (* Prob > 1/2 and delta < Probability *)
       rewrite cEx_Inv'.
       apply Rle_trans with (r2 := Pr P (G :\: F) / Pr P F * sqrt (`V_[X | G] * Pr P G / Pr P (G :\: F))).
