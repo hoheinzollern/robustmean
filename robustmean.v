@@ -189,7 +189,7 @@ have -> : `| `E_[ X | F ] - `E X | =
   rewrite -(Rabs_mult);  congr (`| _ |).
   have -> : (X `-cst `E X) `* @Ind U F =
            (X `* @Ind U F `- `E X `cst* @Ind U F : {RV P -> R}).
-    by apply boolp.funext => u; rewrite /sub_RV; unfold "`cst*", "`-cst"; lra.
+    by apply boolp.funext => u; rewrite /sub_RV /scalel_RV; unfold "`-cst"; lra.
   rewrite E_sub_RV mulRDl E_scalel_RV E_Ind mulNR -mulRA.
   rewrite Rinv_r ?mulR1; last exact/eqP/gtR_eqF.
   exact/Rplus_eq_compat_r/cEx_EXInd.
