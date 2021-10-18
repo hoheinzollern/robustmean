@@ -578,27 +578,25 @@ Qed.
 Lemma cvariance_nonneg (X : {RV P -> R}) F : 0 < Pr P F -> 0 <= `V_[X | F].
 (* note: we could drop 0 < Pr P F *)
 Proof.
-  intros.
+  move => H.
   unfold cVar.
   rewrite cEx_EXInd.
   unfold Ex.
   unfold ambient_dist.
-  rewrite divRE.
-  rewrite big_distrl. simpl. 
+  rewrite divRE big_distrl /=. 
   apply sumR_ge0. intros.
   rewrite /sq_RV/comp_RV/=.
   unfold "^".
   apply mulR_ge0.
-  rewrite mulR1.
-  apply mulR_ge0.
-  apply mulR_ge0.
-  apply Rle_0_sqr.
-  unfold Ind.
-  destruct (i \in F) eqn:H1;
-  rewrite H1; lra.
-  apply FDist.ge0.
+    rewrite mulR1.
+    apply mulR_ge0 .
+      apply mulR_ge0.
+        by apply Rle_0_sqr.
+      unfold Ind.
+      by destruct (i \in F) eqn:H1; rewrite H1; lra.
+    by apply FDist.ge0.
   apply/Rlt_le/Rinv_0_lt_compat.
-  auto.
+  by auto.
 Qed.
 
 Lemma resilience' (delta: R) (X : {RV P -> R}) (F G: {set U}):
