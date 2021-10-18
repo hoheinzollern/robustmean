@@ -436,7 +436,7 @@ Lemma cEx_var' (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
             )
            / Pr P F.
     apply leR_trans with (y := y).
-    { unfold Rdiv.  
+    { rewrite divRE.  
       apply Rmult_le_compat_r.
       apply PrPF_pos.
       rewrite -sqrt_Rsqr_abs.
@@ -495,7 +495,7 @@ Proof.
     auto.
   }
   apply Rmult_eq_reg_l with (r:=Pr P F).
-  unfold Rdiv.
+  rewrite divRE.
   rewrite (Rmult_comm (Pr P (G :\: F))).
   repeat rewrite -Rmult_assoc.
   rewrite Rinv_r.
@@ -583,7 +583,7 @@ Proof.
   rewrite cEx_EXInd.
   unfold Ex.
   unfold ambient_dist.
-  unfold Rdiv.
+  rewrite divRE.
   rewrite big_distrl. simpl. 
   apply sumR_ge0. intros.
   rewrite /sq_RV/comp_RV/=.
@@ -741,7 +741,7 @@ Proof.
       apply Rinv_0_lt_compat.
       nra.
       apply sqrt_le_1_alt.
-      unfold Rdiv.
+      rewrite divRE.
       rewrite Rinv_mult_distr.
       rewrite -Rmult_assoc.
       apply Rmult_le_compat_r.
@@ -786,7 +786,7 @@ Proof.
   }
   rewrite I_mult.
   rewrite E_Ind.
-  unfold Rdiv.
+  rewrite divRE.
   rewrite Rinv_r.
   lra.
   lra.
@@ -961,7 +961,7 @@ have HEX_not_drop :
     rewrite e in H0.
     rewrite addR0 in H0.
     rewrite H0.
-    unfold Rdiv.
+    rewrite divRE.
     rewrite Rmult_assoc.
     rewrite Rinv_r.
     rewrite mulR1.
@@ -1064,7 +1064,7 @@ apply Rle_trans with (r2 :=
     repeat rewrite mulR1.
     apply HEXbad_bound.
     unfold eps' in n.
-    unfold Rdiv in n.
+    rewrite divRE in n.
     apply Rmult_neq_0_reg in n.
     destruct n.
     apply ltR_neqAle.
