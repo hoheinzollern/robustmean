@@ -617,7 +617,7 @@ Proof.
         apply Rinv_0_lt_compat; auto.
       rewrite Rmult_assoc Rinv_r.
         by rewrite mulR1. 
-        by lra.
+      by lra.
     
   have HGnF_F : G :&: F = F.
     apply: setIidPr.
@@ -627,7 +627,9 @@ Proof.
     apply Rmult_le_compat_r with (r:= Pr P G) in H0.
       rewrite Rmult_assoc in H0.
       rewrite Rinv_l in H0.
-        rewrite mulR1 in H0. nra. nra. nra.
+        rewrite mulR1 in H0. by nra. 
+      by nra. 
+    by nra.
       
     destruct (Rle_or_lt delta (1/2)).
     { (*Pr P F <= 1/2 , A.3 implies the desired result*)
