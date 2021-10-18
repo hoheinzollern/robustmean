@@ -781,8 +781,8 @@ Proof.
   have I_mult : (Ind F `* Ind F = Ind F). 
     apply boolp.funext=> u.
     unfold Ind.
-    case : ifPn; nra.
-  rewrite I_mult E_Ind divRE Rinv_r //.
+    by case : ifPn; nra.
+  by rewrite I_mult E_Ind divRE Rinv_r //.
 Qed.
 Arguments Ind_one : clear implicits.
 
