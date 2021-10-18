@@ -555,8 +555,7 @@ Proof.
   move => H.
   unfold cVar.
   rewrite cEx_EXInd.
-  unfold Ex.
-  unfold ambient_dist.
+  unfold Ex, ambient_dist.
   rewrite divRE big_distrl /=. 
   apply sumR_ge0. intros.
   rewrite /sq_RV/comp_RV/=.
