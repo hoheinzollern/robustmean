@@ -57,6 +57,17 @@ Section probability.
 
 Variables (U : finType) (P : fdist U).
 
+Lemma Pr_lt1 (E : {set U}) : Pr P E < 1 <-> Pr P E != 1.
+Proof.
+rewrite Pr_to_cplt.
+rewrite -[X in _ < X]addR0.
+rewrite ltR_add2l.
+rewrite -subR_eq0' -!addR_opp addRAC addRN add0R.
+move:oppR_lt0; rewrite /Rgt=> H; rewrite -H.
+rewrite oppR_eq0.
+exact: Pr_gt0.
+Qed.
+
 Lemma sq_RVE (X : {RV P -> R}) : X `^2 = X `* X.
 Proof.
 by rewrite /sq_RV /comp_RV /=; apply boolp.funext=> u; rewrite mulRA mulR1.
@@ -64,6 +75,18 @@ Qed.
 
 Lemma Ind_ge0 (X : {set U}) (x : U) : 0 <= Ind X x.
 Proof. by rewrite /Ind; case: ifPn. Qed.
+
+Lemma Ind_setD (X Y : {set U}) :
+  Y \subset X -> Ind (X :\: Y) = Ind X `- Ind Y :> {RV P -> R}.
+Proof.
+move/subsetP=> YsubX; rewrite /Ind /sub_RV; apply boolp.funext=> u /=.
+case: ifPn; rewrite inE ?negb_and;
+  first by case/andP => /negbTE -> ->; rewrite subR0.
+case/orP; first by move => /negbNE /[dup] /YsubX -> ->; rewrite subRR.
+move/contraNN: (YsubX u) => YsubX'.
+move=> /[dup] /YsubX' /negbTE -> /negbTE ->.
+by rewrite subRR.
+Qed.
 
 Lemma cEx_ExInd (X : {RV P -> R}) F :
   `E_[X | F] = `E (X `* Ind (A:=U) F : {RV P -> R}) / Pr P F.
@@ -237,9 +260,7 @@ move=> /[dup] /invR_gt0 /ltRW PrPFV_nneg /[dup] /invR_gt0
         PrPFV_pos /[dup] /Pr_gt0 PrPF_neq0 PrPF_pos
         /[dup] /(Pr_incl P) /(ltR_leR_trans PrPF_pos)
         /[dup] /Pr_gt0 PrPG_neq0 PrPG_pos FsubG mu var.
-have -> : `| `E_[ X | F ] - mu |
-        = `| Ex P ((X `-cst mu) `* Ind F) | / Pr P F
-          by exact: cEx_sub.
+rewrite cEx_sub //.
 pose y := sqrt (Ex P (((X `-cst mu) `^2) `* Ind F) * Ex P (Ind F)) / Pr P F.
 apply leR_trans with (y := y).
   rewrite divRE leR_pmul2r // -sqrt_Rsqr_abs.
@@ -316,36 +337,33 @@ Proof.
   elim (i \in F); simpl; lra.
 Qed.
 
+Lemma cEx_Inv' (X: {RV P -> R}) (F G : {set U}) :
+  0 < Pr P F -> F \subset G -> Pr P F < Pr P G ->
+  `| `E_[X | F] - `E_[X | G]| = (Pr P (G :\: F)) / (Pr P F) * `| `E_[X | (G :\: F)] - `E_[X | G]|.
+Proof.
+move=> PrPF_gt0 /[dup] /setIidPr GIFF FsubG /[dup] /(ltR_trans PrPF_gt0)
+       /[dup] /Pr_gt0 /invR_neq0' /eqP PrPG_neq0 PrPG_gt0 PrPF_PrPG.
+have : 0 < Pr P (G :\: F) by rewrite Pr_diff subR_gt0 GIFF.
+move => /[dup] /Pr_gt0 PrPGF_neq0 PrPGF_gt0.
+rewrite !cEx_sub ?subsetDl // !divRE mulRCA.
+rewrite Ind_setD //.
+have -> : forall A B C, A `* (B `- C) = (A `* B) `- (A `* C)
+    by move=> V P0 P1 A B C; apply boolp.funext=> v; rewrite mulRDr mulRN.
+rewrite E_sub_RV.
+have -> : Ex P ((X `-cst `E_[X | G]) `* Ind G) = 0.
+  apply normR0_eq0.
+  by rewrite -(@eqR_mul2r (/ Pr P G)) // -divRE -cEx_sub // subRR normR0 mul0R.
+rewrite sub0R normRN.
+by rewrite [X in _ = _ * X]mulRAC mulRV // mul1R.
+Qed.
+
 Lemma cEx_Inv (X: {RV P -> R}) F :
   0 < Pr P F -> Pr P F < 1 ->
   `| `E_[X | F] - `E X| = (1 - Pr P F) / Pr P F * `| `E_[X | (~: F)] - `E X|.
 Proof.
-  move => H H0.
-  have PrF_ne0: Pr P F <> 0 by lra.
-  apply (eqR_mul2l PrF_ne0).
-  rewrite mulRA.
-  have ->: Pr P F * ((1 - Pr P F) / Pr P F) = 1 - Pr P F.
-  rewrite mulRC -mulRA mulVR; last by apply Pr_gt0. by rewrite mulR1.
-  rewrite -Pr_of_cplt.
-  have: 0 <= `E_[X | F] - `E X \/ `E_[X | F] - `E X < 0 by apply Rle_or_lt.
-  case => [Hdiff_ge0|Hdiff_lt0].
-  - rewrite geR0_norm; last by [].
-    rewrite cEx_Inv_int; try lra.
-    rewrite leR0_norm. auto.
-    apply Rmult_le_compat_l with (r:= Pr P F) in Hdiff_ge0; last lra.
-    rewrite mulR0 in Hdiff_ge0.
-    rewrite cEx_Inv_int in Hdiff_ge0; try lra.
-    rewrite -(Rmult_0_r (Pr P (~:F))) in Hdiff_ge0.
-    apply Rmult_le_reg_l in Hdiff_ge0; last rewrite Pr_of_cplt; lra.
-  - rewrite ltR0_norm; last by [].
-    rewrite mulRN cEx_Inv_int; try lra.
-    rewrite mulRN oppRK.
-    rewrite gtR0_norm. auto.
-    apply Rmult_lt_compat_l with (r:= Pr P F) in Hdiff_lt0; last lra.
-    rewrite mulR0 in Hdiff_lt0.
-    rewrite cEx_Inv_int in Hdiff_lt0; try lra.
-    rewrite -(Rmult_0_r (Pr P (~:F))) in Hdiff_lt0.
-    apply Rmult_lt_reg_l in Hdiff_lt0; last rewrite Pr_of_cplt; lra.
+move=> *; rewrite Ex_cExT -Pr_of_cplt -setTD; apply cEx_Inv' => //.
+apply ltR_neqAle; split; last by apply/Pr_incl/subsetT.
+by apply/eqP; rewrite Pr_setT -Pr_lt1.
 Qed.
 
 Lemma resilience (delta: R) (X : {RV P -> R}) F:
@@ -446,98 +464,6 @@ Proof.
    (*THE END*)
   }
 
-Qed.
-
-Lemma cEx_Inv' (X: {RV P -> R}) (F G : {set U}) :
-  0 < Pr P F -> F \subset G -> Pr P F < Pr P G ->
-  `| `E_[X | F] - `E_[X | G]| = (Pr P (G :\: F)) / (Pr P F) * `| `E_[X | (G :\: F)] - `E_[X | G]|.
-Proof.
-  intros.
-
-  assert (G :&: F = F).
-  {
-    apply: setIidPr.
-    auto.
-  }
-  apply Rmult_eq_reg_l with (r:=Pr P F).
-  unfold Rdiv.
-  rewrite (Rmult_comm (Pr P (G :\: F))).
-  repeat rewrite -Rmult_assoc.
-  rewrite Rinv_r.
-  rewrite Rmult_1_l.
-  rewrite -(Rabs_pos_eq (Pr _ F)).
-  rewrite -(Rabs_pos_eq (Pr _ (G :\: F))).
-  repeat rewrite -Rabs_mult.
-  rewrite Rmult_comm.
-  rewrite (Rmult_comm (Pr P (G :\: F))).
-  repeat rewrite cEx_ExInd.
-  unfold Rminus.
-  repeat rewrite Rmult_plus_distr_r.
-  repeat rewrite Rmult_assoc.
-  repeat rewrite Rinv_l.
-  repeat rewrite mulR1.
-  rewrite -Rabs_Ropp.
-  apply congr1.
-  apply Rplus_eq_reg_r with (r := 
-  (`E (X `* Ind (A:=U) F : {RV P -> R}) + - (`E (X `* Ind (A:=U) G : {RV P -> R}) / Pr P G) * Pr P F)).
-  rewrite Rplus_opp_l.
-  repeat rewrite -Rplus_assoc.
-  rewrite Ropp_mult_distr_l.
-  assert (
-    `E (X `* Ind (A:=U) (G :\: F) : {RV P -> R}) +
-    - `E (X `* Ind (A:=U) G : {RV P -> R}) * / Pr P G * Pr P (G :\: F) + 
-    `E (X `* Ind (A:=U) F : {RV P -> R}) + - `E (X `* Ind (A:=U) G : {RV P -> R}) * / Pr P G * Pr P F =
-    `E (X `* Ind (A:=U) (G :\: F) : {RV P -> R}) + `E (X `* Ind (A:=U) F : {RV P -> R}) +
-    - `E (X `* Ind (A:=U) G : {RV P -> R}) * / Pr P G * (Pr P (G :\: F) + Pr P F)
-  ).
-  lra.
-  rewrite H3.
-  rewrite Pr_diff.
-  rewrite H2.
-  unfold Ex at 1.
-  unfold Ex at 1.
-  unfold ambient_dist.
-  rewrite -big_split.
-  simpl.
-  rewrite Rplus_assoc.
-  rewrite Rplus_opp_l.
-  rewrite addR0.
-  rewrite Rmult_assoc.
-  rewrite Rinv_l.
-  rewrite mulR1.
-  apply Rplus_eq_reg_r with (r:= `E (X `* Ind (A:=U) G: {RV P -> R})).
-  rewrite Rplus_assoc.
-  rewrite Rplus_opp_l.
-  rewrite addR0.
-  rewrite Rplus_0_l.
-  unfold Ex.
-  unfold ambient_dist.
-  apply congr_big.
-  auto.
-  auto.
-  intros.
-  rewrite -Rmult_plus_distr_r.
-  apply Rmult_eq_compat_r.
-  rewrite -Rmult_plus_distr_l.
-  unfold Ind.
-  rewrite in_setD.
-  unfold "\notin".
-  destruct (i \in F) eqn:HiF.
-  assert (i \in G) as HiG.
-  rewrite -sub1set.
-  apply: subset_trans; last exact H0.
-  rewrite sub1set.
-  auto.
-  rewrite HiG.
-  simpl.
-  lra.
-  simpl.
-  lra.
-  assert (Pr P F <= Pr P G).
-  apply Pr_incl. auto.
-  all: try rewrite Pr_diff.
-  all: try rewrite H2.
-  all: try lra.
 Qed.
 
 Lemma cvariance_nonneg (X : {RV P -> R}) F : 0 < Pr P F -> 0 <= `V_[X | F].
