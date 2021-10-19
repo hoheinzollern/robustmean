@@ -521,49 +521,31 @@ Lemma resilience' (delta: R) (X : {RV P -> R}) (F G: {set U}):
   0 < delta -> delta <= Pr P F / Pr P G -> Pr P F < Pr P G -> F \subset G ->
     `| `E_[ X | F ] - `E_[ X | G ] | <= sqrt (`V_[ X | G ] * 2 * (1-delta) / delta).
 Proof.
-move => H H0 H1 H2.
-have HPrGpos : 0 < Pr P G by exact: (leR_ltR_trans _ H1).
+move => delta_gt0 delta_FG Pr_FG /[dup] /setIidPr HGnF_F FG.
+have HPrGpos : 0 < Pr P G by exact: (leR_ltR_trans _ Pr_FG).
 have HPrFpos : 0 < Pr P F.
   apply/(@ltR_pmul2r (/ Pr P G)); first exact/invR_gt0.
-  by rewrite mul0R; exact: (ltR_leR_trans _ H0).
-have HGnF_F : G :&: F = F by exact: setIidPr.
-have Hdelta_pos : delta < 1.
-  by apply/(leR_ltR_trans H0)/ltR_pdivr_mulr => //; rewrite mul1R.
-case H3 : (Rle_or_lt delta (1/2)).
+  by rewrite mul0R; exact: (ltR_leR_trans _ delta_FG).
+have delta_lt1 : delta < 1.
+  by apply/(leR_ltR_trans delta_FG)/ltR_pdivr_mulr => //; rewrite mul1R.
+case : (Rle_or_lt delta (1/2)) => delta_12.
 (*Pr P F <= 1/2 , A.3 implies the desired result*)
-  apply leR_trans with (y := sqrt (`V_[X | G] * Pr P G / Pr P F )).
-    apply cEx_cVar. nra. auto.
-  apply sqrt_le_1_alt. unfold Rdiv.
-  repeat rewrite -> Rmult_assoc.
-  apply Rmult_le_compat_l.
-    exact: cvariance_nonneg.
-  apply Rle_trans with (r2 := 1/delta).
-    apply Rmult_le_reg_r with (r := delta * Pr P F / Pr P G).
-      by nra.
-    unfold Rdiv.
-    repeat rewrite -Rmult_assoc.
-    have H4 : (Pr P G * / Pr P F * delta * Pr P F * / Pr P G =
-    delta * (Pr P G * / Pr P G) * (Pr P F * / Pr P F)).
-      by lra.
-    rewrite H4.
-    repeat rewrite Rinv_r; repeat rewrite mulR1.
-    - rewrite Rmult_1_l Rinv_l .
-      rewrite Rmult_1_l.
-      lra.
-      lra.
-    - lra.
-    - lra.
-    - apply Rmult_le_reg_r with (r:= delta) => //.
-      repeat rewrite Rmult_assoc.
-      repeat rewrite Rinv_l.
-      lra.
-      lra.
+  apply: (leR_trans (cEx_cVar _ _ _)) => //.
+  apply sqrt_le_1_alt.
+  rewrite !divRE -!mulRA; apply (leR_wpmul2l (cvariance_nonneg _ _)).
+  apply: (@leR_trans (1/delta)).
+    rewrite (leR_pdivl_mulr delta) //.
+    rewrite mulRC -leR_pdivl_mulr; last exact: divR_gt0.
+    rewrite div1R invRM ?gtR_eqF //; last exact: invR_gt0.
+    by rewrite invRK ?gtR_eqF // mulRC.
+  rewrite !divRE mulRA leR_pmul2r; last exact: invR_gt0.
+  lra.
 rewrite cEx_Inv' //.
-apply Rle_trans with (r2 := Pr P (G :\: F) / Pr P F * sqrt (`V_[X | G] * Pr P G / Pr P (G :\: F))).
-  apply Rmult_le_compat_l.
-  - apply divR_ge0. rewrite Pr_diff. rewrite HGnF_F. lra. lra.
-  - apply cEx_cVar. rewrite Pr_diff. rewrite HGnF_F. lra. apply subsetDl.
-apply Rle_trans with (r2 := sqrt (`V_[ X | G] * (Pr P G * (1 - delta)) / (Pr P G * delta * delta))).
+apply: leR_trans.
+  apply leR_wpmul2l; first by apply divR_ge0.
+  apply cEx_cVar => //; last exact: subsetDl.
+  by rewrite Pr_diff HGnF_F subR_gt0.
+apply (@leR_trans (sqrt (`V_[ X | G] * (Pr P G * (1 - delta)) / (Pr P G * delta * delta)))).
   rewrite -(Rabs_pos_eq (Pr P (G :\: F) / Pr P F)); last first.
     by apply divR_ge0 => //.
   rewrite -sqrt_Rsqr_abs; rewrite -sqrt_mult_alt; last first.
@@ -593,9 +575,9 @@ apply Rle_trans with (r2 := sqrt (`V_[ X | G] * (Pr P G * (1 - delta)) / (Pr P G
     apply Rmult_lt_0_compat; by nra.
   rewrite (Rmult_assoc _ (/ _)) Rinv_l ?mulR1; last first.
     by apply/eqP/gtR_eqF; apply/mulR_gt0 => //; apply/mulR_gt0.
-  apply Rmult_le_compat_r with (r:= Pr P G) in H0 => //.
-  rewrite Rmult_assoc in H0.
-  rewrite Rinv_l ?mulR1 in H0; last by nra.
+  apply Rmult_le_compat_r with (r:= Pr P G) in delta_FG => //.
+  rewrite Rmult_assoc in delta_FG.
+  rewrite Rinv_l ?mulR1 in delta_FG; last by nra.
   rewrite (Rmult_comm (Pr P G)) Rmult_assoc.
   apply Rmult_le_compat => //.
     apply: mulR_ge0 => //; apply/mulR_ge0.
