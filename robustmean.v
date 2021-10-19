@@ -58,19 +58,21 @@ Qed.
 
 End sets_functions.
 
+Delimit Scope ring_scope with ring.
+
 Section RV_ring.
 Variables (U : finType) (P : fdist U).
 Import topology.
 Import GRing.Theory.
 
-Lemma add_RV_addr (X Y : {RV P -> R}) : X `+ Y = GRing.add X Y.
+Lemma add_RV_addr (X Y : {RV P -> R}) : X `+ Y = (X + Y)%ring.
 Proof. reflexivity. Qed.
 
-Lemma sub_RV_subr (X Y : {RV P -> R}) : X `- Y = (GRing.add X (GRing.opp Y)).
+Lemma sub_RV_subr (X Y : {RV P -> R}) : X `- Y = (X - Y)%ring.
 Proof. reflexivity. Qed.
 
 Lemma trans_min_RV_subr (X : {RV P -> R}) (y : R) :
-  X `-cst y = GRing.add X (GRing.opp (cst y)).
+  X `-cst y = (X - cst y)%ring.
 Proof. reflexivity. Qed.
 
 Definition fdist_supp_choice : U.
@@ -80,10 +82,10 @@ Defined.
 Canonical fdist_supp_pointedType :=
   @classical_sets.Pointed.pack U fdist_supp_choice _ _ idfun.
 
-Lemma mul_RV_mulr (X Y : {RV P -> R}) : X `* Y = GRing.mul X Y.
+Lemma mul_RV_mulr (X Y : {RV P -> R}) : X `* Y = (X * Y)%ring.
 Proof. reflexivity. Qed.
 
-Lemma sq_RV_sqrr (X : {RV P -> R}) : X `^2 = GRing.exp X 2.
+Lemma sq_RV_sqrr (X : {RV P -> R}) : X `^2 = (X ^+ 2)%ring.
 Proof. by rewrite /sq_RV/comp_RV; apply boolp.funext => u /=; rewrite mulR1. Qed.
 
 Definition RV_ringE :=
