@@ -301,8 +301,9 @@ Lemma resilience (delta: R) (X : {RV P -> R}) F:
   0 < delta -> delta <= Pr P F -> Pr P F < 1 ->
     `| `E_[ X | F ] - `E X | <= sqrt (`V X * 2 * (1-delta) / delta).
 Proof.
-  intros.
-  destruct (Rle_or_lt delta (1/2)).
+  move => H H0 H1.
+  have: delta <= 1/2 \/ 1/2 < delta by apply Rle_or_lt.
+  case => [H2|H2].
   { (*Pr P F <= 1/2 , A.3 implies the desired result*)
     apply leR_trans with (y := sqrt (`V X / Pr P F )).
     apply cEx_var. lra.
@@ -314,15 +315,14 @@ Proof.
     rewrite <- Rmult_1_l at 1.
     rewrite -Rmult_assoc. 
     apply leR_pmul; try (apply/Rlt_le/invR_gt0); try lra.
-    apply leR_inv. assumption. 
-    lra.
+    by apply leR_inv.
   }
 
   { (*Prob > 1/2 and delta < Probability*)
     rewrite cEx_Inv.
     (*Search (?x <= ?y -> ?y <= ?z -> ?x <= ?z).*)
     apply Rle_trans with (r2 := ((1 - Pr P F) / Pr P F * sqrt (`V X / Pr P (~: F)))).
-    have H3 : 0 < Pr P F. lra.
+    have H3: 0 < Pr P F by lra.
     
     apply Rmult_le_compat_l.
     - apply divR_ge0; lra.
@@ -382,16 +382,10 @@ Proof.
     repeat rewrite -Rmult_assoc;
     apply Rmult_le_compat.
 
-    lra. lra. nra.
-    lra. lra. lra. lra. lra.
+    all: try lra. nra.
 
-    - (*0 <= ((1 - Pr P F) / Pr P F)²*)
-    apply Rle_0_sqr.
-    - apply divR_ge0.   
-      * lra. 
-      * lra.
-    - lra. 
-    - lra. 
+    - apply Rle_0_sqr.
+    - apply divR_ge0; try lra.
    (*THE END*)
   }
 
