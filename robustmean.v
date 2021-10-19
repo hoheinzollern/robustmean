@@ -494,7 +494,7 @@ Lemma cvariance_nonneg (X : {RV P -> R}) F : 0 < Pr P F -> 0 <= `V_[X | F].
 Proof.
   move => H.
   unfold cVar.
-  rewrite cEx_EXInd.
+  rewrite cEx_ExInd.
   unfold Ex, ambient_dist.
   rewrite divRE big_distrl /=. 
   apply sumR_ge0. intros.
@@ -569,8 +569,6 @@ Proof.
       repeat rewrite Rinv_l.
       lra.
       lra.
-    }
-    { (* Prob > 1/2 and delta < Probability *)
       rewrite cEx_Inv'.
       apply Rle_trans with (r2 := Pr P (G :\: F) / Pr P F * sqrt (`V_[X | G] * Pr P G / Pr P (G :\: F))).
       
@@ -656,7 +654,7 @@ Lemma Ind_one F :
   Pr P F <> 0 -> `E_[Ind F : {RV P -> R} | F] = 1.
 Proof.
   move => H.
-  rewrite cEx_EXInd.
+  rewrite cEx_ExInd.
   have I_mult : (Ind F `* Ind F = Ind F). 
     apply boolp.funext=> u.
     unfold Ind.
@@ -734,7 +732,7 @@ have Exbad_bound : 0 < Pr P (bad :\: drop) ->
     `| `E_[ X | bad :\: drop ] - mu | <= sqrt (sigma / eps).
   move=> Pr_bd.
   rewrite -(mulR1 mu) -(Ind_one (bad :\: drop)); last lra.
-  rewrite 2!cEx_EXInd -addR_opp -mulNR mulRA -I_double -mulRDl big_distrr /=.
+  rewrite 2!cEx_ExInd -addR_opp -mulNR mulRA -I_double -mulRDl big_distrr /=.
   rewrite /Ex -big_split /= [X in `|X */ _|](_ : _ =
       \sum_(i in U) (X i - mu) * @Ind U (bad :\: drop) i * P i); last first.
     by apply: eq_bigr => u _; rewrite -mulRA mulNR addR_opp -mulRBl mulRA.
@@ -769,7 +767,7 @@ have Ex_not_drop : `E_[ X | ~: drop ] =
     rewrite bd0 mulR0 addR0 good_bad.
     rewrite /Rdiv -mulRA mulRV ?mulR1; last first.
       by apply/Pr_gt0; rewrite -good_bad Pr_diff H; lra.
-    rewrite 2!cEx_EXInd good_bad; congr (_ / _).
+    rewrite 2!cEx_ExInd good_bad; congr (_ / _).
     apply/eq_bigr => u _.
     rewrite /ambient_dist -!mulRA; congr (_ * _).
     (* NB: lemma? *)
@@ -778,7 +776,7 @@ have Ex_not_drop : `E_[ X | ~: drop ] =
     case: ifPn => idrop //=.
     by case: ifPn => // igood; rewrite bad_drop0 ?mulR0// !inE idrop.
   - apply/eqR_divl_mulr; first by rewrite Pr_of_cplt; apply/eqP; nra.
-    rewrite !cEx_EXInd -!mulRA.
+    rewrite !cEx_ExInd -!mulRA.
     rewrite Rinv_l ?mulR1; last by rewrite Pr_of_cplt; nra.
     rewrite Rinv_l ?mulR1; last nra.
     rewrite Rinv_l // mulR1.
