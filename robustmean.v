@@ -488,12 +488,19 @@ Proof.
 
 Qed.
 
+(* /[conj] by Cyril Cohen :
+   https://coq.zulipchat.com/#narrow/stream/237664-math-comp-users/topic/how.20to.20combine.20two.20top.20assumptions.20with.20.60conj.60
+ *)
+Lemma and_curry (A B C : Prop) : (A /\ B -> C) -> A -> B -> C.
+Proof. move=> + a b; exact. Qed.
+
+Notation "[conj]" := (ltac:(apply and_curry)) (only parsing) : ssripat_scope.
+
 Lemma cvariance_nonneg (X : {RV P -> R}) F : 0 <= `V_[X | F].
 Proof.
 case H : (0 <b Pr P F); last first.
   move/negbT: H; rewrite -leRNlt'; move /leRP.
-  move: (Pr_ge0 P F).
-  move=> H0 H1; move/eqR_le: (conj H0 H1)=> H.
+  move: (Pr_ge0 P F) => /[conj] /eqR_le H.
   rewrite /cVar /cEx; apply big_ind; [exact: leRR | exact: addR_ge0 |].
   move=> i _.
   by rewrite setIC Pr_domin_setI // mulR0 divRE mul0R; apply leRR.
