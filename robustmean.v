@@ -377,10 +377,7 @@ move=> PrPF_gt0 /[dup] /setIidPr GIFF FsubG /[dup] /(ltR_trans PrPF_gt0)
 have : 0 < Pr P (G :\: F) by rewrite Pr_diff subR_gt0 GIFF.
 move => /[dup] /Pr_gt0 PrPGF_neq0 PrPGF_gt0.
 rewrite !cEx_sub ?subsetDl // !divRE mulRCA.
-rewrite Ind_setD //.
-have -> : forall A B C, A `* (B `- C) = (A `* B) `- (A `* C)
-    by move=> V P0 P1 A B C; apply boolp.funext=> v; rewrite mulRDr mulRN.
-rewrite E_sub_RV.
+rewrite Ind_setD // !RV_ringE mulrDr mulrN E_sub_RV.
 have -> : Ex P ((X `-cst `E_[X | G]) `* Ind G) = 0.
   apply normR0_eq0.
   by rewrite -(@eqR_mul2r (/ Pr P G)) // -divRE -cEx_sub // subRR normR0 mul0R.
