@@ -491,27 +491,33 @@ Proof.
 
 Qed.
 
-Lemma cvariance_nonneg (X : {RV P -> R}) F : 0 < Pr P F -> 0 <= `V_[X | F].
-(* note: we could drop 0 < Pr P F *)
+Lemma cvariance_nonneg (X : {RV P -> R}) F : 0 <= `V_[X | F].
 Proof.
-  move => H.
-  unfold cVar.
-  rewrite cEx_ExInd.
-  unfold Ex, ambient_dist.
-  rewrite divRE big_distrl /=. 
-  apply sumR_ge0. intros.
-  rewrite /sq_RV/comp_RV/=.
-  unfold "^".
-  apply mulR_ge0.
-    rewrite mulR1.
-    apply mulR_ge0 .
-      apply mulR_ge0.
-        by apply Rle_0_sqr.
-      unfold Ind.
-      by destruct (i \in F) eqn:H1; rewrite H1; lra.
-    by apply FDist.ge0.
-  apply/Rlt_le/Rinv_0_lt_compat.
-  by auto.
+case H : (0 <b Pr P F); last first.
+  move/negbT: H; rewrite -leRNlt'; move /leRP.
+  move: (Pr_ge0 P F).
+  move=> H0 H1; move/eqR_le: (conj H0 H1)=> H.
+  rewrite /cVar /cEx; apply big_ind; [exact: leRR | exact: addR_ge0 |].
+  move=> i _.
+  by rewrite setIC Pr_domin_setI // mulR0 divRE mul0R; apply leRR.
+move/ltRP: H => H.
+unfold cVar.
+rewrite cEx_ExInd.
+unfold Ex, ambient_dist.
+rewrite divRE big_distrl /=. 
+apply sumR_ge0. intros.
+rewrite /sq_RV/comp_RV/=.
+unfold "^".
+apply mulR_ge0.
+rewrite mulR1.
+  apply mulR_ge0 .
+    apply mulR_ge0.
+      by apply Rle_0_sqr.
+    unfold Ind.
+    by destruct (i \in F) eqn:H1; rewrite H1; lra.
+  by apply FDist.ge0.
+apply/Rlt_le/Rinv_0_lt_compat.
+by auto.
 Qed.
 
 Lemma resilience' (delta: R) (X : {RV P -> R}) (F G: {set U}):
