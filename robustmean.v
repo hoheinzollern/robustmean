@@ -1,6 +1,7 @@
 From mathcomp Require Import all_ssreflect ssralg fingroup perm finalg matrix.
-From mathcomp Require boolp.
-From mathcomp Require Import Rstruct.
+From mathcomp Require Import all_algebra. (* for GRing.Theory *)
+From mathcomp Require boolp classical_sets. (* classical_sets for pointedType *)
+From mathcomp Require Import Rstruct topology. (* topology for fct_ringType *)
 Require Import Reals Lra ROrderedType.
 From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext.
 From infotheo Require Import Rbigop proba fdist.
@@ -12,7 +13,11 @@ Unset Printing Implicit Defensive.
 Local Open Scope proba_scope.
 Local Open Scope R_scope.
 
-(* This thing should not only be a notation, but be given a locked definition and an appropriate unfolding lemma. Preferably, a ring structure should also be declared *)
+(*
+Definition mul_RV (U : finType) (P : fdist U) (X Y : {RV (P) -> (R)}) (x : U) :=
+  X x * Y x.
+Notation "X `* Y" := (mul_RV X Y) : proba_scope.
+*)
 Notation "X `* Y" := (fun x => X x * Y x) : proba_scope.
 
 Section sets_functions.
@@ -53,14 +58,45 @@ Qed.
 
 End sets_functions.
 
-Section probability.
-
+Section RV_ring.
 Variables (U : finType) (P : fdist U).
+Import topology.
+Import GRing.Theory.
+
+Lemma add_RV_addr (X Y : {RV P -> R}) : X `+ Y = GRing.add X Y.
+Proof. reflexivity. Qed.
+
+Lemma sub_RV_subr (X Y : {RV P -> R}) : X `- Y = (GRing.add X (GRing.opp Y)).
+Proof. reflexivity. Qed.
+
+Lemma trans_min_RV_subr (X : {RV P -> R}) (y : R) :
+  X `-cst y = GRing.add X (GRing.opp (cst y)).
+Proof. reflexivity. Qed.
+
+Definition fdist_supp_choice : U.
+by move/set0Pn/xchoose:(fdist_supp_neq0 P).
+Defined.
+
+Canonical fdist_supp_pointedType :=
+  @classical_sets.Pointed.pack U fdist_supp_choice _ _ idfun.
+
+Lemma mul_RV_mulr (X Y : {RV P -> R}) : X `* Y = GRing.mul X Y.
+Proof. reflexivity. Qed.
+
+Lemma sq_RV_sqrr (X : {RV P -> R}) : X `^2 = GRing.exp X 2.
+Proof. by rewrite /sq_RV/comp_RV; apply boolp.funext => u /=; rewrite mulR1. Qed.
+
+Definition RV_ringE :=
+  (add_RV_addr, sub_RV_subr, trans_min_RV_subr, mul_RV_mulr, sq_RV_sqrr).
+End RV_ring.
+
+
+Section probability.
+Variables (U : finType) (P : fdist U).
+Import GRing.Theory.
 
 Lemma sq_RVE (X : {RV P -> R}) : X `^2 = X `* X.
-Proof.
-by rewrite /sq_RV /comp_RV /=; apply boolp.funext=> u; rewrite mulRA mulR1.
-Qed.
+Proof. by rewrite sq_RV_sqrr. Qed.
 
 Lemma Ind_ge0 (X : {set U}) (x : U) : 0 <= Ind X x.
 Proof. by rewrite /Ind; case: ifPn. Qed.
@@ -175,14 +211,12 @@ Qed.
 
 Lemma I_square F : Ind F = ((Ind F) `^2 : {RV P -> R}).
 Proof.
-rewrite boolp.funeqE /Ind => x.
-by rewrite /sq_RV /comp_RV /=; case: ifPn => xF /=; rewrite ?(mulR0,mulR1).
+rewrite sq_RVE boolp.funeqE /Ind => x.
+by case: ifPn; rewrite ?mulR0 ?mulR1.
 Qed.
 
 Lemma I_double F : Ind F = ((Ind F) `* (Ind F) : {RV P -> R}).
-Proof.
-by rewrite [LHS]I_square boolp.funeqE => u; rewrite /sq_RV /comp_RV mulRR.
-Qed.
+Proof. by rewrite [LHS]I_square sq_RVE. Qed.
 
 (*
 Lemma I_mult_one F : (Ind (A:=U) F : {RV P -> R}) `* 1 = Ind (A:=U) F.
@@ -202,12 +236,7 @@ Proof.
 move=> /[dup] /Pr_gt0 PrPF_neq0 /invR_gt0 /ltRW PrPFV_ge0 FsubG.
 rewrite divRE -(geR0_norm (/Pr P F)) // -normRM.
 congr `| _ |.
-have->: (X `-cst `E_[X | G]) `* Ind F = X `* Ind F `- `E_[X | G] `cst* Ind F
-  by move=> ?; apply boolp.funext=> ?; rewrite mulRDl mulNR. 
-(* If we had declared the pointwise ring structure for RVs
-   (or more generally for real-valued functions),
-   we wouldn't need funext and could directly use lemmas for generic rings:
-   `rewrite mulrDl mulNr` *)
+rewrite !RV_ringE mulrDl mulNr.
 by rewrite E_sub_RV mulRDl E_scalel_RV E_Ind mulNR -mulRA mulRV // mulR1 cEx_ExInd.
 Qed.
 
@@ -248,7 +277,7 @@ apply leR_trans with (y := y).
     by rewrite {1}I_double boolp.funeqE=> u; rewrite mulRA.
   apply/(leR_trans (Cauchy_Schwarz_proba _ _))/leR_eqVlt; left.
   congr (_ * _); congr (`E _); last by rewrite -I_square.
-  by apply boolp.funext=> u; rewrite [in RHS]I_double !sq_RVE mulRCA !mulRA.
+  by rewrite [in RHS]I_double !RV_ringE !expr2 mulrCA !mulrA.
 rewrite /y divRE -(sqrt_Rsqr (/ Pr P F)) // -sqrt_mult_alt; last first.
   move=> *; apply mulR_ge0; last by rewrite E_Ind.
   by apply: Ex_ge0 => u; apply: mulR_ge0; [apply pow2_ge_0 | apply Ind_ge0].
@@ -1106,11 +1135,11 @@ End probability.
 
 Require Import List.
 Require Import Sorting.
-Require Import Orders.
+Require Orders.
 
 Definition Average l := fold_left Rplus l 0 / INR (length l).
 
-Module ROrder <: TotalLeBool.
+Module ROrder <: Orders.TotalLeBool.
 Definition t := R.
 Definition leb := Rleb.
 Lemma leb_total  (x y : t) : leb x y = true \/ leb y x = true.
