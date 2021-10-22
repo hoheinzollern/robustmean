@@ -398,94 +398,31 @@ Lemma resilience (delta: R) (X : {RV P -> R}) F:
   0 < delta -> delta <= Pr P F -> Pr P F < 1 ->
     `| `E_[ X | F ] - `E X | <= sqrt (`V X * 2 * (1-delta) / delta).
 Proof.
-  move => H H0 H1.
-  have: delta <= 1/2 \/ 1/2 < delta by apply Rle_or_lt.
-  case => [H2|H2].
-  { (*Pr P F <= 1/2 , A.3 implies the desired result*)
-    apply leR_trans with (y := sqrt (`V X / Pr P F )).
-    apply cEx_Var. lra.
-    apply sqrt_le_1_alt. unfold Rdiv.
-    repeat rewrite -> Rmult_assoc.
-    apply Rmult_le_compat_l.
-    apply variance_nonneg. 
-
-    rewrite <- Rmult_1_l at 1.
-    rewrite -Rmult_assoc. 
-    apply leR_pmul; try (apply/Rlt_le/invR_gt0); try lra.
-    by apply leR_inv.
-  }
-
-  { (*Prob > 1/2 and delta < Probability*)
-    rewrite cEx_Inv.
-    (*Search (?x <= ?y -> ?y <= ?z -> ?x <= ?z).*)
-    apply Rle_trans with (r2 := ((1 - Pr P F) / Pr P F * sqrt (`V X / Pr P (~: F)))).
-    have H3: 0 < Pr P F by lra.
-    
-    apply Rmult_le_compat_l.
-    - apply divR_ge0; lra.
-    - apply cEx_Var; rewrite Pr_of_cplt; lra.
-    
-    - (*(1 - Pr P F) / Pr P F * sqrt (`V X / Pr P (~: F)) <=
-    sqrt (`V X * 2 * (1 - delta) / delta)*) 
-    rewrite -(Rabs_pos_eq ((1 - Pr P F) / Pr P F )).
-    rewrite -sqrt_Rsqr_abs;
-    rewrite -sqrt_mult_alt.
-    apply sqrt_le_1_alt;
-    (*((1 - Pr P F) / Pr P F)² * (`V X / Pr P (~: F)) <=
-`V X * 2 * (1 - delta) / delta*)
-    (*Search (?x / ?y = ?x * _).*)
-    repeat rewrite divRE;
-    rewrite -Rmult_assoc;
-    (*Search (?x * ?y  = ?y * ?x ).*)
-    rewrite (Rmult_comm ((1 - Pr P F) * / Pr P F)²  (`V X));
-    (*rewrite (Rmult_assoc (`V X ) (2 * (1 - delta) * / delta)).*)
-    (*Search (?x * _ <= ?x * _).*)
-    (*Set Printing All.*)
-    repeat rewrite Rmult_assoc;
-    (*rewrite (Rmult_assoc (`V X ) (2 * (1 - delta) * / delta)).*)
-    apply Rmult_le_compat_l. 
-
+move => Hdelta_gt0 Hdelta_le_PF HPF_lt1.
+have HPF_gt0: 0 < Pr P F by lra.
+case : (Rle_or_lt delta (1/2)) => Hdelta_12.
+  apply (leR_trans (cEx_Var _ HPF_gt0)).
+  apply sqrt_le_1_alt. unfold Rdiv.
+  rewrite -!mulRA.
+  apply leR_wpmul2l.
     apply variance_nonneg.
-
-    rewrite Pr_of_cplt; 
-    rewrite (Rmult_comm (/ Pr P F) (/ (1 - Pr P F)));
-    rewrite -(Rmult_assoc (1 - Pr P F) (/ (1 - Pr P F)));
-    (*Search (/?x * ?x).*)
-    rewrite Rinv_r.
-    (*Search (1 * _).*)
-    rewrite Rmult_1_l;
-    (*Search (?x * ?x).
-    Search (_ * ?x <= _ * ?x).*)
-    apply Rmult_le_reg_r with (r := delta).
-
-    assumption.
-
-    repeat rewrite Rmult_assoc;
-    rewrite Rinv_l.
-    rewrite mulR1;
-    apply Rmult_le_reg_r with (r := (Pr P F * Pr P F)). nra.
-    
-    repeat rewrite Rmult_assoc;
-    rewrite (Rmult_comm (delta));
-    rewrite  (Rmult_assoc (Pr P F));
-    rewrite -(Rmult_assoc (/ Pr P F ) (Pr P F));
-    rewrite Rinv_l.
-    rewrite Rmult_1_l;
-    rewrite -(Rmult_assoc (/ Pr P F));
-    rewrite Rinv_l.
-    rewrite Rmult_1_l. 
-
-    (*Search (?x * ?y <= ?z * ?u).*)
-    repeat rewrite -Rmult_assoc;
-    apply Rmult_le_compat.
-
-    all: try lra. nra.
-
-    - apply Rle_0_sqr.
-    - apply divR_ge0; try lra.
-   (*THE END*)
-  }
-
+  rewrite -(mul1R (/ _)) mulRA. 
+  by apply /leR_pmul; try apply /Rlt_le/invR_gt0; try lra; apply leR_inv.
+rewrite cEx_Inv; try auto.
+apply: (@leR_trans (((1 - Pr P F) / Pr P F * sqrt (`V X / Pr P (~: F))))).
+  apply leR_pmul2l; first apply divR_gt0; try lra.
+  apply cEx_Var; rewrite Pr_of_cplt; lra.
+rewrite -(gtR0_norm (_ / _)); last by apply divR_gt0; lra.
+rewrite -sqrt_Rsqr_abs -sqrt_mult_alt; last by apply Rle_0_sqr.
+apply sqrt_le_1_alt.
+rewrite !divRE mulRCA -!mulRA.
+apply leR_wpmul2l; first apply variance_nonneg.
+rewrite Pr_of_cplt (mulRC _ (/ (1 - _))) (mulRA _ (/ (1 - _))) mulRV ?gtR_eqF ?mul1R //; last by lra.
+apply (@leR_pmul2r delta); first by [];
+rewrite -!mulRA mulVR ?gtR_eqF // mulR1 !mulRA mulRC !mulRA.
+do 2 (apply (@leR_pmul2r (Pr P F)); do [lra|rewrite -!mulRA mulVR ?gtR_eqF // mulR1]);
+rewrite mulRC !mulRA.
+by apply leR_pmul; nra.
 Qed.
 
 (* /[conj] by Cyril Cohen :
