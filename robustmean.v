@@ -758,6 +758,18 @@ apply/sqrt_le_1_alt/leR_pmul.
 - by apply/Rsqr_incr_1; lra.
 Qed.
 
+Lemma eqn1_1 (good: {set U}) (X: {RV P -> R}) (C: U -> R):
+  let mu_hat_c := (\sum_(i in U) C i * X i) / (\sum_(i in U) C i) in
+  let mu := `E_[X | good] in
+  let var := `V_[X | good] in
+  let tau i := Rsqr (X i - mu_hat_c) in
+  (forall a, 0 <= C a <= 1) -> (\sum_(i in good) P i * Rsqr (X i - mu_hat_c)) / Pr P good  = var + Rsqr (mu - mu_hat_c). 
+Proof.
+  move => mu_hat_c mu var tau H_0C1.
+  unfold var, cVar.
+  rewrite !cEx_ExInd.
+  unfold Ex, mu, mu_hat_c.
+
 End probability.
 
 Require Import List.
