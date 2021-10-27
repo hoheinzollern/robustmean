@@ -690,9 +690,8 @@ Proof.
   unfold Ex, mu, mu_hat_c.
   rewrite /trans_min_RV /sq_RV /comp_RV /Rsqr /Ind /=.  
   rewrite !cEx_ExInd /Ind /Pr. 
-  under eq_bigr => i _. 
-  
-  
+  under eq_bigr => i _.
+    rewrite divRE.
   
   
 End probability.
