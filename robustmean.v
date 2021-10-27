@@ -51,12 +51,16 @@ Lemma Ind_subset (A : finType) (X Y : {set A}) :
 Proof.
 rewrite /Ind; split => H.
   by move=> a; case: ifPn; [move/(subsetP H) -> | case: (a \in Y)].
-apply/subsetP => a aX.  
+apply/subsetP => a aX.
 move: (H a); rewrite aX; case: (a \in Y) => //.
 by move/leRNgt/(_ Rlt_0_1).
 Qed.
 
 End sets_functions.
+
+(* NB: will appear in the next version of infotheo *)
+Lemma eqR_divl_mulr (z x y : R) : z != 0 -> (x = y / z) <-> (x * z = y).
+Proof. by move=> z0; split; move/esym/eqR_divr_mulr => /(_ z0) ->. Qed.
 
 Delimit Scope ring_scope with ring.
 
@@ -247,11 +251,6 @@ Proof. by rewrite [LHS]I_square sq_RVE. Qed.
 Lemma I_mult_one F : (Ind (A:=U) F : {RV P -> R}) `* 1 = Ind (A:=U) F.
 (F: {RV P -> R}): (Ind (A:=U) F: {RV P -> R}) `* 1 = (Ind (A:=U) F : {RV P -> R}). *)
 
-Lemma variance_nonneg (X : {RV P -> R}) : 0 <= `V X.
-Proof.
-by apply: sumR_ge0 => u _; apply mulR_ge0 => //; apply: sq_RV_ge0.
-Qed.
-
 Lemma cEx_sub (X : {RV P -> R}) (F G: {set U}) :
   0 < Pr P F ->
   F \subset G ->
@@ -281,7 +280,7 @@ Notation "`V_[ X | F ]" := (cVar X F).
 Lemma Var_cVarT (X : {RV P -> R}) : `V X = `V_[X | [set: U]].
 Proof. by rewrite /cVar -!Ex_cExT. Qed.
 
-Lemma cEx_cVar (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  -> 
+Lemma cEx_cVar (X : {RV P -> R}) (F G: {set U}) : 0 < Pr P F  ->
   F \subset G ->
   let mu := `E_[X | G] in
   let var := `V_[X | G] in
@@ -385,6 +384,7 @@ rewrite sub0R normRN.
 by rewrite [X in _ = _ * X]mulRAC mulRV // mul1R.
 Qed.
 
+(* NB: not used *)
 Lemma cEx_Inv (X: {RV P -> R}) F :
   0 < Pr P F -> Pr P F < 1 ->
   `| `E_[X | F] - `E X| = (1 - Pr P F) / Pr P F * `| `E_[X | (~: F)] - `E X|.
@@ -392,37 +392,6 @@ Proof.
 move=> *; rewrite Ex_cExT -Pr_of_cplt -setTD; apply cEx_Inv' => //.
 apply ltR_neqAle; split; last by apply/Pr_incl/subsetT.
 by apply/eqP; rewrite Pr_setT -Pr_lt1.
-Qed.
-
-Lemma resilience (delta: R) (X : {RV P -> R}) F:
-  0 < delta -> delta <= Pr P F -> Pr P F < 1 ->
-    `| `E_[ X | F ] - `E X | <= sqrt (`V X * 2 * (1-delta) / delta).
-Proof.
-move => Hdelta_gt0 Hdelta_le_PF HPF_lt1.
-have HPF_gt0: 0 < Pr P F by lra.
-case : (Rle_or_lt delta (1/2)) => Hdelta_12.
-  apply (leR_trans (cEx_Var _ HPF_gt0)).
-  apply sqrt_le_1_alt. unfold Rdiv.
-  rewrite -!mulRA.
-  apply leR_wpmul2l.
-    apply variance_nonneg.
-  rewrite -(mul1R (/ _)) mulRA. 
-  by apply /leR_pmul; try apply /Rlt_le/invR_gt0; try lra; apply leR_inv.
-rewrite cEx_Inv; try auto.
-apply: (@leR_trans (((1 - Pr P F) / Pr P F * sqrt (`V X / Pr P (~: F))))).
-  apply leR_pmul2l; first apply divR_gt0; try lra.
-  apply cEx_Var; rewrite Pr_of_cplt; lra.
-rewrite -(gtR0_norm (_ / _)); last by apply divR_gt0; lra.
-rewrite -sqrt_Rsqr_abs -sqrt_mult_alt; last by apply Rle_0_sqr.
-apply sqrt_le_1_alt.
-rewrite !divRE mulRCA -!mulRA.
-apply leR_wpmul2l; first apply variance_nonneg.
-rewrite Pr_of_cplt (mulRC _ (/ (1 - _))) (mulRA _ (/ (1 - _))) mulRV ?gtR_eqF ?mul1R //; last by lra.
-apply (@leR_pmul2r delta); first by [];
-rewrite -!mulRA mulVR ?gtR_eqF // mulR1 !mulRA mulRC !mulRA.
-do 2 (apply (@leR_pmul2r (Pr P F)); do [lra|rewrite -!mulRA mulVR ?gtR_eqF // mulR1]);
-rewrite mulRC !mulRA.
-by apply leR_pmul; nra.
 Qed.
 
 (* /[conj] by Cyril Cohen :
@@ -435,35 +404,25 @@ Notation "[conj]" := (ltac:(apply and_curry)) (only parsing) : ssripat_scope.
 
 Lemma cvariance_nonneg (X : {RV P -> R}) F : 0 <= `V_[X | F].
 Proof.
-case H : (0 <b Pr P F); last first.
-  move/negbT: H; rewrite -leRNlt'; move /leRP.
+have [/ltRP H|] := boolP (0 <b Pr P F); last first.
+  rewrite -leRNlt' => /leRP.
   move: (Pr_ge0 P F) => /[conj] /eqR_le H.
-  rewrite /cVar /cEx; apply big_ind; [exact: leRR | exact: addR_ge0 |].
-  move=> i _.
+  rewrite /cVar /cEx; apply big_ind; [exact: leRR|exact: addR_ge0|move=> i _].
   by rewrite setIC Pr_domin_setI // mulR0 divRE mul0R; apply leRR.
-move/ltRP: H => H.
-unfold cVar.
-rewrite cEx_ExInd.
-unfold Ex, ambient_dist.
-rewrite divRE big_distrl /=. 
-apply sumR_ge0. intros.
-rewrite /sq_RV/comp_RV/=.
-unfold "^".
-apply mulR_ge0.
-rewrite mulR1.
-  apply mulR_ge0 .
-    apply mulR_ge0.
-      by apply Rle_0_sqr.
-    unfold Ind.
-    by destruct (i \in F) eqn:H1; rewrite H1; lra.
-  by apply FDist.ge0.
-apply/Rlt_le/Rinv_0_lt_compat.
-by auto.
+rewrite /cVar cEx_ExInd /Ex /ambient_dist divRE big_distrl /=.
+apply sumR_ge0 => u _; apply mulR_ge0; last exact/ltRW/invR_gt0.
+apply: mulR_ge0 => //; apply: mulR_ge0; first exact/sq_RV_ge0.
+by rewrite /Ind; by case: ifPn.
 Qed.
 
-Lemma resilience' (delta: R) (X : {RV P -> R}) (F G: {set U}):
+(* NB: not used *)
+Lemma variance_nonneg (X : {RV P -> R}) : 0 <= `V X.
+Proof. by have := cvariance_nonneg X setT; rewrite -Var_cVarT. Qed.
+
+Lemma cresilience (delta : R) (X : {RV P -> R}) (F G : {set U}) :
   0 < delta -> delta <= Pr P F / Pr P G -> Pr P F < Pr P G -> F \subset G ->
-    `| `E_[ X | F ] - `E_[ X | G ] | <= sqrt (`V_[ X | G ] * 2 * (1-delta) / delta).
+    `| `E_[ X | F ] - `E_[ X | G ] | <=
+    sqrt (`V_[ X | G ] * 2 * (1 - delta) / delta).
 Proof.
 move => delta_gt0 delta_FG Pr_FG /[dup] /setIidPr HGnF_F FG.
 have HPrGpos : 0 < Pr P G by exact: (leR_ltR_trans _ Pr_FG).
@@ -482,102 +441,62 @@ case : (Rle_or_lt delta (1/2)) => delta_12.
     rewrite mulRC -leR_pdivl_mulr; last exact: divR_gt0.
     rewrite div1R invRM ?gtR_eqF //; last exact: invR_gt0.
     by rewrite invRK ?gtR_eqF // mulRC.
-  rewrite !divRE mulRA leR_pmul2r; last exact: invR_gt0.
-  lra.
+  by rewrite !divRE mulRA leR_pmul2r; [lra|exact: invR_gt0].
 rewrite cEx_Inv' //.
 apply: leR_trans.
-  apply leR_wpmul2l; first by apply divR_ge0.
+  apply leR_wpmul2l; first exact: divR_ge0.
   apply cEx_cVar => //; last exact: subsetDl.
   by rewrite Pr_diff HGnF_F subR_gt0.
-apply (@leR_trans (sqrt (`V_[ X | G] * (Pr P G * (1 - delta)) / (Pr P G * delta * delta)))).
-  rewrite -(Rabs_pos_eq (Pr P (G :\: F) / Pr P F)); last first.
-    by apply divR_ge0 => //.
-  rewrite -sqrt_Rsqr_abs; rewrite -sqrt_mult_alt; last first.
-    by apply Rle_0_sqr.
+apply: (@leR_trans
+    (sqrt (`V_[ X | G] * (Pr P G * (1 - delta)) / (Pr P G * delta * delta)))).
+  rewrite -(Rabs_pos_eq (Pr P (G :\: F) / Pr P F)); last exact: divR_ge0.
+  rewrite -sqrt_Rsqr_abs; rewrite -sqrt_mult_alt; last exact: Rle_0_sqr.
   apply sqrt_le_1_alt.
-  unfold Rdiv.
-  repeat rewrite -Rmult_assoc.
-  rewrite (Rmult_comm _  (`V_[X | G])).
-  repeat rewrite Rmult_assoc; apply Rmult_le_compat_l.
-    exact: cvariance_nonneg.
-  repeat rewrite -Rmult_assoc.
-  rewrite Rmult_comm.
-  repeat rewrite -Rmult_assoc.
-  rewrite Rinv_l; last first.
-    rewrite Pr_diff HGnF_F.
-    nra.
-  rewrite Rmult_1_l Rmult_comm (Rmult_comm (/Pr P F)) Rmult_assoc -Rinv_mult_distr; last 2 first.
-    nra.
-    nra.
-  rewrite -Rmult_assoc.
-  apply Rmult_le_reg_r with (r:=Pr P F * Pr P F).
-    by nra.
-  rewrite Rmult_assoc Rinv_l; last first.
-    nra.
-  rewrite mulR1 Rmult_assoc (Rmult_comm (/ _)) -Rmult_assoc.
-  apply Rmult_le_reg_r with (r:= Pr P G * delta * delta).
-    apply Rmult_lt_0_compat; by nra.
-  rewrite (Rmult_assoc _ (/ _)) Rinv_l ?mulR1; last first.
-    by apply/eqP/gtR_eqF; apply/mulR_gt0 => //; apply/mulR_gt0.
+  rewrite !divRE !mulRA [in X in X <= _](mulRC _  (`V_[X | G])) -!mulRA.
+  apply: leR_wpmul2l; first exact: cvariance_nonneg.
+  rewrite !mulRA mulRC !mulRA mulVR ?mul1R; last first.
+    by rewrite Pr_diff HGnF_F; apply/eqP; nra.
+  rewrite mulRC (mulRC (/Pr P F)) -mulRA -invRM; [|exact/gtR_eqF|exact/gtR_eqF].
+  rewrite mulRA; apply/leR_pdivr_mulr; first by nra.
+  rewrite mulRAC; apply/leR_pdivl_mulr; first by apply: Rmult_lt_0_compat; nra.
+  move/leR_pdivl_mulr : delta_FG => /(_ HPrGpos) => delta_FG.
   apply Rmult_le_compat_r with (r:= Pr P G) in delta_FG => //.
-  rewrite Rmult_assoc in delta_FG.
-  rewrite Rinv_l ?mulR1 in delta_FG; last by nra.
-  rewrite (Rmult_comm (Pr P G)) Rmult_assoc.
-  apply Rmult_le_compat => //.
-    apply: mulR_ge0 => //; apply/mulR_ge0.
-      apply/mulR_ge0 => //.
-      exact/ltRW.
-    exact/ltRW.
-  rewrite Pr_diff HGnF_F.
-  apply Rle_trans with (r2:=Pr P G - delta * Pr P G).
-    by nra.
-  by nra.
-  rewrite Rmult_comm Rmult_assoc (Rmult_comm (delta)).
-  apply Rmult_le_compat => //.
-  all: try nra.
+  rewrite (mulRC (Pr P G)) -mulRA; apply: leR_pmul => //.
+  - apply: mulR_ge0 => //; apply/mulR_ge0; last exact/ltRW.
+    by apply/mulR_ge0 => //; exact/ltRW.
+  - by rewrite Pr_diff HGnF_F; nra.
+  - by rewrite mulRCA; apply: leR_pmul; nra.
 apply sqrt_le_1_alt.
-rewrite divRE Rinv_mult_distr; last 2 first.
-  by apply/eqP/gtR_eqF; apply/mulR_gt0.
-  exact/eqP/gtR_eqF.
-rewrite -Rmult_assoc.
-apply Rmult_le_compat_r.
-  by apply/Rlt_le/Rinv_0_lt_compat.
-repeat rewrite Rmult_assoc.
-apply Rmult_le_compat_l.
-  exact: cvariance_nonneg.
-rewrite Rinv_mult_distr; last 2 first.
-  exact/eqP/gtR_eqF.
-  exact/eqP/gtR_eqF.
-rewrite -Rmult_assoc (Rmult_comm (Pr P G)) -Rmult_assoc (Rmult_assoc (1 - delta)) Rinv_r; last first.
-  exact/eqP/gtR_eqF.
-rewrite mulR1 (Rmult_comm 2).
-repeat rewrite Rmult_assoc.
-apply Rmult_le_compat_l.
-  nra.
-apply Rmult_le_reg_r with (r:=delta) => //.
-rewrite Rinv_l.
-  by lra.
-by nra.
+rewrite divRE invRM; [|exact/gtR_eqF/mulR_gt0|exact/gtR_eqF].
+rewrite mulRA; apply/leR_pmul2r; first exact/invR_gt0.
+rewrite -!mulRA; apply: leR_wpmul2l; first exact: cvariance_nonneg.
+rewrite invRM; [|exact/gtR_eqF|exact/gtR_eqF].
+rewrite mulRCA (mulRA (Pr P G)) mulRV ?mul1R; last exact/gtR_eqF.
+rewrite mulRC; apply/leR_wpmul2r; first lra.
+by rewrite -div1R; apply/leR_pdivr_mulr => //; nra.
+Qed.
+
+(* NB: not used, unconditional version of cresilience *)
+Lemma resilience (delta : R) (X : {RV P -> R}) F :
+  0 < delta -> delta <= Pr P F -> Pr P F < 1 ->
+    `| `E_[ X | F ] - `E X | <= sqrt (`V X * 2 * (1 - delta) / delta).
+Proof.
+move=> delta_gt0 delta_F PF_lt1.
+have := @cresilience _ X F setT delta_gt0.
+rewrite Pr_setT divR1 => /(_ delta_F PF_lt1); rewrite -Ex_cExT -Var_cVarT.
+by apply; exact/subsetT.
 Qed.
 
 Infix ">=?" := Rgeb : R_scope.
 
-Lemma Ind_one F :
-  Pr P F <> 0 -> `E_[Ind F : {RV P -> R} | F] = 1.
+Lemma Ind_one F : Pr P F <> 0 -> `E_[Ind F : {RV P -> R} | F] = 1.
 Proof.
-  move => H.
-  rewrite cEx_ExInd.
-  have I_mult : (Ind F `* Ind F = Ind F). 
-    apply boolp.funext=> u.
-    unfold Ind.
-    by case : ifPn; nra.
-  by rewrite I_mult E_Ind divRE Rinv_r //.
+move=> F0; rewrite cEx_ExInd.
+have -> : Ind F `* Ind F = Ind F.
+  by rewrite /Ind boolp.funeqE => u; case: ifPn; rewrite ?(mulR0,mulR1).
+by rewrite E_Ind divRE mulRV//; exact/eqP.
 Qed.
 Arguments Ind_one : clear implicits.
-
-(* TODO: move *)
-Lemma eqR_divl_mulr (z x y : R) : z != 0 -> (x = y / z) <-> (x * z = y).
-Proof. by move=> z0; split; move/esym/eqR_divr_mulr => /(_ z0) ->. Qed.
 
 Theorem robust_mean (good drop: {set U}) (X : {RV P -> R}) (eps : R):
   let bad := ~: good in
@@ -633,7 +552,7 @@ have Exgood_bound : `| `E_[X | good :\: drop ] - `E_[X | good] | <=
     apply/subR_eq; rewrite addRC; apply/subR_eq; rewrite subRR; apply/esym.
     move: gdg; rewrite Pr_diff => /subR_eq; rewrite addRC => /subR_eq.
     by rewrite subRR [in X in _ -> X]setIC => /esym; exact: Pr_domin_setI.
-  - apply resilience'.
+  - apply cresilience.
     + apply (@ltR_pmul2r (1 - eps)); first lra.
       by rewrite mul0R; apply: mulR_gt0 => //; lra.
     + lra.
