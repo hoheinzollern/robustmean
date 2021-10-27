@@ -121,7 +121,7 @@ Proof. by rewrite /Ind; case: ifPn. Qed.
 Lemma Ind_setD (X Y : {set U}) :
   Y \subset X -> Ind (X :\: Y) = Ind X `- Ind Y :> {RV P -> R}.
 Proof.
-move/subsetP=> YsubX; rewrite /Ind /sub_RV; apply boolp.funext=> u /=.
+move/subsetP=> YsubX; rewrite /Ind /sub_RV. apply boolp.funext => u /=.
 case: ifPn; rewrite inE ?negb_and;
   first by case/andP => /negbTE -> ->; rewrite subR0.
 case/orP; first by move => /negbNE /[dup] /YsubX -> ->; rewrite subRR.
@@ -689,8 +689,12 @@ Proof.
   rewrite !cEx_ExInd.
   unfold Ex, mu, mu_hat_c.
   rewrite /trans_min_RV /sq_RV /comp_RV /Rsqr /Ind /=.  
-  rewrite !cEx_ExInd /Ind. 
-
+  rewrite !cEx_ExInd /Ind /Pr. 
+  under eq_bigr => i _. 
+  
+  
+  
+  
 End probability.
 
 Require Import List.
