@@ -689,8 +689,7 @@ Proof.
   rewrite !cEx_ExInd.
   unfold Ex, mu, mu_hat_c.
   rewrite /trans_min_RV /sq_RV /comp_RV /Rsqr /Ind /=.  
-  
-  
+  rewrite !cEx_ExInd /Ind. 
 
 End probability.
 
