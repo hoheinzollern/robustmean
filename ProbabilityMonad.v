@@ -110,7 +110,24 @@ Defined.
 
 Definition dice := uniform (1::2::3::4::5::6::nil).
 
-Definition diceTwice :=
+Program Instance option_monad: monad option := {
+  ret _ x := Some x;
+  bind _ _ x f := match x with
+    Some x => f x
+  | None => None
+  end
+}.
+
+Next Obligation.
+destruct ma; auto.
+Qed.
+
+Next Obligation.
+destruct ma; auto.
+Qed.
+
+(* Now diceTwice is polymorphic on the type of the monad *)
+Definition diceTwice {m} {_: monad m} dice :=
     x <- dice; y <- dice; ret (x+y).
 (*
   Alternative, equivalent definitions:
@@ -118,5 +135,13 @@ Definition diceTwice :=
     bind dice (fun x => bind dice (fun y => ret (x+y))). *)
 
 Print diceTwice.
-Compute diceTwice.
+(* For example it can work on probability distributions *)
+Compute (diceTwice dice).
+(* Or on option values *)
+Compute (diceTwice (Some 10)).
 
+Require Extraction.
+
+Extraction Language Haskell.
+
+Extraction diceTwice.
