@@ -54,8 +54,8 @@ Lemma mulp_concat {a} x (l1 l2: list (nat * a)):
   mulp x l1 ++ mulp x l2 = mulp x (l1 ++ l2).
 Proof.
   induction l1.
-  - auto.
-  - destruct a0. simpl. rewrite IHl1. auto.
+  - (*Search (nil ++ _).*) apply app_nil_l.
+  - simpl. case a0. intros. rewrite <-IHl1. apply eq_refl. 
 Qed.
 
 
