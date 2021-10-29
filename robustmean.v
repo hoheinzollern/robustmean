@@ -677,14 +677,18 @@ apply/sqrt_le_1_alt/leR_pmul.
 - by apply/Rsqr_incr_1; lra.
 Qed.
 
+Lemma cVarE: forall (X : {RV (P) -> (R)}) F,
+`V_[X | F] = `E_[X `^2 | F] - `E_[X | F] ^ 2.
+
 Lemma eqn1_1 (good: {set U}) (X: {RV P -> R}) (C: U -> R):
   let mu_hat_c := (\sum_(i in U) C i * X i) / (\sum_(i in U) C i) in
   let mu := `E_[X | good] in
   let var := `V_[X | good] in
-  let tau i := Rsqr (X i - mu_hat_c) in
-  (forall a, 0 <= C a <= 1) -> (\sum_(i in good) P i * Rsqr (X i - mu_hat_c)) / Pr P good  = var + Rsqr (mu - mu_hat_c). 
+  let tau i := (X i - mu_hat_c)² in
+  (forall a, 0 <= C a <= 1) -> (\sum_(i in good) P i * tau i) / Pr P good  = var + (mu - mu_hat_c)². 
 Proof.
   move => mu_hat_c mu var tau H_0C1.
+  Search cVar.
   unfold var, cVar.
   rewrite !cEx_ExInd.
   unfold Ex, mu, mu_hat_c.
