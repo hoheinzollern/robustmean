@@ -677,25 +677,61 @@ apply/sqrt_le_1_alt/leR_pmul.
 - by apply/Rsqr_incr_1; lra.
 Qed.
 
+Lemma cEx_add_RV (X Y : {RV (P) -> (R)}) F:
+  `E_[(X `+ Y) | F] = `E_[X | F] + `E_[Y | F].
+Proof.
+  repeat rewrite cEx_ExInd.
+  unfold Rdiv.
+  rewrite -Rmult_plus_distr_r.
+  congr (_ * _).
+  rewrite -E_add_RV.
+  unfold Ex.
+  apply congr_big.
+  auto. auto.
+  intros i Hiu.
+  unfold ambient_dist.
+  unfold "`+".
+  rewrite Rmult_plus_distr_r.
+  auto.
+Qed.
+
+Lemma cEx_const_RV (k : R_eqType) F: 
+  `E_[(const_RV P k) | F] = k.
+Admitted.
+
+Lemma cEx_scaler_RV (X : {RV (P) -> (R)}) (k : R) F:
+  `E_[(X `*cst k) | F] = `E_[X | F] * k.
+Admitted.
+
+Lemma cEx_scalel_RV (X : {RV (P) -> (R)}) (k : R) F:
+  `E_[(k `cst* X) | F] = k * `E_[X | F].
+Admitted.
+
 Lemma cVarE: forall (X : {RV (P) -> (R)}) F,
-`V_[X | F] = `E_[X `^2 | F] - `E_[X | F] ^ 2.
+  `V_[X | F] = `E_[X `^2 | F] - `E_[X | F] ^ 2.
+Proof.
+Admitted.
 
 Lemma eqn1_1 (good: {set U}) (X: {RV P -> R}) (C: U -> R):
   let mu_hat_c := (\sum_(i in U) C i * X i) / (\sum_(i in U) C i) in
   let mu := `E_[X | good] in
   let var := `V_[X | good] in
-  let tau i := (X i - mu_hat_c)² in
-  (forall a, 0 <= C a <= 1) -> (\sum_(i in good) P i * tau i) / Pr P good  = var + (mu - mu_hat_c)². 
+  let tau := (X `-cst mu_hat_c)`^2 in
+  (forall a, 0 <= C a <= 1) -> (\sum_(i in good) P i * C i * tau i) / Pr P good <= var + (mu - mu_hat_c)². 
 Proof.
   move => mu_hat_c mu var tau H_0C1.
-  Search cVar.
+  apply leR_trans with (y := `E_[tau | good]); last first.
+  apply leR_eqVlt.
+  left.
+
+(*  Search cVar.
   unfold var, cVar.
   rewrite !cEx_ExInd.
   unfold Ex, mu, mu_hat_c.
   rewrite /trans_min_RV /sq_RV /comp_RV /Rsqr /Ind /=.  
   rewrite !cEx_ExInd /Ind /Pr. 
   under eq_bigr => i _.
-    rewrite divRE.
+    rewrite divRE.*)
   
   
 End probability.
