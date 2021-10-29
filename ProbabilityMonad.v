@@ -37,7 +37,7 @@ Proof.
     - (*Search (mulp 1).*) simpl. case a0. 
       intros. (*Search (?x+0).*) 
       rewrite <-plus_n_O. 
-      rewrite IHys. auto. 
+      rewrite IHys. apply eq_refl. 
 Qed.
 
 Lemma mulp_xy {a} x y (l: list (nat * a)):
@@ -45,8 +45,9 @@ Lemma mulp_xy {a} x y (l: list (nat * a)):
 Proof.
   induction l.
   - auto.
-  - destruct a0. simpl.
-    rewrite Nat.mul_assoc. rewrite IHl. auto.
+  - case a0. intros. simpl. rewrite IHl. 
+  (*Search _ "assoc".*)
+  rewrite Nat.mul_assoc. apply eq_refl. 
 Qed.
 
 Lemma mulp_concat {a} x (l1 l2: list (nat * a)):
