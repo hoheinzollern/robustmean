@@ -680,34 +680,52 @@ Qed.
 Lemma cEx_add_RV (X Y : {RV (P) -> (R)}) F:
   `E_[(X `+ Y) | F] = `E_[X | F] + `E_[Y | F].
 Proof.
-  repeat rewrite cEx_ExInd.
-  unfold Rdiv.
-  rewrite -Rmult_plus_distr_r.
+  rewrite !cEx_ExInd -mulRDl.
   congr (_ * _).
   rewrite -E_add_RV.
-  unfold Ex.
-  apply congr_big.
-  auto. auto.
-  intros i Hiu.
-  unfold ambient_dist.
-  unfold "`+".
-  rewrite Rmult_plus_distr_r.
-  auto.
+  apply congr_big => // i HiU.
+  by rewrite mulRDl.
 Qed.
 
-Lemma cEx_const_RV (k : R_eqType) F: 
+Lemma cEx_const_RV (k : R_eqType) F:
+  0 < Pr P F ->
   `E_[(const_RV P k) | F] = k.
-Admitted.
+Proof.
+  move => HPrPF.
+  rewrite cEx_ExInd E_scalel_RV E_Ind.
+  unfold Rdiv.
+  rewrite -mulRA mulRV.
+    by rewrite mulR1.
+    by apply gtR_eqF.
+Qed.
+
+Lemma const_RC (X: {RV P -> R}) k: X `*cst k = k `cst* X.
+Proof.
+  unfold "`*cst", "`cst*".
+  rewrite boolp.funeqE => x.
+  by rewrite mulRC.
+Qed.
 
 Lemma cEx_scaler_RV (X : {RV (P) -> (R)}) (k : R) F:
   `E_[(X `*cst k) | F] = `E_[X | F] * k.
-Admitted.
+Proof.
+  rewrite !cEx_ExInd mulRC mulRA.
+  congr (_ * _).
+  rewrite -E_scalel_RV const_RC.
+  apply eq_bigr => i _.
+  unfold "`cst*".
+  by rewrite mulRA.
+Qed.
 
 Lemma cEx_scalel_RV (X : {RV (P) -> (R)}) (k : R) F:
   `E_[(k `cst* X) | F] = k * `E_[X | F].
-Admitted.
+Proof.
+  rewrite mulRC.
+  rewrite -cEx_scaler_RV.
+  by rewrite const_RC.
+Qed.
 
-Lemma cVarE: forall (X : {RV (P) -> (R)}) F,
+Lemma cVarE (X : {RV (P) -> (R)}) F:
   `V_[X | F] = `E_[X `^2 | F] - `E_[X | F] ^ 2.
 Proof.
 Admitted.
@@ -717,21 +735,49 @@ Lemma eqn1_1 (good: {set U}) (X: {RV P -> R}) (C: U -> R):
   let mu := `E_[X | good] in
   let var := `V_[X | good] in
   let tau := (X `-cst mu_hat_c)`^2 in
-  (forall a, 0 <= C a <= 1) -> (\sum_(i in good) P i * C i * tau i) / Pr P good <= var + (mu - mu_hat_c)². 
+  (0 < Pr P good) ->
+  (forall a, 0 <= C a <= 1) -> 
+  (\sum_(i in good) P i * C i * tau i) / Pr P good <= var + (mu - mu_hat_c)². 
 Proof.
-  move => mu_hat_c mu var tau H_0C1.
-  apply leR_trans with (y := `E_[tau | good]); last first.
+move => mu_hat_c mu var tau HPgood H_0C1.
+apply leR_trans with (y := `E_[tau | good]); last first.
   apply leR_eqVlt.
   left.
-
-(*  Search cVar.
-  unfold var, cVar.
-  rewrite !cEx_ExInd.
-  unfold Ex, mu, mu_hat_c.
-  rewrite /trans_min_RV /sq_RV /comp_RV /Rsqr /Ind /=.  
-  rewrite !cEx_ExInd /Ind /Pr. 
-  under eq_bigr => i _.
-    rewrite divRE.*)
+  unfold var, mu, Rsqr, tau.
+  rewrite cVarE.
+  simpl.
+  rewrite mulR1 mulRDl !mulRDr !addRA -(mulRC (- _)) -!addRA addRA addRA -(addRA _ (- _)) (addRC (- _)).
+  have ->:  `E_[X | good] * `E_[X | good] + - (`E_[X | good] * `E_[X | good]) = 0.
+  apply subRR.
+  rewrite addR0 -!cEx_scalel_RV.
+  have <-: `E_[(const_RV P (-mu_hat_c * -mu_hat_c)) | good] = -mu_hat_c * -mu_hat_c by apply cEx_const_RV.
+  rewrite -!cEx_add_RV !cEx_ExInd.
+  congr (_ * _).
+  apply eq_bigr => i _.
+  repeat congr (_ * _).
+  unfold "`-cst", "`^2", "`o", "`cst*", const_RV, "`+".
+  simpl.
+  by rewrite !mulR1 mulRDl !mulRDr !addRA -(mulRC (-_)).
+rewrite cEx_ExInd.
+apply leR_pmul2r.
+by apply invR_gt0.
+apply leR_sumRl; last by [].
+move => i Higood.
+unfold Ind.
+rewrite Higood mulR1 (mulRC (tau i)).
+apply leR_wpmul2r.
+apply sq_RV_ge0.
+rewrite -{2}(mulR1 (P i)).
+apply leR_wpmul2l.
+auto.
+apply H_0C1.
+move => i HiU.
+apply mulR_ge0.
+apply mulR_ge0.
+apply sq_RV_ge0.
+apply Ind_ge0.
+auto.
+Qed.
   
   
 End probability.
