@@ -34,11 +34,10 @@ Lemma mulp_1 {a} (ys: list (nat * a)): mulp 1 ys = ys.
 Proof.
     induction ys.
     - auto.
-    - simpl.
-      rewrite IHys.
-      destruct a0.
-      rewrite Nat.add_0_r.
-      auto. 
+    - (*Search (mulp 1).*) simpl. case a0. 
+      intros. (*Search (?x+0).*) 
+      rewrite <-plus_n_O. 
+      rewrite IHys. apply eq_refl. 
 Qed.
 
 Lemma mulp_xy {a} x y (l: list (nat * a)):
@@ -46,16 +45,17 @@ Lemma mulp_xy {a} x y (l: list (nat * a)):
 Proof.
   induction l.
   - auto.
-  - destruct a0. simpl.
-    rewrite Nat.mul_assoc. rewrite IHl. auto.
+  - case a0. intros. simpl. rewrite IHl. 
+  (*Search _ "assoc".*)
+  rewrite Nat.mul_assoc. apply eq_refl. 
 Qed.
 
 Lemma mulp_concat {a} x (l1 l2: list (nat * a)):
   mulp x l1 ++ mulp x l2 = mulp x (l1 ++ l2).
 Proof.
   induction l1.
-  - auto.
-  - destruct a0. simpl. rewrite IHl1. auto.
+  - (*Search (nil ++ _).*) apply app_nil_l.
+  - simpl. case a0. intros. rewrite <-IHl1. apply eq_refl. 
 Qed.
 
 
