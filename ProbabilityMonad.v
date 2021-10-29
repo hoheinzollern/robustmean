@@ -34,11 +34,10 @@ Lemma mulp_1 {a} (ys: list (nat * a)): mulp 1 ys = ys.
 Proof.
     induction ys.
     - auto.
-    - simpl.
-      rewrite IHys.
-      destruct a0.
-      rewrite Nat.add_0_r.
-      auto. 
+    - (*Search (mulp 1).*) simpl. case a0. 
+      intros. (*Search (?x+0).*) 
+      rewrite <-plus_n_O. 
+      rewrite IHys. auto. 
 Qed.
 
 Lemma mulp_xy {a} x y (l: list (nat * a)):
