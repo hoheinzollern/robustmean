@@ -134,11 +134,55 @@ Definition diceTwice {m} {_: monad m} dice :=
     dice >>= (fun x => dice >>= (fun y => ret (x + y))).
     bind dice (fun x => bind dice (fun y => ret (x+y))). *)
 
+Check fold_left.
+Definition probOf {a} m (f: a -> bool) :=
+  let 'Outcome xs := m in
+  fold_left (fun n '(p,y) => n + p) (filter (fun '(p,x) => f x) xs) 0.
+
 Print diceTwice.
 (* For example it can work on probability distributions *)
 Compute (diceTwice dice).
-(* Or on option values *)
-Compute (diceTwice (Some 10)).
+
+Fixpoint range_ start stop xs :=
+  if start =? stop then start::xs
+  else match stop with
+    (S x) => range_ start x (stop::xs)
+  | 0 => stop::xs
+  end.
+Definition range start stop := range_ start stop nil.
+Lemma rangeSn n: 1 <= n ->
+  range 1 (S n) = range 1 n ++ (S n::nil).
+Proof.
+  intros H.
+  induction n.
+  - apply Nat.nle_succ_0 in H.
+    contradiction.
+  - destruct (n).
+    + auto.
+    + rewrite IHn. simpl.
+      rewrite app_assoc_reverse.
+      simpl.
+      auto.
+      Search ((_ ++ _) ++ _).
+
+  simpl. auto.
+
+Lemma mostProbableThrow n:
+  forall m, 1 <= m <= n ->
+  (probOf (diceTwice (uniform (range 1 n))) (fun x => x =? (1+m))) = m /\
+  (probOf (diceTwice (uniform (range 1 n))) (fun x => x =? (2*n+1-m))) = m.
+Proof.
+  induction n.
+  - intros m H.
+    destruct m.
+    auto.
+    inversion H.
+    apply Nat.nle_succ_0 in H1.
+    contradiction.
+  - intros m H.
+    apply IHn in m.
+
+Qed.
 
 Require Extraction.
 
