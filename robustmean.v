@@ -764,7 +764,7 @@ Lemma cVarE (X : {RV (P) -> (R)}) F:
   `V_[X | F] = `E_[X `^2 | F] - `E_[X | F] ^ 2.
 Proof.
   have: 0 <= Pr P F by apply Pr_ge0.
-  case => [HPr_ge0 | HPr_eq0].
+  case => [HPr_gt0 | HPr_eq0].
     rewrite /cVar cEx_trans_RV_id_rem.
     rewrite cEx_trans_add_RV; last by [].
     rewrite cEx_sub_RV cEx_scalel_RV.
@@ -812,7 +812,23 @@ by unfold Ind; rewrite Higood mulR1 (mulRC (tau i)); apply leR_wpmul2r; [apply s
  rewrite -{2}(mulR1 (P i)); apply leR_wpmul2l; [ | apply H_0C1]].
 by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
 Qed.
-  
+
+Definition invariant (good: {set U}) (C: U -> R) eps :=
+let bad := ~: good in
+\sum_(i in good) (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) (1 - C i).
+
+Lemma first_note (good: {set U}) (C: U -> R) eps:
+  invariant good C eps -> 1 - eps <= (\sum_(i in good) C i * P i) / (\sum_(i in U) C i * P i).
+
+Lemma lemma_1_4_step1 (good: {set U}) (X: {RV P -> R}) (C: U -> R) eps:
+let bad := ~: good in
+let mu_hat_c := (\sum_(i in U) C i * X i) / (\sum_(i in U) C i) in
+let mu := `E_[X | good] in
+let var := `V_[X | good] in
+let tau := (X `-cst mu_hat_c)`^2 in
+Pr P bad = eps ->
+0 < eps <= 1/12 ->
+(forall a, 0 <= C a <= 1) -> 
   
 End probability.
 
