@@ -833,11 +833,25 @@ Lemma base_case C: (forall i, C i = 1) -> invariant_1 C /\ invariant_2 C.
 Proof.
   move => H.
   apply conj.
-  rewrite /invariant_1.
-  under eq_bigr => i _.
-  rewrite H subRR.
-  over.
-
+    rewrite /invariant_1.
+    (*under eq_bigr => [ i _ |i _ ].*)
+    under eq_bigr => i _. rewrite H subRR. over. simpl.  
+    rewrite big1.
+    under eq_bigr => i _. rewrite H subRR. over. simpl. rewrite big1. 
+    rewrite Rmult_0_r. rewrite -geR0_norm.
+    
+    Search(?x <= ?x).
+    Search (_ * 0).
+    
+    (*rewrite -leR_sumR0.
+    rewrite -mulR_ge0.
+    rewrite psumR_eq0P.
+    rewrite big_distrl.
+    rewrite -sum_f_R0_sumR.
+    rewrite -sum_eq_R0.
+    rewrite -sum_f_R0_triangle.
+    rewrite sum_f_R0.
+    rewrite -sum_f_R0_sumR.*)
 
 Lemma inductive_case C:
   (forall i, 0 < C i <= 1) ->
