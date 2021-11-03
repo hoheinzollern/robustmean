@@ -835,16 +835,23 @@ Proof.
   apply conj.
     rewrite /invariant_1.
     (*under eq_bigr => [ i _ |i _ ].*)
-    under eq_bigr => i _. rewrite H subRR. over. simpl.  
-    rewrite big1.
+    under eq_bigr => i _. rewrite H subRR. over. simpl. rewrite big1.
     under eq_bigr => i _. rewrite H subRR. over. simpl. rewrite big1. 
     rewrite Rmult_0_r. apply leRR.
       move => i H0. simpl. auto.
       move => i H0. simpl. auto.
   rewrite /invariant_2.
-  under eq_bigr => i _. rewrite H. over. simpl.
-
-    
+  under eq_bigr => i _. rewrite H. over. simpl. rewrite big1.
+  under eq_bigr => i _. rewrite H. over. simpl. rewrite big1.
+    rewrite divRR. auto. admit.    
+    (*Search(?x <= ?y -> ?x < ?y \/ ?x = ?y).
+    Search(_ - _ <= _).
+    Search(?y - ?x <= ?y).*) 
+    auto. admit. 
+    (*Search(_ != 0). (*invRK. oprob_neq0. divRR*)*)
+      move => i H0. simpl. admit.
+      move => i H0. simpl. admit.
+Admitted.
     
 
 Lemma inductive_case C:
