@@ -838,20 +838,14 @@ Proof.
     under eq_bigr => i _. rewrite H subRR. over. simpl.  
     rewrite big1.
     under eq_bigr => i _. rewrite H subRR. over. simpl. rewrite big1. 
-    rewrite Rmult_0_r. rewrite -geR0_norm.
+    rewrite Rmult_0_r. apply leRR.
+      move => i H0. simpl. auto.
+      move => i H0. simpl. auto.
+  rewrite /invariant_2.
+  under eq_bigr => i _. rewrite H. over. simpl.
+
     
-    Search(?x <= ?x).
-    Search (_ * 0).
     
-    (*rewrite -leR_sumR0.
-    rewrite -mulR_ge0.
-    rewrite psumR_eq0P.
-    rewrite big_distrl.
-    rewrite -sum_f_R0_sumR.
-    rewrite -sum_eq_R0.
-    rewrite -sum_f_R0_triangle.
-    rewrite sum_f_R0.
-    rewrite -sum_f_R0_sumR.*)
 
 Lemma inductive_case C:
   (forall i, 0 < C i <= 1) ->
