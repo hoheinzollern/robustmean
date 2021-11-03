@@ -819,6 +819,7 @@ let bad := ~: good in
 
 Lemma first_note (good: {set U}) (C: U -> R) eps:
   invariant good C eps -> 1 - eps <= (\sum_(i in good) C i * P i) / (\sum_(i in U) C i * P i).
+Admitted.
 
 Lemma lemma_1_4_step1 (good: {set U}) (X: {RV P -> R}) (C: U -> R) eps:
 let bad := ~: good in
@@ -830,8 +831,9 @@ let var_hat_c := (\sum_(i in U) C i * tau i) / (\sum_(i in U) C i) in (*added*)
 Pr P bad = eps ->
 0 < eps <= 1/12 ->
 var_hat_c >= 16 * var -> (*added*)
-(forall a, 0 <= C a <= 1) -> 
-  
+(forall a, 0 <= C a <= 1) -> `| mu - mu_hat_c | <= sqrt(var*2*eps/(2-eps)) + sqrt(var_hat_c*2*eps/(1-eps)).
+Admitted.
+
 End probability.
 
 Require Import List.
