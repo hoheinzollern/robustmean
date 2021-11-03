@@ -833,6 +833,7 @@ Lemma base_case C: forall i, C i = 1 -> invariant_1 C /\ invariant_2 C.
 Admitted.
 
 Lemma inductive_case C:
+  (forall i, 0 < C i <= 1) ->
   let C' := update C in
   (invariant_1 C /\ invariant_2 C) -> (invariant_1 C' /\ invariant_2 C').
 Admitted.
@@ -840,6 +841,7 @@ Admitted.
 
 Lemma first_note (good: {set U}) (C: U -> R) eps:
   invariant good C eps -> 1 - eps <= (\sum_(i in good) C i * P i) / (\sum_(i in U) C i * P i).
+Admitted.
 
 Lemma lemma_1_4_step1 (good: {set U}) (X: {RV P -> R}) (C: U -> R) eps:
 let bad := ~: good in
@@ -847,10 +849,13 @@ let mu_hat_c := (\sum_(i in U) C i * X i) / (\sum_(i in U) C i) in
 let mu := `E_[X | good] in
 let var := `V_[X | good] in
 let tau := (X `-cst mu_hat_c)`^2 in
+let var_hat_c := (\sum_(i in U) C i * tau i) / (\sum_(i in U) C i) in (*added*)
 Pr P bad = eps ->
 0 < eps <= 1/12 ->
-(forall a, 0 <= C a <= 1) -> 
-  
+var_hat_c >= 16 * var -> (*added*)
+(forall a, 0 <= C a <= 1) -> `| mu - mu_hat_c | <= sqrt(var*2*eps/(2-eps)) + sqrt(var_hat_c*2*eps/(1-eps)).
+Admitted.
+
 End probability.
 
 Require Import List.
