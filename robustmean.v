@@ -829,8 +829,15 @@ Definition invariant_1 (C: U -> R) :=
 Definition invariant_2 (C: U -> R) :=
   1 - eps <= (\sum_(i in good) C i) / (\sum_(i in U) C i).
 
-Lemma base_case C: forall i, C i = 1 -> invariant_1 C /\ invariant_2 C.
-Admitted.
+Lemma base_case C: (forall i, C i = 1) -> invariant_1 C /\ invariant_2 C.
+Proof.
+  move => H.
+  apply conj.
+  rewrite /invariant_1.
+  under eq_bigr => i _.
+  rewrite H subRR.
+  over.
+
 
 Lemma inductive_case C:
   (forall i, 0 < C i <= 1) ->
