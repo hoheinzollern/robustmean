@@ -826,8 +826,10 @@ let mu_hat_c := (\sum_(i in U) C i * X i) / (\sum_(i in U) C i) in
 let mu := `E_[X | good] in
 let var := `V_[X | good] in
 let tau := (X `-cst mu_hat_c)`^2 in
+let var_hat_c := (\sum_(i in U) C i * tau i) / (\sum_(i in U) C i) in (*added*)
 Pr P bad = eps ->
 0 < eps <= 1/12 ->
+var_hat_c >= 16 * var -> (*added*)
 (forall a, 0 <= C a <= 1) -> 
   
 End probability.
