@@ -793,29 +793,50 @@ Proof.
     by rewrite !mulR1 mulRDl !mulRDr !addRA -(mulRC (-_)).
 Qed.
 
-Lemma eqn1_1 (good: {set U}) (X: {RV P -> R}) (C: U -> R):
-  let mu_hat_c := (\sum_(i in U) C i * X i) / (\sum_(i in U) C i) in
-  let mu := `E_[X | good] in
-  let var := `V_[X | good] in
-  let tau := (X `-cst mu_hat_c)`^2 in
+Variable X : {RV P -> R}.
+Variable good : {set U}.
+Variable eps : R.
+Definition bad := ~: good.
+Definition mu := `E_[X | good].
+Definition var := `V_[X | good].
+Definition mu_hat C := (\sum_(i in U) P i * C i * X i) / (\sum_(i in U) P i * C i).
+Definition tau C := (X `-cst mu_hat C)`^2.
+Definition sigma_hat C := (\sum_(i in U) P i * C i * tau C i) / (\sum_(i in U) P i * C i).
+
+Lemma eqn1_1 (C: U -> R):
   (0 < Pr P good) ->
   (forall a, 0 <= C a <= 1) -> 
-  (\sum_(i in good) P i * C i * tau i) / Pr P good <= var + (mu - mu_hat_c)². 
+  (\sum_(i in good) P i * C i * tau C i) / Pr P good <= var + (mu - mu_hat C)². 
 Proof.
-move => mu_hat_c mu var tau HPgood H_0C1.
-apply leR_trans with (y := `E_[tau | good]);
+move => HPgood H_0C1.
+apply leR_trans with (y := `E_[tau C | good]);
   last by apply/leR_eqVlt;left;apply/cVarDist.
 rewrite cEx_ExInd.
 apply leR_pmul2r; [by apply invR_gt0|].
 apply leR_sumRl => i Higood; last by [].
-by unfold Ind; rewrite Higood mulR1 (mulRC (tau i)); apply leR_wpmul2r; [apply sq_RV_ge0 | 
+by unfold Ind; rewrite Higood mulR1 (mulRC (tau C i)); apply leR_wpmul2r; [apply sq_RV_ge0 | 
  rewrite -{2}(mulR1 (P i)); apply leR_wpmul2l; [ | apply H_0C1]].
 by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
 Qed.
 
-Definition invariant (good: {set U}) (C: U -> R) eps :=
-let bad := ~: good in
-\sum_(i in good) (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) (1 - C i).
+Definition update (C: U -> R) :=
+  let tau_max := \big[Rmax/0]_(i in U) tau C i in
+  fun i => C i * (1 - tau C i / tau_max).
+
+Definition invariant_1 (C: U -> R) :=
+  \sum_(i in good) (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) (1 - C i).
+
+Definition invariant_2 (C: U -> R) :=
+  1 - eps <= (\sum_(i in good) C i) / (\sum_(i in U) C i).
+
+Lemma base_case C: forall i, C i = 1 -> invariant_1 C /\ invariant_2 C.
+Admitted.
+
+Lemma inductive_case C:
+  let C' := update C in
+  (invariant_1 C /\ invariant_2 C) -> (invariant_1 C' /\ invariant_2 C').
+Admitted.
+
 
 Lemma first_note (good: {set U}) (C: U -> R) eps:
   invariant good C eps -> 1 - eps <= (\sum_(i in good) C i * P i) / (\sum_(i in U) C i * P i).
