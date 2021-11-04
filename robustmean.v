@@ -865,7 +865,15 @@ Proof.
     under eq_bigr => i _. rewrite Rmult_minus_distr_l//Rmult_minus_distr_l.
       unfold Rdiv. rewrite Rmult_1_r//-Rmult_minus_distr_l//subRB//subRR//Rplus_0_l//-Rmult_assoc//-div1R//-Rmult_assoc. 
       over. admit. (*todo: get 1/taumax outside the sum (on the left); or inside (on the right)*)
-  admit. (*todo: show sum(1-Ci) = sum(Ci-C'i); therefore by H1,  sum(1-Ci)=1/tmax * sum(Ci * tau Ci)*)
+  have H2 :
+    \sum_(i in S) P i * (1 - C' i) = \sum_(i in S) P i * (1 - C' i) + \sum_(i in S) P i * (C i - C' i).
+    rewrite -big_split. simpl. apply esym.
+    under eq_bigr => i _. rewrite Rmult_plus_distr_l. rewrite Rmult_plus_distr_l. 
+    rewrite -Rplus_assoc. simpl. repeat rewrite -Rmult_plus_distr_l. (*aim to get (1 + - C' i)*)
+    over.
+    admit. 
+    (*here we show sum(1-C'i) = sum(1-Ci) + sum(Ci-C'i); 
+    therefore by H1,  sum(1-C'i) = sum(1-Ci) + 1/tmax * sum(Ci taui)*)
 Admitted.   
 
 
