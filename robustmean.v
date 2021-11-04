@@ -820,9 +820,10 @@ by unfold Ind; rewrite Higood mulR1 (mulRC (tau C i)); apply leR_wpmul2r; [apply
 by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
 Qed.
 
+Definition tau_max C := \rmax_(i in [set: U]) tau C i.
+
 Definition update (C: U -> R) :=
-  let tau_max := \rmax_(i in [set: U]) tau C i in
-  fun i => C i * (1 - tau C i / tau_max).
+  fun i => C i * (1 - tau C i / tau_max C).
 
 Definition invariant (C: U -> R) :=
   (\sum_(i in good) P i * (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) P i * (1 - C i)) /\
@@ -851,6 +852,11 @@ Proof.
     by rewrite divR1 leR_eqVlt; left.
   move => i. rewrite /C0; lra.
 Qed.
+
+Lemma eqn1_3_4 C (S: {set U}):
+  let C' := update C in
+  \sum_(i in S) P i * (1 - C' i) =
+    (\sum_(i in S) P i * (1 - C i)) + 1 / tau_max C * (\sum_(i in ~: S ) P i * (C i * tau C i)).
 
 Lemma inductive_case C:
   let C' := update C in
