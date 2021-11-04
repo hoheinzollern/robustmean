@@ -856,7 +856,7 @@ Qed.
 Lemma eqn1_3_4 C (S: {set U}):
   let C' := update C in
   \sum_(i in S) P i * (1 - C' i) =
-    (\sum_(i in S) P i * (1 - C i)) + 1 / tau_max C * (\sum_(i in ~: S ) P i * (C i * tau C i)).
+    (\sum_(i in S) P i * (1 - C i)) + 1 / tau_max C * (\sum_(i in S ) P i * (C i * tau C i)).
 
 Lemma inductive_case C:
   let C' := update C in
