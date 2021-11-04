@@ -796,12 +796,13 @@ Qed.
 Variable X : {RV P -> R}.
 Variable good : {set U}.
 Variable eps : R.
+Definition C0 (i: U) := 1.
 Definition bad := ~: good.
 Definition mu := `E_[X | good].
 Definition var := `V_[X | good].
 Definition mu_hat C := (\sum_(i in U) P i * C i * X i) / (\sum_(i in U) P i * C i).
 Definition tau C := (X `-cst mu_hat C)`^2.
-Definition sigma_hat C := (\sum_(i in U) P i * C i * tau C i) / (\sum_(i in U) P i * C i).
+Definition var_hat C := (\sum_(i in U) P i * C i * tau C i) / (\sum_(i in U) P i * C i).
 
 Lemma eqn1_1 (C: U -> R):
   (0 < Pr P good) ->
@@ -820,38 +821,66 @@ by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
 Qed.
 
 Definition update (C: U -> R) :=
-  let tau_max := \big[Rmax/0]_(i in U) tau C i in
+  let tau_max := \rmax_(i in [set: U]) tau C i in
   fun i => C i * (1 - tau C i / tau_max).
 
-Definition invariant_1 (C: U -> R) :=
-  \sum_(i in good) (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) (1 - C i).
+Definition invariant (C: U -> R) :=
+  (\sum_(i in good) P i * (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) P i * (1 - C i)) /\
+  (1 - eps <= (\sum_(i in good) P i * C i) / (\sum_(i in U) P i * C i)) /\
+  (forall i, 0 <= C i <= 1).
 
-Definition invariant_2 (C: U -> R) :=
-  1 - eps <= (\sum_(i in good) C i) / (\sum_(i in U) C i).
-
-Lemma base_case C: (forall i, C i = 1) -> invariant_1 C /\ invariant_2 C.
+Lemma base_case: Pr P bad = eps -> invariant C0.
 Proof.
-  move => H.
+  move => Hbad_ratio.
+  rewrite /invariant.
   apply conj.
-    rewrite /invariant_1.
-    (*under eq_bigr => [ i _ |i _ ].*)
-    under eq_bigr => i _. rewrite H subRR. over. simpl.  
-    rewrite big1.
-    under eq_bigr => i _. rewrite H subRR. over. simpl. rewrite big1. 
+    under eq_bigr => i _. rewrite subRR mulR0. over.
+    rewrite big1; last by [].
+    under eq_bigr => i _. rewrite subRR mulR0. over.
+    rewrite big1; last by [].
     rewrite Rmult_0_r. apply leRR.
-      move => i H0. simpl. auto.
-      move => i H0. simpl. auto.
-  rewrite /invariant_2.
-  under eq_bigr => i _. rewrite H. over. simpl.
-
-    
-    
+  apply conj.
+  have ->: (\sum_(i in good) P i * C0 i) = Pr P good
+    by under eq_bigr => i _; [rewrite /C0 mulR1; over|].
+  have ->: (\sum_(i in U) P i * C0 i) = 1.
+    under eq_bigr => i _. rewrite /C0 mulR1. over.
+    rewrite sumR_setT -(Pr_setT P) /Pr.
+    apply eq_bigl => x.
+    by rewrite Bool.andb_true_r.
+    have -> : Pr P good = 1 - eps by apply/esym/subR_eq; rewrite -Hbad_ratio Pr_cplt.
+    by rewrite divR1 leR_eqVlt; left.
+  move => i. rewrite /C0; lra.
+Qed.
 
 Lemma inductive_case C:
-  (forall i, 0 < C i <= 1) ->
   let C' := update C in
-  (invariant_1 C /\ invariant_2 C) -> (invariant_1 C' /\ invariant_2 C').
+  invariant C -> invariant C'.
+Proof.
+  rewrite /invariant.
+  move => [IH1 [IH2 IH3]].
+  split; last split; last first.
+  rewrite /update => i.
+  split.
+  apply mulR_ge0.
+  apply IH3.
+  apply leR_trans with (y:=1 - (\rmax_(i0 in [set: U]) tau C i0) / (\rmax_(i0 in [set: U]) tau C i0)).
+  have [Hmax_gt0|Hmax_eq0]: 0 <= (\rmax_(i0 in [set: U]) tau C i0).
+  admit.
+  by rewrite divRR; [rewrite subRR; apply leR_eqVlt; left|apply gtR_eqF].
+  rewrite -!Hmax_eq0 /Rdiv mul0R; lra.
+  apply leR_add. by right.
+  apply Ropp_le_contravar.
+  apply leR_wpmul2r.
+  admit.
+  admit.
+  apply leR_bigmaxR.
 Admitted.
+
+Definition filter1d gas :=
+  let fix filter1d_iter gas C := match gas with
+    0      => None
+  | S gas' => if Rleb (var_hat C) var then Some (mu_hat C) else filter1d_iter gas' (update C)
+  end in filter1d_iter gas C0.
 
 
 Lemma first_note (good: {set U}) (C: U -> R) eps:
