@@ -856,7 +856,7 @@ Qed.
 Lemma eqn1_3_4 C (S: {set U}):
   let C' := update C in
   \sum_(i in S) P i * (1 - C' i) =
-    (\sum_(i in S) P i * (1 - C i)) + 1 / tau_max C * (\sum_(i in ~: S ) P i * (C i * tau C i)).
+    (\sum_(i in S) P i * (1 - C i)) + 1 / tau_max C * (\sum_(i in S ) P i * (C i * tau C i)).
 Proof.
   move => C'.
   have H1 :
@@ -866,7 +866,7 @@ Proof.
       unfold Rdiv. rewrite Rmult_1_r//-Rmult_minus_distr_l//subRB//subRR//Rplus_0_l//-Rmult_assoc//-div1R//-Rmult_assoc. 
       over. admit. (*todo: get 1/taumax outside the sum (on the left); or inside (on the right)*)
   admit. (*todo: show sum(1-Ci) = sum(Ci-C'i); therefore by H1,  sum(1-Ci)=1/tmax * sum(Ci * tau Ci)*)
-Qed.    
+Admitted.   
 
 
 Lemma inductive_case C:
