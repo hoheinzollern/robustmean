@@ -826,11 +826,12 @@ Definition update (C: U -> R) :=
   fun i => C i * (1 - tau C i / tau_max C).
 
 Definition invariant (C: U -> R) :=
-  (\sum_(i in good) P i * (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) P i * (1 - C i)) /\
+  (\sum_(i in good) P i * (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) P i * (1 - C i)).
+Definition invariant1 C :=
   (1 - eps <= (\sum_(i in good) P i * C i) / (\sum_(i in U) P i * C i)) /\
   (forall i, 0 <= C i <= 1).
 
-Lemma base_case: Pr P bad = eps -> invariant C0.
+Lemma base_case: Pr P bad = eps -> invariant C0 /\ invariant1 C0.
 Proof.
   move => Hbad_ratio.
   rewrite /invariant.
@@ -868,14 +869,23 @@ Proof.
   rewrite -mulRDr. congr (_*_). lra.
 Qed.
 
-
-Lemma inductive_case C:
+Lemma lemma_1_5 C:
   let C' := update C in
+  0 < tau_max C ->
+  \sum_(i in good) P i * (C i * tau C i) <= (1 - eps) / 2 * (\sum_(i in bad) P i * (C i * tau C i)) ->
   invariant C -> invariant C'.
 Proof.
   rewrite /invariant.
-  move => [IH1 [IH2 IH3]].
-  split; last split; last first.
+  move => H0 H1 IH1.
+  rewrite !eqn1_3_4 !mulRDr.
+  apply leR_add; first by [].
+  rewrite (mulRC ((1 - eps) / 2)) -mulRA.
+  apply leR_pmul2l; first by rewrite /Rdiv mul1R; apply invR_gt0.
+  by rewrite mulRC.
+Qed.
+
+
+
   rewrite /update => i.
   split.
   apply mulR_ge0.
