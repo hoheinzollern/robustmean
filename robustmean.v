@@ -859,22 +859,14 @@ Lemma eqn1_3_4 C (S: {set U}):
     (\sum_(i in S) P i * (1 - C i)) + 1 / tau_max C * (\sum_(i in S ) P i * (C i * tau C i)).
 Proof.
   move => C'.
-  have H1 :
-    \sum_(i in S) P i * (C i - C' i) = 1 / tau_max C * (\sum_(i in ~: S) P i * (C i * tau C i)).
-    unfold C'. unfold update.
-    under eq_bigr => i _. rewrite Rmult_minus_distr_l//Rmult_minus_distr_l.
-      unfold Rdiv. rewrite Rmult_1_r//-Rmult_minus_distr_l//subRB//subRR//Rplus_0_l//-Rmult_assoc//-div1R//-Rmult_assoc. 
-      over. admit. (*todo: get 1/taumax outside the sum (on the left); or inside (on the right)*)
-  have H2 :
-    \sum_(i in S) P i * (1 - C' i) = \sum_(i in S) P i * (1 - C' i) + \sum_(i in S) P i * (C i - C' i).
-    rewrite -big_split. simpl. apply esym.
-    under eq_bigr => i _. rewrite Rmult_plus_distr_l. rewrite Rmult_plus_distr_l. 
-    rewrite -Rplus_assoc. simpl. repeat rewrite -Rmult_plus_distr_l. (*aim to get (1 + - C' i)*)
-    over.
-    admit. 
-    (*here we show sum(1-C'i) = sum(1-Ci) + sum(Ci-C'i); 
-    therefore by H1,  sum(1-C'i) = sum(1-Ci) + 1/tmax * sum(Ci taui)*)
-Admitted.   
+  have <-: \sum_(i in S) P i * (C i - C' i) = 1 / tau_max C * (\sum_(i in S) P i * (C i * tau C i)).
+    rewrite /C' /update big_distrr.
+    apply eq_bigr => i _. simpl.
+    by rewrite /Rminus /Rdiv (mulRDr (C i)) mulR1 oppRD addRA mulRN oppRK addRN add0R !mulRA !mulR1 mul1R mulRC !mulRA.
+  rewrite -big_split.
+  apply eq_bigr => i HiS. simpl.
+  rewrite -mulRDr. congr (_*_). lra.
+Qed.
 
 
 Lemma inductive_case C:
