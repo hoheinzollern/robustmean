@@ -857,39 +857,46 @@ Proof.
 Qed.
 
 Lemma lemma1_4_start C:
+  0 < \sum_(i in U) P i * C i ->
   Pr P bad = eps ->
+  eps < 1/12 ->
   weight C -> invariant C -> invariant1 C.
 Proof.
-  rewrite /weight/invariant/invariant1 => HPr_bad HwC HIC.
+  rewrite /weight/invariant/invariant1 => HCi_gt0 HPr_bad Heps HwC HIC.
   have HPr_good: Pr P good = 1 - eps.
     by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
   rewrite -!HPr_good.
   apply leR_trans with (y := (Pr P good / 2 * (1 + Pr P good + (\sum_(i in bad) P i * C i))) / (\sum_(i in U) P i * C i)).
-  apply leR_pmul2r with (m := (\sum_(i in U) P i * C i) * 2); first admit.
-  rewrite !mulRA !(mulRC _ 2) -(mulRA _ (/ _)) mulVR; last admit.
-  rewrite mulR1 !mulRA (mulRC _ (/2)) mulRA mulVR; last admit.
+  apply leR_pmul2r with (m := (\sum_(i in U) P i * C i) * 2).
+    by apply mulR_gt0.
+  rewrite !mulRA !(mulRC _ 2) -(mulRA _ (/ _)) mulVR; last by apply gtR_eqF.
+  rewrite mulR1 !mulRA (mulRC _ (/2)) mulRA mulVR; last by apply gtR_eqF.
   rewrite mul1R -addRR mulRDl -addRA mulRDr.
   apply leR_add.
-    apply leR_pmul2l; first admit; first admit.
-  apply leR_pmul2l; first admit.
+    apply leR_pmul2l; first by rewrite HPr_good; lra.
+    rewrite -(Pr_setT P) /Pr sumR_setT.
+    by apply leR_sumRl; move => i _; first by
+      rewrite -{2}(mulR1 (P i));
+      apply leR_wpmul2l; [|apply HwC].
+  apply leR_pmul2l; first by rewrite HPr_good; lra.
     rewrite /Pr addRC -bigID2.
     apply leR_sumR => i HiU.
     destruct (i \in good).
       simpl.
       by rewrite -{2}(mulR1 (P i)); apply leR_pmul; try apply HwC; auto; right.
     simpl. by right.
-  apply leR_pmul2r; first admit.
+  apply leR_pmul2r; first by apply invR_gt0.
   apply Ropp_le_cancel.
   rewrite {2}HPr_good addRA -addRA -HPr_bad mulRDr oppRD addRC.
   apply leR_subl_addr.
-  rewrite /Rminus oppRK -mulRN addRC {1}/Rdiv -mulRA mulVR; last admit.
+  rewrite /Rminus oppRK -mulRN addRC {1}/Rdiv -mulRA mulVR; last by apply gtR_eqF.
   rewrite mulR1 oppRD oppRK !big_morph_oppR.
   rewrite -!big_split. simpl.
   have H: forall S, \sum_(i in S) (P i + - (P i * C i)) = \sum_(i in S) P i * (1 - C i).
   move => p S. apply eq_bigr => i _.
     by rewrite -{1}(mulR1 (P i)) -mulRN -mulRDr.
   by rewrite !H HPr_good.
-Admitted.
+Qed.
 
 Lemma eqn1_3_4 C (S: {set U}):
   let C' := update C in
