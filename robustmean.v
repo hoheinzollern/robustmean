@@ -828,10 +828,11 @@ Definition update (C: U -> R) :=
 Definition invariant (C: U -> R) :=
   (\sum_(i in good) P i * (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) P i * (1 - C i)).
 Definition invariant1 C :=
-  (1 - eps <= (\sum_(i in good) P i * C i) / (\sum_(i in U) P i * C i)) /\
+  (1 - eps <= (\sum_(i in good) P i * C i) / (\sum_(i in U) P i * C i)).
+Definition weight (C: U -> R) :=
   (forall i, 0 <= C i <= 1).
 
-Lemma base_case: Pr P bad = eps -> invariant C0 /\ invariant1 C0.
+Lemma base_case: Pr P bad = eps -> invariant C0 /\ invariant1 C0 /\ weight C0.
 Proof.
   move => Hbad_ratio.
   rewrite /invariant.
@@ -842,6 +843,7 @@ Proof.
     rewrite big1; last by [].
     rewrite Rmult_0_r. apply leRR.
   apply conj.
+  rewrite /invariant1.
   have ->: (\sum_(i in good) P i * C0 i) = Pr P good
     by under eq_bigr => i _; [rewrite /C0 mulR1; over|].
   have ->: (\sum_(i in U) P i * C0 i) = 1.
@@ -853,6 +855,41 @@ Proof.
     by rewrite divR1 leR_eqVlt; left.
   move => i. rewrite /C0; lra.
 Qed.
+
+Lemma lemma1_4_start C:
+  Pr P bad = eps ->
+  weight C -> invariant C -> invariant1 C.
+Proof.
+  rewrite /weight/invariant/invariant1 => HPr_bad HwC HIC.
+  have HPr_good: Pr P good = 1 - eps.
+    by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
+  rewrite -!HPr_good.
+  apply leR_trans with (y := (Pr P good / 2 * (1 + Pr P good + (\sum_(i in bad) P i * C i))) / (\sum_(i in U) P i * C i)).
+  apply leR_pmul2r with (m := (\sum_(i in U) P i * C i) * 2); first admit.
+  rewrite !mulRA !(mulRC _ 2) -(mulRA _ (/ _)) mulVR; last admit.
+  rewrite mulR1 !mulRA (mulRC _ (/2)) mulRA mulVR; last admit.
+  rewrite mul1R -addRR mulRDl -addRA mulRDr.
+  apply leR_add.
+    apply leR_pmul2l; first admit; first admit.
+  apply leR_pmul2l; first admit.
+    rewrite /Pr addRC -bigID2.
+    apply leR_sumR => i HiU.
+    destruct (i \in good).
+      simpl.
+      by rewrite -{2}(mulR1 (P i)); apply leR_pmul; try apply HwC; auto; right.
+    simpl. by right.
+  apply leR_pmul2r; first admit.
+  apply Ropp_le_cancel.
+  rewrite {2}HPr_good addRA -addRA -HPr_bad mulRDr oppRD addRC.
+  apply leR_subl_addr.
+  rewrite /Rminus oppRK -mulRN addRC {1}/Rdiv -mulRA mulVR; last admit.
+  rewrite mulR1 oppRD oppRK !big_morph_oppR.
+  rewrite -!big_split. simpl.
+  have H: forall S, \sum_(i in S) (P i + - (P i * C i)) = \sum_(i in S) P i * (1 - C i).
+  move => p S. apply eq_bigr => i _.
+    by rewrite -{1}(mulR1 (P i)) -mulRN -mulRDr.
+  by rewrite !H HPr_good.
+Admitted.
 
 Lemma eqn1_3_4 C (S: {set U}):
   let C' := update C in
