@@ -1,0 +1,11 @@
+-arg -w -arg -projection-no-head-constant
+-arg -w -arg -redundant-canonical-projection
+-arg -w -arg -notation-overridden
+-arg -w -arg -ambiguous-paths
+-arg -w -arg -notation-incompatible-format
+
+robustmean.v
+lemma_1_4.v
+extraction_trimmedmean.v
+
+-R . robustmean
