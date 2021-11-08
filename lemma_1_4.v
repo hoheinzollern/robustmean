@@ -136,6 +136,13 @@ Proof.
   rewrite /mu_hat /mu_wave.
 Admitted.
 
+Lemma eqn_a6_a9 (C : {ffun U -> R}) :
+  weight C ->
+  Pr P bad = eps ->
+  \sum_(i in good) P i * C i * tau C i <= 0.32 * (1 - eps) * var_hat C.
+Proof.
+Admitted.
+
 Lemma eqn1_3_4 (C : {ffun U -> R}) (S: {set U}):
   let C' := update C in
   \sum_(i in S) P i * (1 - C' i) =
