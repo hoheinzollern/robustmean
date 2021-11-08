@@ -859,7 +859,7 @@ Qed.
 Lemma lemma1_4_start C:
   0 < \sum_(i in U) P i * C i ->
   Pr P bad = eps ->
-  eps < 1/12 ->
+  eps < 1 ->
   weight C -> invariant C -> invariant1 C.
 Proof.
   rewrite /weight/invariant/invariant1 => HCi_gt0 HPr_bad Heps HwC HIC.
@@ -897,6 +897,16 @@ Proof.
     by rewrite -{1}(mulR1 (P i)) -mulRN -mulRDr.
   by rewrite !H HPr_good.
 Qed.
+
+Definition mu_wave C := (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i).
+
+Lemma lemma_1_4_step1 C:
+  Pr P bad = eps ->
+  Rsqr (mu_hat C - mu_wave C) <= `V_[X | good] * 2*eps / (1-eps).
+Proof.
+  move => HPr_bad.
+  rewrite /mu_hat /mu_wave.
+Admitted.
 
 Lemma eqn1_3_4 C (S: {set U}):
   let C' := update C in
