@@ -139,8 +139,46 @@ Admitted.
 Lemma eqn_a6_a9 (C : {ffun U -> R}) :
   weight C ->
   Pr P bad = eps ->
+  eps <= 1/12 ->
   \sum_(i in good) P i * C i * tau C i <= 0.32 * (1 - eps) * var_hat C.
 Proof.
+  rewrite /weight.
+  move => HwC HPr_bad Heps.
+  apply leR_trans with (y := (1-eps) * (var + Rsqr (mu - mu_hat C))).
+    admit.
+  apply leR_trans with (y := (1-eps) * (var + Rsqr (sqrt (var * 2 * eps / (2-eps)) + sqrt (var_hat C * 2 * eps / (1-eps))))).
+    admit.
+  apply leR_trans with (y := (1-eps) * var_hat C * (1/16 + 2 * eps * Rsqr (/(4 * sqrt (2 - eps)) + /sqrt(1-eps)))).
+    admit.
+  pose eps_max := 1/12.
+  apply leR_trans with (y := (1-eps) * var_hat C * (1/16 + 2 * eps_max * Rsqr (/(4 * sqrt (2 - eps_max)) + /sqrt(1-eps_max)))).
+    rewrite /eps_max.
+    apply leR_pmul.
+    admit.
+    admit.
+    by right.
+    apply leR_add.
+      by right.
+    apply leR_pmul.
+      admit.
+      admit.
+      lra.
+      apply Rsqr_bounds_le.
+      split.
+        admit.
+      apply leR_add.
+        apply leR_inv.
+          admit.
+        apply leR_wpmul2l; first lra.
+        apply sqrt_le_1; lra.
+      apply leR_inv.
+        apply sqrt_lt_R0.
+        lra.
+      apply sqrt_le_1; lra.
+  rewrite mulRC mulRA.
+  apply leR_wpmul2r. admit.
+  apply leR_wpmul2r. lra.
+  rewrite /eps_max.
 Admitted.
 
 Lemma eqn1_3_4 (C : {ffun U -> R}) (S: {set U}):
