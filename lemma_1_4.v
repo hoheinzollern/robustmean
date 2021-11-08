@@ -26,7 +26,10 @@ Definition C0 : {ffun U -> R} := [ffun=> 1].
 Definition bad := ~: good.
 Definition mu := `E_[X | good].
 Definition var := `V_[X | good].
+
 Definition mu_hat C := (\sum_(i in U) P i * C i * X i) / (\sum_(i in U) P i * C i).
+Definition mu_wave (C : {ffun U -> R}) := (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i).
+
 Definition tau C := (X `-cst mu_hat C)`^2.
 Definition var_hat C := (\sum_(i in U) P i * C i * tau C i) / (\sum_(i in U) P i * C i).
 
@@ -47,6 +50,9 @@ by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
 Qed.
 
 Definition tau_max (C : {ffun U -> R}) := \rmax_(i in [set: U]) tau C i.
+
+Definition arg_tau_max (C : {ffun U -> R}) :=
+  [arg max_(i > (fdist_supp_choice P) in [set: U]) tau C i]%O.
 
 Definition update (C : {ffun U -> R}) :=
   [ffun i => C i * (1 - tau C i / tau_max C)].
@@ -122,8 +128,6 @@ Proof.
   by rewrite !H HPr_good.
 Qed.
 
-Definition mu_wave (C : {ffun U -> R}) := (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i).
-
 Lemma lemma_1_4_step1 (C : {ffun U -> R}) :
   Pr P bad = eps ->
   Rsqr (mu_hat C - mu_wave C) <= `V_[X | good] * 2*eps / (1-eps).
@@ -181,11 +185,35 @@ Qed.
 Admitted.
 *)
 
+Require Import Program.Wf.
+
+Local Obligation Tactic := idtac.
+Program Fixpoint filter1d (C : {ffun U -> R}) {measure #| 0.-support C | } :=
+  match #| 0.-support C | with
+  | 0      => None
+  | S gas' => if Rleb (var_hat C) var
+              then Some (mu_hat C)
+              else filter1d (update C)
+  end.
+Next Obligation.
+move=> C _ _ _ _.
+(*
+X := 0.-support (update C)
+Y := 0.-support C
+X \subset Y
+arg_tau_max \notin X
+arg_tau_max \in Y
+*)
+Admitted.
+Next Obligation. Admitted.
+
+(*
 Definition filter1d gas :=
   let fix filter1d_iter gas (C : {ffun U -> R}) := match gas with
     0      => None
   | S gas' => if Rleb (var_hat C) var then Some (mu_hat C) else filter1d_iter gas' (update C)
   end in filter1d_iter gas C0.
+*)
 
 Lemma first_note (C: {ffun U -> R}):
   invariant C -> 1 - eps <= (\sum_(i in good) C i * P i) / (\sum_(i in U) C i * P i).
