@@ -414,9 +414,43 @@ Proof.
   rewrite /mu_hat /mu_wave.
 Admitted.
 
-Lemma eqn_a6_a9:
+(*new. Alternative to Lemma lemma_1_4_step1 *)
+Lemma lemma_1_4_1_removeme :
+  Pr P bad = eps ->
+  (mu_hat - mu_wave) <= sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat * 2 * eps / (1-eps)).
+Proof.
+  move => HPr_bad.
+  rewrite /mu_hat /mu_wave.
+Admitted.
+
+(*new. eqn1_1 with a C, helper for Lemma eqn_a6_a9*)
+Lemma eqn1_1C :
+  (0 < Pr P good) ->
+  (forall a, 0 <= C a <= 1) -> 
+  (\sum_(i in good) P i * C i * tau i) / Pr P good <= var_hat + (mu_hat - mu_wave)².
+Proof.
+move => HPgood H_0C1.
+apply leR_trans with (y := `E_[tau | good]).
+  rewrite cEx_ExInd.
+  apply leR_pmul2r; [by apply invR_gt0|].
+  apply leR_sumRl => i Higood; last by [].
+  by unfold Ind; rewrite Higood mulR1 (mulRC (tau i)); apply leR_wpmul2r; [apply sq_RV_ge0 | 
+    rewrite -{2}(mulR1 (P i)); apply leR_wpmul2l; [ | apply H_0C1]].
+  by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
+
+apply/leR_eqVlt;left. unfold tau. rewrite cVarDist. admit. 
+(*Print cVarDist.
+apply/cVarDist.
+: forall (U : finType) (P : fdist U) (X : {RV (P) -> (R)}) 
+         (F : {set U}) (x : R),
+       0 < Pr P F ->
+       `E_[((X `-cst x) `^2) | F] = `V_[ X | F] + (`E_[X | F] - x)²   *)
+exact: HPgood.
+Admitted.
+
+Lemma eqn_a6_a9 :
   16 * var <= var_hat ->
-  0 < eps -> eps <= 1/12 -> 
+  0 < eps -> eps <= 1/12 ->
   weight C ->
   Pr P bad = eps ->
   \sum_(i in good) P i * C i * tau i <= 0.32 * (1 - eps) * var_hat.
@@ -507,7 +541,6 @@ Proof.
   rewrite /eps_max.
   interval.
 Admitted.
-
 
 (* TODO: improve the notation for pos_ffun (and for pos_fun) *)
 Lemma eqn1_3_4 (S: {set U}):
