@@ -137,21 +137,59 @@ Proof.
   rewrite /mu_hat /mu_wave.
 Admitted.
 
-Lemma eqn1_1_ (C: {ffun U -> R}):
+(*new. Alternative to Lemma lemma_1_4_step1 *)
+Lemma lemma_1_4_1 (C : {ffun U -> R}) :
+  Pr P bad = eps ->
+  (mu_hat C - mu_wave C) <= sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)).
+Proof.
+  move => HPr_bad.
+  rewrite /mu_hat /mu_wave.
+Admitted.
+
+(*new. eqn1_1 with a C, helper for Lemma eqn_a6_a9*)
+Lemma eqn1_1C (C: {ffun U -> R}):
   (0 < Pr P good) ->
   (forall a, 0 <= C a <= 1) -> 
-  (\sum_(i in good) P i * C i * tau C i) / Pr P good <= var + (mu - mu_hat C)². 
+  (\sum_(i in good) P i * C i * tau C i) / Pr P good <= var_hat C + (mu_hat C - mu_wave C)².
 Proof.
 move => HPgood H_0C1.
-apply leR_trans with (y := `E_[tau C | good]);
-  last by apply/leR_eqVlt;left;apply/cVarDist.
-rewrite cEx_ExInd.
-apply leR_pmul2r; [by apply invR_gt0|].
-apply leR_sumRl => i Higood; last by [].
-by unfold Ind; rewrite Higood mulR1 (mulRC (tau C i)); apply leR_wpmul2r; [apply sq_RV_ge0 | 
- rewrite -{2}(mulR1 (P i)); apply leR_wpmul2l; [ | apply H_0C1]].
-by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
-Qed.
+apply leR_trans with (y := `E_[tau C | good]).
+  rewrite cEx_ExInd.
+  apply leR_pmul2r; [by apply invR_gt0|].
+  apply leR_sumRl => i Higood; last by [].
+  by unfold Ind; rewrite Higood mulR1 (mulRC (tau C i)); apply leR_wpmul2r; [apply sq_RV_ge0 | 
+    rewrite -{2}(mulR1 (P i)); apply leR_wpmul2l; [ | apply H_0C1]].
+  by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
+
+apply/leR_eqVlt;left. unfold tau. rewrite cVarDist. admit. 
+(*Print cVarDist.
+apply/cVarDist.
+: forall (U : finType) (P : fdist U) (X : {RV (P) -> (R)}) 
+         (F : {set U}) (x : R),
+       0 < Pr P F ->
+       `E_[((X `-cst x) `^2) | F] = `V_[ X | F] + (`E_[X | F] - x)²   *)
+exact: HPgood.
+Admitted.
+
+(*new. 1st Helper for A8.*)
+Lemma var16 (C : {ffun U -> R}) :
+  weight C ->
+  16 * var = var_hat C. 
+Proof.
+  move => H.
+  (*rewrite leR_eqVlt. left.
+    apply sqrt_inj.
+    apply sqrt_pos.*)
+Admitted.
+
+(*new. 2nd Helper for A8.*)
+Lemma var1_4 (C : {ffun U -> R}) :
+  weight C ->
+  sqrt(var) = 1/4 * sqrt(var_hat C).
+Proof.
+  move => H.
+Admitted.
+
 
 Lemma eqn_a6_a9 (C : {ffun U -> R}) :
   weight C ->
@@ -161,77 +199,42 @@ Proof.
   move => H HPr_bad.
   (*a6*)
   have Ha6 : \sum_(i in good) P i * C i * tau C i <= (1 - eps) * (var_hat C + (mu_hat C - mu_wave C)²).
-  have HPr_good: Pr P good = 1 - eps.
-    by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
-    rewrite -!HPr_good.
-    rewrite Rmult_comm.
-    rewrite -leR_pdivr_mulr. 
-    apply eqn1_1.
-    rewrite /eqn1_1.
-    
-    
-    admit.
-    admit. 
-    
-    rewrite eqn1_1.
-(*
-Lemma eqn1_1 (C: {ffun U -> R}):
-  (0 < Pr P good) ->
-  (forall a, 0 <= C a <= 1) -> 
-  (\sum_(i in good) P i * C i * tau C i) / Pr P good <= var + (mu - mu_hat C)². 
+    have HPr_good: Pr P good = 1 - eps.
+      by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
+    rewrite -!HPr_good Rmult_comm -leR_pdivr_mulr. 
+      apply eqn1_1C. admit. (*0 < Pr P good*)
+      move => a. auto.
+    admit. (*0 < Pr P good*)
+  
+    (*a6-a7*)
+  have Ha7 : \sum_(i in good) P i * C i * tau C i <= 
+    (1 - eps) * (var_hat C + (sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)))²).
+    admit. (*by lemma_1_4_1 or lemma_1_4_step1*) 
+    (*
+    Ha6: \sum_(i in good) P i * C i * tau C i <=        
+          (1 - eps) * (var_hat C + (mu_hat C - mu_wave C)²)
+    lemma_1_4_1:                   (mu_hat C - mu_wave C) <= sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)).
+    *)
 
-  rewrite mulR1 !mulRA (mulRC _ (/2)) mulRA mulVR; last by apply gtR_eqF.
-  rewrite mul1R -addRR mulRDl -addRA mulRDr.
-
-
-*)
-
-
-
-
-
-   (*a6-a7*)
-   Search(?x * ?y = ?y * ?x ).
-   Search _ "leR_" "mul" .
-
-   Search _ "leR_" "*".
-
-
-   
-   addRR      : forall r : R, r + r = 2 * r
-   addRA = Rplus_assoc : forall r1 r2 r3 : R, r1 + r2 + r3 = r1 + (r2 + r3).
-
-   leR_pmul2l : forall m n1 n2 : R, 0 < m -> m * n1 <= m * n2 <-> n1 <= n2
-
-   mulR1 = Rmult_1_r
-   mulRA = Rmult_assoc : forall r1 r2 r3 : R, r1 * r2 * r3 = r1 * (r2 * r3).
-   mulRC = Rmult_comm : forall r1 r2 : R, r1 * r2 = r2 * r1
-   mulRN = Ropp_mult_distr_r_reverse 	 : forall r1 r2 : R, r1 * - r2 = - (r1 * r2)
-   mulVR : forall x : R, x != 0 -> / x * x = 1
-   gtR_eqF  : forall a b : R, a < b -> b != a
-   mul1R = Rmult_1_l : forall r : R, 1 * r = r.
-   mulRDl = Rmult_plus_distr_r : forall r1 r2 r3 : R, (r1 + r2) * r3 = r1 * r3 + r2 * r3.
-   mulRDr = Rmult_plus_distr_l : forall r1 r2 r3 : R, r1 * (r2 + r3) = r1 * r2 + r1 * r3.
-
-
-
-   rewrite Rmult_eq_compat_r with (r := 1/Pr P good).
-   apply Rmult_eq_compat_r with (r := 1/Pr P good).
-
-   Search(?a = ?b -> ?a * ?x= ?b * ?x).
-Search(_ * ?x).
-
-   Search(_ / ?y).
-
-
-Search(?a <= ?b * ?c -> ?a / ?b <= ?c).   
-div1R
   (*a7-a8*)
+  have Ha8 : (1 - eps) * (var + (sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)))²) =
+              (1 - eps) * var_hat C * (1/16 + 2 * eps * (1/(4*sqrt(2-eps)) + 1/(sqrt(1-eps)))²).
+    (*by Lemma var16, change var=(1/16)*var_hat C and by Lemma var1_4, change sqrt(var)=(1/4)*sqrt(var_hat C)*)
+    admit.
+  
   (*a8-a9*)
-
-
-
+  have eps1_12 : eps = 1/12. (*eps <= 1/12.*) admit.
+  have Ha9_helper : (1/16 + 2 * eps * (1/(4*sqrt(2-eps)) + 1/(sqrt(1-eps)))²) <= 0.3.
+    rewrite eps1_12. admit.
+  
+  have Ha9 : \sum_(i in good) P i * C i * tau C i <= 
+              0.32 * (1 - eps) * var_hat C. admit.
+  
+  by exact Ha9.
 Admitted.
+
+
+
 
 Lemma eqn1_3_4 (C : {ffun U -> R}) (S: {set U}):
   let C' := update C in
