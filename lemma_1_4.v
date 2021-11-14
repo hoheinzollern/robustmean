@@ -463,7 +463,7 @@ Proof.
   (*a6*)
   apply leR_trans with (y := (1 - eps) * (var + (mu - mu_hat)²)).
     have HPr_good: Pr P good = 1 - eps.
-      by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
+    by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
     rewrite -!HPr_good Rmult_comm -leR_pdivr_mulr. 
       apply eqn1_1. by exact PrPgoodpos.
       move => a. by auto. 
