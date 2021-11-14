@@ -176,7 +176,7 @@ Lemma var16 (C : {ffun U -> R}) :
   weight C ->
   16 * var = var_hat C. 
 Proof.
-  move => H.
+  move => H. 
   (*rewrite leR_eqVlt. left.
     apply sqrt_inj.
     apply sqrt_pos.*)
@@ -187,29 +187,30 @@ Lemma var1_4 (C : {ffun U -> R}) :
   weight C ->
   sqrt(var) = 1/4 * sqrt(var_hat C).
 Proof.
-  move => H.
+  move => H. (*rewrite  {1}sqrt_pow2. Rsqr_sqrt*)
 Admitted.
 
 
 Lemma eqn_a6_a9 (C : {ffun U -> R}) :
+  (0 < Pr P good) -> (*new*)
+  (*0 < eps -> eps <= 1/12 -> *)
   weight C ->
   Pr P bad = eps ->
   \sum_(i in good) P i * C i * tau C i <= 0.32 * (1 - eps) * var_hat C.
 Proof.
-  move => H HPr_bad.
+  move => PrPgoodpos H HPr_bad.
   (*a6*)
   have Ha6 : \sum_(i in good) P i * C i * tau C i <= (1 - eps) * (var_hat C + (mu_hat C - mu_wave C)²).
     have HPr_good: Pr P good = 1 - eps.
-      by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
+    by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
     rewrite -!HPr_good Rmult_comm -leR_pdivr_mulr. 
-      apply eqn1_1C. admit. (*0 < Pr P good*)
-      move => a. auto.
-    admit. (*0 < Pr P good*)
-  
-    (*a6-a7*)
-  have Ha7 : \sum_(i in good) P i * C i * tau C i <= 
-    (1 - eps) * (var_hat C + (sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)))²).
-    admit. (*by lemma_1_4_1 or lemma_1_4_step1*) 
+      apply eqn1_1C. by exact PrPgoodpos.
+      move => a. auto. by exact PrPgoodpos.
+
+ (*a6-a7*)
+ have Ha7 : (1 - eps) * (var_hat C + (mu_hat C - mu_wave C)²) = 
+  (1 - eps) * (var_hat C + (sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)))²).
+  admit. (*by lemma_1_4_1 or lemma_1_4_step1*) 
     (*
     Ha6: \sum_(i in good) P i * C i * tau C i <=        
           (1 - eps) * (var_hat C + (mu_hat C - mu_wave C)²)
