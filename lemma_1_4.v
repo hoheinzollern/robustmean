@@ -174,18 +174,19 @@ exact: HPgood.
 Admitted.
 
 Lemma eqn_a6_a9 (C : {ffun U -> R}) :
-  (0 < Pr P good) -> (*new*)
   16 * var <= var_hat C ->
   0 < eps -> eps <= 1/12 -> 
   weight C ->
   Pr P bad = eps ->
   \sum_(i in good) P i * C i * tau C i <= 0.32 * (1 - eps) * var_hat C.
 Proof.
-  move => PrPgoodpos var16 esp_pos eps1_12 H HPr_bad.
+  move => var16 esp_pos eps1_12 H HPr_bad.
   have var_hat_pos: 0 <= var_hat C.
    apply : (leR_trans _ var16). 
    apply mulR_ge0; first by lra.
    apply cvariance_nonneg.
+  have PrPgoodpos : 0 < Pr P good.
+    move: HPr_bad; rewrite Pr_of_cplt; lra.
   (*a6*)
   apply leR_trans with (y := (1 - eps) * (var + (mu - mu_hat C)²)).
     have HPr_good: Pr P good = 1 - eps.
