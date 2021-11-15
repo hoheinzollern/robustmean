@@ -32,6 +32,68 @@ Local Open Scope R_scope.
 Lemma invR_ge0 (x : R) : 0 < x -> 0 <= / x.
 Proof. by move=> x0; apply/ltRW/invR_gt0. Qed.
 
+Section move_to_infotheo.
+Section rExtrema. (* Reals_ext.v *)
+Local Open Scope ring_scope.
+Variables (I : finType) (i0 : I) (F : I -> R) (P : {pred I}).
+Lemma arg_rmax2_cond : P i0 -> forall j, P j -> (F j <= F [arg max_(i > i0 | P i) F i]%O)%O.
+Proof.
+move=> Pi0 j Pj; case: (@Order.TotalTheory.arg_maxP _ _ I i0 P F Pi0) => i _.
+by move/(_ j Pj).
+Qed.
+End rExtrema.
+
+Section pos_fun. (* Reals_ext.v *)
+Local Open Scope R_scope.
+Lemma pos_fun_le0 (I : Type) (F : pos_fun I) i : (F i == 0) = (F i <b= 0).
+Proof.
+apply/sameP/idP/(iffP idP); first by move/eqP->; apply/leRR'.
+by move/leRP/Rle_antisym/(_ (pos_f_ge0 _ _)) ->.
+Qed.
+
+Variables (I : eqType) (r : seq I) (P : pred I) (F : pos_fun I).
+Lemma pos_f_bigmaxR0P :
+  reflect (forall i : I, i \in r -> P i -> F i = 0)
+          (\rmax_(i <- r | P i) F i == 0).
+Proof.
+apply: (iffP idP).
+- move/eqP=> H i ir Pi.
+  apply/eqP; rewrite pos_fun_le0 -H; apply/leRP.
+  rewrite -big_filter; apply: leR_bigmaxR.
+  by rewrite mem_filter ir Pi.
+- move=> H.
+  rewrite -big_filter big_seq.
+  under eq_bigr=> i do rewrite mem_filter=> /andP [] /[swap] /(H i) /[apply] ->.
+  by rewrite -big_seq big_const_seq iter_fix // maxRR.
+Qed.
+End pos_fun.
+
+Section pos_ffun. (* Reals_ext.v *)
+Local Open Scope R_scope.
+Lemma pos_ffun_le0 (I : finType) (F : pos_ffun I) i : (F i == 0) = (F i <b= 0).
+Proof.
+apply/sameP/idP/(iffP idP); first by move/eqP->; apply/leRR'.
+by move/leRP/Rle_antisym/(_ (pos_ff_ge0 _ _)) ->.
+Qed.
+
+Variables (I : finType) (r : seq I) (P : pred I) (F : pos_ffun I).
+Fail Check F : pos_fun _. (* Why no coercion pos_ffun >-> pos_fun? *)
+Lemma pos_ffun_bigmaxR0P :
+  reflect (forall i : I, i \in r -> P i -> F i = 0)
+          (\rmax_(i <- r | P i) F i == 0).
+apply: (iffP idP).
+- move/eqP=> H i ir Pi.
+  apply/eqP; rewrite pos_ffun_le0 -H; apply/leRP.
+  rewrite -big_filter; apply: leR_bigmaxR.
+  by rewrite mem_filter ir Pi.
+- move=> H.
+  rewrite -big_filter big_seq.
+  under eq_bigr=> i do rewrite mem_filter=> /andP [] /[swap] /(H i) /[apply] ->.
+  by rewrite -big_seq big_const_seq iter_fix // maxRR.
+Qed.
+End pos_ffun.
+End move_to_infotheo.
+
 Module WeightedFDist.
 Section def.
 Variables (A : finType) (p : prob) (d0 : {fdist A}) (c : pos_ffun A).
@@ -55,7 +117,7 @@ Proof.
 rewrite /f.
 under eq_bigr do rewrite ffunE divRE.
 by rewrite -big_distrl /= -/weighted_total mulRV.
-Qed.
+Qed.  
 Definition d : fdist A := locked (FDist.make f0 f1).
 Lemma dE a : d a = c a * d0 a / weighted_total.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
@@ -75,6 +137,12 @@ Proof. by apply/fdist_ext => ?; rewrite dE -big_distrl /= FDist.f1 mul1R. Qed.
 *)
 End prop.
 End WeightedFDist.
+
+(*
+Variable (A : finType) (d0 : {fdist A}) (c : pos_ffun A) (ax : WeightedFDist.axiom d0 c).
+Definition wd := WeightedFDist.d ax.
+!!!!!
+*)
 
 Section lemma_1_4.
 Variables (U : finType) (P : fdist U).
@@ -100,10 +168,13 @@ by move=> C0 PC0; apply: divR_ge0 => //; apply: sumR_ge0 => i _; apply: mulR_ge0
  [exact: mulR_ge0|exact: sq_RV_ge0].
 Qed.
 
-Lemma eqn1_1 (C : {ffun U -> R}) :
-  0 < Pr P good ->
-  (forall a, 0 <= C a <= 1) ->
-  (\sum_(i in good) P i * C i * tau C i) / Pr P good <= var + (mu - mu_hat C)².
+Lemma tau_ge0 C i : 0 <= tau C i.
+Proof. rewrite /tau sq_RV_pow2; exact: pow2_ge_0. Qed.
+
+Lemma eqn1_1 (C: {ffun U -> R}):
+  (0 < Pr P good) ->
+  (forall a, 0 <= C a <= 1) -> 
+  (\sum_(i in good) P i * C i * tau C i) / Pr P good <= var + (mu - mu_hat C)². 
 Proof.
 move => HPgood H_0C1.
 apply leR_trans with (y := `E_[tau C | good]);
@@ -117,12 +188,36 @@ by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
 Qed.
 
 Definition tau_max (C : {ffun U -> R}) := \rmax_(i in [set: U]) tau C i.
+Definition tau_max' (C : {ffun U -> R}) :=
+  \big[Num.max/0]_(i in [set: U]) tau C i.
+
+(* to be generalize to something like big_RmaxE? *)
+Lemma tau_maxE C : tau_max C = tau_max' C.
+Proof.
+rewrite /tau_max /tau_max'; apply big_ind2=> //.
+by move=> ? ? ? ? -> ->; rewrite RmaxE.
+Qed.
 
 Definition arg_tau_max (C : {ffun U -> R}) :=
   [arg max_(i > (fdist_supp_choice P) in [set: U]) tau C i]%O.
 
-Definition update (C : {ffun U -> R}) :=
+Definition update_ffun (C : {ffun U -> R}) : {ffun U -> R} :=
   [ffun i => C i * (1 - tau C i / tau_max C)].
+
+Definition update (C : pos_ffun U) : pos_ffun U.
+Proof.
+refine (@mkPosFfun _ (update_ffun C) _).
+apply/forallP=> u; apply/leRP.
+rewrite /update_ffun ffunE.
+apply mulR_ge0; first exact: pos_ff_ge0.
+rewrite subR_ge0 leR_pdivr_mulr.
+rewrite /tau_max.
+have : forall i : U, tau C i <= \rmax_(i in [set: U]) tau C i.
+- move=> i.
+  rewrite -big_filter.
+  apply: (leR_bigmaxR (tau C)).
+  by rewrite mem_filter inE mem_index_enum.
+
 
 Definition invariant (C : {ffun U -> R}) :=
   (\sum_(i in good) P i * (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) P i * (1 - C i)).
@@ -342,22 +437,36 @@ Admitted.
 Require Import Program.Wf.
 
 Local Obligation Tactic := idtac.
-Program Fixpoint filter1d (C : {ffun U -> R}) {measure #| 0.-support C | } :=
-  match #| 0.-support C | with
+Program Fixpoint filter1d (C : {ffun U -> R}) (C_nneg : forall u, 0 <= C u)
+        {measure #| 0.-support (tau C) | } :=
+  match #| 0.-support (tau C) | with
   | 0      => None
   | S gas' => if Rleb (var_hat C) var
               then Some (mu_hat C)
               else filter1d (update C)
   end.
 Next Obligation.
-move=> C _ _ _ _.
-(*
-X := 0.-support (update C)
-Y := 0.-support C
-X \subset Y
-arg_tau_max \notin X
-arg_tau_max \in Y
-*)
+move=> /= C _ n Hn.
+move: (ltn0Sn n); rewrite Hn => /card_gt0P [] u; rewrite supportE.
+move: (tau_ge0 C u)=> /[swap] /eqP /nesym /[conj] /ltR_neqAle => Hu.
+
+set stuC := 0.-support (tau (update C)).
+set stC := 0.-support (tau C).
+have stuC_stC: stuC \subset stC by admit.
+have max_notin_sutC: arg_tau_max C \notin stuC.
+- rewrite supportE; apply/negPn.
+  rewrite /tau /trans_min_RV sq_RV_pow2; apply/eqP/mulR_eq0; left.
+  rewrite /mu_hat.
+  rewrite /update.
+
+
+have max_in_stC: arg_tau_max C \in stC.
+- rewrite supportE.
+  apply/eqP/nesym; apply ltR_neqAle.
+  by apply/(ltR_leR_trans Hu)/RleP/arg_rmax2_cond.
+suff: stuC \proper stC by move/proper_card/leP.
+apply/properP; split => //.
+by exists (arg_tau_max C).
 Admitted.
 Next Obligation. Admitted.
 
