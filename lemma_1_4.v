@@ -2,7 +2,7 @@ From mathcomp Require Import all_ssreflect ssralg fingroup perm finalg matrix.
 From mathcomp Require Import all_algebra. (* for GRing.Theory *)
 From mathcomp Require boolp classical_sets. (* classical_sets for pointedType *)
 From mathcomp Require Import Rstruct topology. (* topology for fct_ringType *)
-Require Import Reals Lra ROrderedType Lia.
+Require Import Reals Lra ROrderedType Lia Interval.Tactic.
 From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext.
 From infotheo Require Import Rbigop proba fdist.
 Require Import robustmean.
@@ -182,8 +182,12 @@ Lemma eqn_a6_a9 (C : {ffun U -> R}) :
   \sum_(i in good) P i * C i * tau C i <= 0.32 * (1 - eps) * var_hat C.
 Proof.
   move => PrPgoodpos var16 esp_pos eps1_12 H HPr_bad.
+  have var_hat_pos: 0 <= var_hat C.
+   apply : (leR_trans _ var16). 
+   apply mulR_ge0; first by lra.
+   apply cvariance_nonneg.
   (*a6*)
-  have Ha6 : \sum_(i in good) P i * C i * tau C i <= (1 - eps) * (var + (mu - mu_hat C)²).
+  apply leR_trans with (y := (1 - eps) * (var + (mu - mu_hat C)²)).
     have HPr_good: Pr P good = 1 - eps.
     by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
     rewrite -!HPr_good Rmult_comm -leR_pdivr_mulr. 
@@ -191,8 +195,7 @@ Proof.
       move => a. auto. by exact PrPgoodpos.
 
  (*a6-a7*)
- have Ha7 : (1 - eps) * (var_hat C + (mu - mu_hat C)²) <=
-  (1 - eps) * (var_hat C + (sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)))²).
+  apply leR_trans with (y :=(1 - eps) * (var + (sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)))²)).
   apply leR_wpmul2l. 
   rewrite -HPr_bad subR_ge0; exact: Pr_1.
   apply leR_add2l. 
@@ -210,22 +213,20 @@ Proof.
     *)
 
   (*a7-a8*)
-  have Ha8 : (1 - eps) * (var + (sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)))²) <=
-              (1 - eps) * var_hat C * (1/16 + 2 * eps * (1/(4*sqrt(2-eps)) + 1/(sqrt(1-eps)))²).
+  apply leR_trans with (y := (1 - eps) * var_hat C * (/16 + 2 * eps * (/(4*sqrt(2-eps)) + /(sqrt(1-eps)))²)).
     (*by var16, change var=(1/16)*var_hat C and change sqrt(var)=(1/4)*sqrt(var_hat C)*)
     admit.
   
   (*a8-a9*)
-  have Ha9 : \sum_(i in good) P i * C i * tau C i <= 
-              0.32 * (1 - eps) * var_hat C.              
-  apply leR_trans with (y := (1-eps) * var_hat C * (1/16 + 2 * eps * Rsqr (/(4 * sqrt (2 - eps)) + /sqrt(1-eps)))).
-    admit. (*prove a8<a9*)
   pose eps_max := 1/12.
-  apply leR_trans with (y := (1-eps) * var_hat C * (1/16 + 2 * eps_max * Rsqr (/(4 * sqrt (2 - eps_max)) + /sqrt(1-eps_max)))).
+  apply leR_trans with (y := (1-eps) * var_hat C * (/16 + 2 * eps_max * Rsqr (/(4 * sqrt (2 - eps_max)) + /sqrt(1-eps_max)))).
     rewrite /eps_max.
     apply leR_pmul.
-    admit.
-    admit.
+      apply mulR_ge0 => //.
+        lra.
+    apply addR_ge0. lra.
+      apply mulR_ge0. lra.
+      apply Rle_0_sqr.
     by right.
     apply leR_add.
       by right.
@@ -234,13 +235,12 @@ Proof.
       apply Rle_0_sqr.
       lra.
       apply Rsqr_bounds_le.
-      split. 
-        admit.
+      split.
+        interval.
       apply leR_add.
         apply leR_inv.
         apply mulR_gt0. lra. (*Search _ "mul" "R" "0".*)  
         apply sqrt_lt_R0. lra.
-          
         apply leR_wpmul2l; first lra.
         apply sqrt_le_1; lra.
       apply leR_inv.
@@ -248,18 +248,10 @@ Proof.
         lra.
       apply sqrt_le_1; lra.
   rewrite mulRC mulRA.
-  apply leR_wpmul2r. 
-   apply : (leR_trans _ var16). 
-   apply mulR_ge0; first by lra.
-   apply cvariance_nonneg. 
+  apply leR_wpmul2r => //.
   apply leR_wpmul2r. lra.
-  rewrite /eps_max. 
-  (*Goal 1 / 16 + 2 * (1 / 12) * (/ (4 * sqrt (2 - 1 / 12)) + / sqrt (1 - 1 / 12))² <= 0.32.*)
-  (*interval.*)
-  
-   admit.
-  
-  by exact Ha9.
+  rewrite /eps_max.
+  interval.
 Admitted.
 
 
