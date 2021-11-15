@@ -501,7 +501,7 @@ Proof.
       rewrite mulRC /Rsqr; by lra.
     by right.
   rewrite Rsqr_sqrt; [by right|nra].
-    
+
   (*a8-a9*)
   pose eps_max := 1/12.
   apply leR_trans with (y := (1-eps) * var_hat * (/16 + 2 * eps_max * Rsqr (/(4 * sqrt (2 - eps_max)) + /sqrt(1-eps_max)))).
