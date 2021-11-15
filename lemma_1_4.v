@@ -129,11 +129,78 @@ Proof.
 Qed.
 
 Lemma lemma_1_4_step1 (C : {ffun U -> R}) :
+  0 <= eps < 1 ->
   Pr P bad = eps ->
-  Rsqr (mu_hat C - mu_wave C) <= `V_[X | good] * 2*eps / (1-eps).
+  Rsqr (mu_hat C - mu_wave C) <= var_hat C * 2 * eps / (1 - eps).
 Proof.
-  move => HPr_bad.
-  rewrite /mu_hat /mu_wave.
+move=> [eps0 eps1] HPr_bad.
+suff h : `| mu_hat C - mu_wave C | <= sqrt (var_hat C * 2 * eps / (1 - eps)).
+  admit.
+pose delta := 1 - eps.
+have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
+rewrite -/delta.
+rewrite distRC.
+have @f' : {ffun U -> R} := [ffun i => P i * C i / (\sum_(i in U) P i * C i)].
+have Hf' : [forall a, 0 <b= f' a].
+  apply/forallP => u; apply/leRP; rewrite /f' ffunE.
+  apply: mulR_ge0; last first.
+   apply/ltRW/invR_gt0. (* should be ok *) admit.
+   apply/mulR_ge0 => //. (* should be ok *) admit.
+move=> [:hidden].
+have @P' : {fdist U}.
+  apply: (@FDist.mk _ (mkPosFfun Hf')).
+  abstract: hidden.
+  rewrite /= /f'.
+  under eq_bigr do rewrite ffunE.
+  (* should be ok *) admit.
+pose X' : {RV P' -> R} := X.
+have mu_hatE : mu_hat C = `E X'.
+  rewrite /mu_hat /Ex /X' /ambient_dist.
+  rewrite /P' /= /f' /=.
+  under [in RHS]eq_bigr do rewrite ffunE.
+  (* should be ok *) admit.
+rewrite mu_hatE.
+have -> : mu_wave C = `E_[X' | good].
+  rewrite /mu_wave.
+  rewrite cEx_ExInd /Ex /ambient_dist /Ind /X'.
+  rewrite {1}/P' /= /f'.
+  under [in RHS]eq_bigr do rewrite ffunE.
+  under [in RHS]eq_bigr do rewrite !mulRA.
+  rewrite -big_distrl /= [in RHS]divRE -mulRA; congr (_ * _).
+    (* should be ok *) admit.
+  rewrite /Pr /= /f'.
+  under [in X in _ = _ * X]eq_bigr do rewrite ffunE.
+  rewrite -big_distrl /=.
+  rewrite invRM; last 2 first.
+    (* should be ok *) admit.
+    (* should be ok *) admit.
+  rewrite mulRCA invRK; last first.
+    (* should be ok *) admit.
+  rewrite mulVR; last first.
+    (* should be ok *) admit.
+  by rewrite mulR1.
+have -> : var_hat C = `V X'.
+  rewrite /var_hat divRE big_distrl /=.
+  apply eq_bigr => u _ /=.
+  rewrite /f' /= ffunE [in RHS]mulRCA -mulRA; congr (_ * _).
+  by rewrite /tau mu_hatE.
+apply: resilience => //.
+- by rewrite /delta; apply/subR_gt0.
+- rewrite (_ : delta = Pr P good); last by (* ok *) admit.
+  rewrite /Pr /P' /= /f'.
+  under [in X in _ <= X]eq_bigr do rewrite ffunE.
+  apply: leR_sumR => u ugood.
+  rewrite -{1}(mulR1 (P u)).
+  rewrite divRE -mulRA.
+  apply/leR_pmul2l.
+    admit. (* TODO: we can get rid of this by doing beforehand a case analysis wrt P u = 0 *)
+  (* Goal at this point: 1 <= C u * / (\sum_(i in U) P i * C i)
+     this does not look provable...
+   *)
+  admit.
+- rewrite /Pr /P' /= /f'.
+  under [in X in X != _]eq_bigr do rewrite ffunE.
+  (* should be ok *) admit.
 Admitted.
 
 Lemma eqn_a6_a9 (C : {ffun U -> R}) :

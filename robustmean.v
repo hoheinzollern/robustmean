@@ -55,6 +55,7 @@ Proof.
   by move: H=> /[swap] /in_preim1 ->; rewrite eqxx.
 Qed.
 
+(* NB: will appear in the next version of infotheo *)
 Lemma leq_sumR I r (P : pred I) (E1 E2 : I -> R) :
     (forall i, P i -> E1 i <= E2 i) ->
   \sum_(i <- r | P i) E1 i <= \sum_(i <- r | P i) E2 i.
@@ -117,6 +118,7 @@ Section probability.
 Variables (U : finType) (P : fdist U).
 Import GRing.Theory.
 
+(* NB: will appear in the next version of infotheo *)
 Lemma Pr_lt1 (E : {set U}) : Pr P E < 1 <-> Pr P E != 1.
 Proof.
 rewrite Pr_to_cplt.
@@ -558,11 +560,13 @@ Section resilience.
 Variables (U : finType) (P : fdist U).
 
 Lemma cresilience (delta : R) (X : {RV P -> R}) (F G : {set U}) :
-  0 < delta -> delta <= Pr P F / Pr P G -> Pr P F < Pr P G -> F \subset G ->
+  0 < delta -> delta <= Pr P F / Pr P G -> Pr P F != Pr P G -> F \subset G ->
     `| `E_[ X | F ] - `E_[ X | G ] | <=
     sqrt (`V_[ X | G ] * 2 * (1 - delta) / delta).
 Proof.
-move => delta_gt0 delta_FG Pr_FG /[dup] /setIidPr HGnF_F FG.
+move => delta_gt0 delta_FG Pr_FG FG.
+have {}Pr_FG : Pr P F < Pr P G.
+  by rewrite ltR_neqAle; split; [exact/eqP|exact: Pr_incl].
 have HPrGpos : 0 < Pr P G by exact: (leR_ltR_trans _ Pr_FG).
 have HPrFpos : 0 < Pr P F.
   apply/(@ltR_pmul2r (/ Pr P G)); first exact/invR_gt0.
@@ -581,10 +585,11 @@ case : (Rle_or_lt delta (1/2)) => delta_12.
     by rewrite invRK ?gtR_eqF // mulRC.
   by rewrite !divRE mulRA leR_pmul2r; [lra|exact: invR_gt0].
 rewrite cEx_Inv' //.
+have Pr_GF : 0 < Pr P (G :\: F).
+  by rewrite Pr_diff; move/setIidPr : FG => ->; rewrite subR_gt0.
 apply: leR_trans.
   apply leR_wpmul2l; first exact: divR_ge0.
-  apply cEx_cVar => //; last exact: subsetDl.
-  by rewrite Pr_diff HGnF_F subR_gt0.
+  apply cEx_cVar => //; exact: subsetDl.
 apply: (@leR_trans
     (sqrt (`V_[ X | G] * (Pr P G * (1 - delta)) / (Pr P G * delta * delta)))).
   rewrite -(Rabs_pos_eq (Pr P (G :\: F) / Pr P F)); last exact: divR_ge0.
@@ -592,8 +597,7 @@ apply: (@leR_trans
   apply sqrt_le_1_alt.
   rewrite !divRE !mulRA [in X in X <= _](mulRC _  (`V_[X | G])) -!mulRA.
   apply: leR_wpmul2l; first exact: cvariance_nonneg.
-  rewrite !mulRA mulRC !mulRA mulVR ?mul1R; last first.
-    by rewrite Pr_diff HGnF_F; apply/eqP; nra.
+  rewrite !mulRA mulRC !mulRA mulVR ?mul1R; last exact/gtR_eqF.
   rewrite mulRC (mulRC (/Pr P F)) -mulRA -invRM; [|exact/gtR_eqF|exact/gtR_eqF].
   rewrite mulRA; apply/leR_pdivr_mulr; first by nra.
   rewrite mulRAC; apply/leR_pdivl_mulr; first by apply: Rmult_lt_0_compat; nra.
@@ -602,7 +606,7 @@ apply: (@leR_trans
   rewrite (mulRC (Pr P G)) -mulRA; apply: leR_pmul => //.
   - apply: mulR_ge0 => //; apply/mulR_ge0; last exact/ltRW.
     by apply/mulR_ge0 => //; exact/ltRW.
-  - by rewrite Pr_diff HGnF_F; nra.
+  - by rewrite Pr_diff; move/setIidPr : FG => ->; nra.
   - by rewrite mulRCA; apply: leR_pmul; nra.
 apply sqrt_le_1_alt.
 rewrite divRE invRM; [|exact/gtR_eqF/mulR_gt0|exact/gtR_eqF].
@@ -616,7 +620,7 @@ Qed.
 
 (* NB: not used, unconditional version of cresilience *)
 Lemma resilience (delta : R) (X : {RV P -> R}) F :
-  0 < delta -> delta <= Pr P F -> Pr P F < 1 ->
+  0 < delta -> delta <= Pr P F -> Pr P F != 1 ->
     `| `E_[ X | F ] - `E X | <= sqrt (`V X * 2 * (1 - delta) / delta).
 Proof.
 move=> delta_gt0 delta_F PF_lt1.
@@ -684,13 +688,7 @@ have Exgood_bound : `| `E_[X | good :\: drop ] - `E_[X | good] | <=
     apply/subR_eq; rewrite addRC; apply/subR_eq; rewrite subRR; apply/esym.
     move: gdg; rewrite Pr_diff => /subR_eq; rewrite addRC => /subR_eq.
     by rewrite subRR [in X in _ -> X]setIC => /esym; exact: Pr_domin_setI.
-  - apply cresilience.
-    + apply (@ltR_pmul2r (1 - eps)); first lra.
-      by rewrite mul0R; apply: mulR_gt0 => //; lra.
-    + lra.
-    + suff : Pr P (good :\: drop) <= Pr P good by move/eqP in gdg; lra.
-      exact/Pr_incl/subsetDl.
-    + exact: subsetDl.
+  - by apply cresilience => //; exact: subsetDl.
 have Exbad_bound : 0 < Pr P (bad :\: drop) ->
     `| `E_[ X | bad :\: drop ] - mu | <= sqrt (sigma / eps).
   move=> Pr_bd.
