@@ -414,15 +414,6 @@ Proof.
   rewrite /mu_hat /mu_wave.
 Admitted.
 
-(*new. Alternative to Lemma lemma_1_4_step1 *)
-Lemma lemma_1_4_1_removeme :
-  Pr P bad = eps ->
-  (mu_hat - mu_wave) <= sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat * 2 * eps / (1-eps)).
-Proof.
-  move => HPr_bad.
-  rewrite /mu_hat /mu_wave.
-Admitted.
-
 (*new. eqn1_1 with a C, helper for Lemma eqn_a6_a9*)
 Lemma eqn1_1C :
   (0 < Pr P good) ->
@@ -450,7 +441,7 @@ Admitted.
 
 Lemma eqn_a6_a9 :
   16 * var <= var_hat ->
-  0 < eps -> eps <= 1/12 ->
+  0 < eps -> eps <= 1/12 -> 
   weight C ->
   Pr P bad = eps ->
   \sum_(i in good) P i * C i * tau i <= 0.32 * (1 - eps) * var_hat.
