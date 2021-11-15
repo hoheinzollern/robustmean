@@ -194,44 +194,62 @@ Proof.
       apply eqn1_1. by exact PrPgoodpos.
       move => a. auto. by exact PrPgoodpos.
 
- (*a6-a7*)
+  (*a6-a7*)
   apply leR_trans with (y :=(1 - eps) * (var + (sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)))²)).
   apply leR_wpmul2l. 
   rewrite -HPr_bad subR_ge0; exact: Pr_1.
   apply leR_add2l. 
   apply Rsqr_le_abs_1. rewrite [x in _ <= x]geR0_norm.
-  apply lemma_1_4_1 => //. 
-  (*About Rsqr_incr_1. apply Rsqr_incr_1.*)
+  apply lemma_1_4_1 => //.
   apply /addR_ge0/sqrt_pos/sqrt_pos.
-
-  (*congr (_ * ( _ + _)).
-  admit. (*by lemma_1_4_1 or lemma_1_4_step1*)*) 
-    (*
-    Ha6: \sum_(i in good) P i * C i * tau C i <=        
-          (1 - eps) * (var_hat C + (mu_hat C - mu_wave C)²)
-    lemma_1_4_1:                   (mu_hat C - mu_wave C) <= sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)).
-    *)
 
   (*a7-a8*)
   apply leR_trans with (y := (1 - eps) * var_hat C * (/16 + 2 * eps * (/(4*sqrt(2-eps)) + /(sqrt(1-eps)))²)).
-    (*by var16, change var=(1/16)*var_hat C and change sqrt(var)=(1/4)*sqrt(var_hat C)*)
-    admit.
-  
+    rewrite -(mulRA (1-eps)).
+    apply leR_pmul2l; first lra.
+    rewrite mulRDr.
+    apply leR_add; first lra.
+    rewrite mulRA mulRA.
+    rewrite -(Rsqr_sqrt (var_hat C * 2 * eps)); last by
+      rewrite -mulRA; apply mulR_ge0 => //; lra.
+    rewrite -Rsqr_mult mulRDr.
+    apply Rsqr_incr_1;
+      last (apply addR_ge0; (apply mulR_ge0; first apply sqrt_pos; left; apply invR_gt0; interval));
+      last (apply addR_ge0; apply sqrt_pos).
+      apply leR_add;
+        [rewrite -(sqrt_Rsqr 4); last lra;
+         rewrite -sqrt_mult/Rsqr; [|lra|lra]| ];
+        (rewrite inv_sqrt; last by lra);
+        (rewrite -sqrt_mult; [|nra|left; apply invR_gt0; lra]).
+      apply sqrt_le_1.
+        rewrite /Rdiv -!mulRA; apply mulR_ge0.
+          apply cvariance_nonneg.
+        rewrite mulRA; apply mulR_ge0; [lra|left; apply invR_gt0; lra].
+        rewrite -mulRA;apply mulR_ge0.
+          lra.
+          apply mulR_ge0;[lra|left;apply invR_gt0;lra].
+      rewrite invRM; try (rewrite /Rsqr; apply /eqP; lra).
+      rewrite (mulRC (/ _)) mulRA (mulRC _ (/ _)) mulRA mulRA mulRA.
+      rewrite /Rdiv -4!mulRA.
+      apply leR_pmul; [apply cvariance_nonneg |
+        rewrite mulRA; apply mulR_ge0; [lra | left; apply invR_gt0; lra]| | ].
+      rewrite mulRC /Rsqr; lra.
+      by right.
+      rewrite Rsqr_sqrt; [by right|nra].
+    
   (*a8-a9*)
   pose eps_max := 1/12.
   apply leR_trans with (y := (1-eps) * var_hat C * (/16 + 2 * eps_max * Rsqr (/(4 * sqrt (2 - eps_max)) + /sqrt(1-eps_max)))).
     rewrite /eps_max.
     apply leR_pmul.
-      apply mulR_ge0 => //.
-        lra.
-    apply addR_ge0. lra.
-      apply mulR_ge0. lra.
+      apply mulR_ge0 => //; lra.
+    apply addR_ge0; first lra.
+      apply mulR_ge0; first lra.
       apply Rle_0_sqr.
-    by right.
+      by right.
     apply leR_add.
       by right.
-    apply leR_pmul. 
-      lra. 
+    apply leR_pmul; first lra. 
       apply Rle_0_sqr.
       lra.
       apply Rsqr_bounds_le.
@@ -239,22 +257,19 @@ Proof.
         interval.
       apply leR_add.
         apply leR_inv.
-        apply mulR_gt0. lra. (*Search _ "mul" "R" "0".*)  
-        apply sqrt_lt_R0. lra.
+        apply mulR_gt0; first lra.
+        apply sqrt_lt_R0; first lra.
         apply leR_wpmul2l; first lra.
         apply sqrt_le_1; lra.
       apply leR_inv.
-        apply sqrt_lt_R0.
-        lra.
+        apply sqrt_lt_R0; lra.
       apply sqrt_le_1; lra.
   rewrite mulRC mulRA.
   apply leR_wpmul2r => //.
-  apply leR_wpmul2r. lra.
+  apply leR_wpmul2r; first lra.
   rewrite /eps_max.
   interval.
-Admitted.
-
-
+Qed.
 
 
 Lemma eqn1_3_4 (C : {ffun U -> R}) (S: {set U}):
