@@ -287,10 +287,9 @@ Proof.
   rewrite /weight/invariant/invariant1 => HCi_gt0 HPr_bad Heps HwC HIC.
   have HPr_good : Pr P good = 1 - eps by rewrite Pr_to_cplt HPr_bad.
   rewrite -!HPr_good.
-  Print leR_trans.
   apply leR_trans with (y := (Pr P good / 2 * (1 + Pr P good + (\sum_(i in bad) P i * C i))) / (\sum_(i in U) P i * C i)).
-  apply leR_pmul2r with (m := (\sum_(i in U) P i * C i) * 2).
-    by apply mulR_gt0.
+  apply leR_pmul2r with (m := (\sum_(i in U) P i * C i) * 2);
+    first by apply mulR_gt0.
   rewrite !mulRA !(mulRC _ 2) -(mulRA _ (/ _)) mulVR; last by apply gtR_eqF.
   rewrite mulR1 !mulRA (mulRC _ (/2)) mulRA mulVR; last by apply gtR_eqF.
   rewrite mul1R -addRR mulRDl -addRA mulRDr.
@@ -406,7 +405,42 @@ apply: resilience => //.
   by apply: sumR_ge0 => u _; apply: mulR_ge0.
 Qed.
 
-Lemma lemma_1_4_1:
+Lemma lemma_1_4_step2 :
+  Pr P bad = eps ->
+  eps < 1/12 ->
+  weight C ->
+  invariant C ->
+  Rsqr (mu - mu_wave) <= `V_[X | good] * 2*eps / (2-eps).
+Proof.
+  rewrite /weight/invariant => HPr_bad Hlow_eps HwC Hinv.
+  have HPr_good: Pr P good = 1 - eps.
+    by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
+  have Hgood_mass: 1 - eps/2 <= (\sum_(i in good) P i * C i) / Pr P good.
+    apply leR_trans with (y := 1 - (1-eps)/2/Pr P good * Pr P bad).
+      by rewrite HPr_bad HPr_good -!mulRA mulRC (mulRC (/(_-_))) mulRA -mulRA mulVR; [rewrite mulR1 mulRC; right|apply /gtR_eqF; lra].
+    apply leR_trans with (y := 1 - (1-eps)/2/Pr P good * \sum_(i in bad) P i * (1 - C i)).
+      apply leR_add2l.
+      apply leR_oppl; rewrite oppRK.
+      apply leR_pmul2l; [
+        rewrite HPr_good /Rdiv mulRC mulRA mulVR; [|apply gtR_eqF]; lra|].
+      apply leR_sumR => i Hi_bad.
+      rewrite -{2}(mulR1 (P i)).
+      by move: (FDist.ge0 P i) => [HPi_gt0|HPi_eq0];
+        [apply leR_pmul2l; [auto|move:(HwC i); lra]
+        |rewrite -HPi_eq0 !mul0R; right].
+    rewrite -HPr_good /Rdiv -(mulRA (Pr P good)) (mulRC (/2)) mulRA mulRV; last by (apply gtR_eqF; lra).
+    apply leR_pmul2r with (m := Pr P good);
+      [rewrite HPr_good; lra|rewrite -(mulRA _ (/ Pr P good)) mulVR; [rewrite mul1R mulR1|apply gtR_eqF; lra]].
+    rewrite mulRDl mul1R {2}HPr_good mulRC mulRN.
+    apply Rplus_le_reg_l with (r := -Pr P good).
+    rewrite addRA (addRC (- _)) addRN add0R mulRA.
+    apply leR_oppl.
+    rewrite oppRD oppRK /Pr -(mul1R (- _)) mulRN -mulNR big_distrr -big_split; simpl.
+    by under eq_bigr => i _; [
+      rewrite mulNR mul1R -mulRN -{1}(mulR1 (P i)) -mulRDr;over|].
+Admitted.
+
+Lemma lemma_1_4_1 :
   Pr P bad = eps ->
   Rabs (mu - mu_hat) <= sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat * 2 * eps / (1-eps)).
 Proof.
@@ -532,6 +566,28 @@ Proof.
   rewrite /eps_max.
   interval.
 Admitted.
+
+Lemma eqn_a10_a11 :
+  16 * var <= var_hat ->
+  0 < eps -> eps <= 1/12 -> 
+  weight C ->
+  Pr P bad = eps ->
+  2/3 * var_hat <= \sum_(i in bad) P i * C i * tau i.
+Proof.
+  move => var16 esp_pos eps1_12 H HPr_bad.
+  have var_hat_pos: 0 <= var_hat.
+   apply : (leR_trans _ var16). 
+   apply mulR_ge0; first by lra.
+   apply cvariance_nonneg.
+  have PrPgoodpos : 0 < Pr P good.
+    move: HPr_bad; rewrite Pr_of_cplt; lra.
+  
+  have ->: \sum_(i in bad) P i * C i * tau i =
+    var_hat * (\sum_(i in U) P i * C i) - (\sum_(i in good) P i * C i * tau i).
+    admit.
+  
+  apply leR_trans with (y := var_hat * (1-eps)).
+Abort.
 
 (* TODO: improve the notation for pos_ffun (and for pos_fun) *)
 Lemma eqn1_3_4 (S: {set U}):
