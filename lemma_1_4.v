@@ -7,12 +7,30 @@ From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext.
 From infotheo Require Import Rbigop proba fdist.
 Require Import robustmean.
 
+(******************************************************************************)
+(*                                                                            *)
+(*     mu_hat == empirical mean of the data, weighted mean of all the points  *)
+(*    var_hat == empirical variance                                           *)
+(*    mu_wave == mean of the at least 1 - epsilon fraction (under c) of       *)
+(*              remaining good points                                         *)
+(*  invariant == the amount of  mass removed from the good points is smaller  *)
+(*              than that removed from the bad points.                        *)
+(*   weight C := forall i, 0 <= C i <= 1                                      *)
+(* invariant1 == consequence of invariant (p.62,l.-1)                         *)
+(*   filter1d == robust mean estimation by comparing mean and variance        *)
+(*                                                                            *)
+(******************************************************************************)
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope proba_scope.
 Local Open Scope R_scope.
+
+(* NB: to appear in the next release of infotheo *)
+Lemma invR_ge0 (x : R) : 0 < x -> 0 <= / x.
+Proof. by move=> x0; apply/ltRW/invR_gt0. Qed.
 
 Section lemma_1_4.
 Variables (U : finType) (P : fdist U).
@@ -21,14 +39,13 @@ Variable X : {RV P -> R}.
 Variable good : {set U}.
 Variable eps : R.
 
-Definition C0 : {ffun U -> R} := [ffun=> 1].
-(*Definition C0 (i: U) := 1. *)
+Definition C0 : {ffun U -> R} := [ffun=> 1]. (*Definition C0 (i: U) := 1. *)
 Definition bad := ~: good.
 Definition mu := `E_[X | good].
 Definition var := `V_[X | good].
 
 Definition mu_hat C := (\sum_(i in U) P i * C i * X i) / (\sum_(i in U) P i * C i).
-Definition mu_wave (C : {ffun U -> R}) := (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i).
+Definition mu_wave (C : {ffun U -> R}) := (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i). (*TODO: rename to mu_tilda*)
 
 Definition tau C := (X `-cst mu_hat C)`^2.
 Definition var_hat C := (\sum_(i in U) P i * C i * tau C i) / (\sum_(i in U) P i * C i).
@@ -39,10 +56,10 @@ by move=> C0 PC0; apply: divR_ge0 => //; apply: sumR_ge0 => i _; apply: mulR_ge0
  [exact: mulR_ge0|exact: sq_RV_ge0].
 Qed.
 
-Lemma eqn1_1 (C: {ffun U -> R}):
-  (0 < Pr P good) ->
-  (forall a, 0 <= C a <= 1) -> 
-  (\sum_(i in good) P i * C i * tau C i) / Pr P good <= var + (mu - mu_hat C)². 
+Lemma eqn1_1 (C : {ffun U -> R}) :
+  0 < Pr P good ->
+  (forall a, 0 <= C a <= 1) ->
+  (\sum_(i in good) P i * C i * tau C i) / Pr P good <= var + (mu - mu_hat C)².
 Proof.
 move => HPgood H_0C1.
 apply leR_trans with (y := `E_[tau C | good]);
@@ -50,7 +67,7 @@ apply leR_trans with (y := `E_[tau C | good]);
 rewrite cEx_ExInd.
 apply leR_pmul2r; [by apply invR_gt0|].
 apply leR_sumRl => i Higood; last by [].
-by unfold Ind; rewrite Higood mulR1 (mulRC (tau C i)); apply leR_wpmul2r; [apply sq_RV_ge0 | 
+by unfold Ind; rewrite Higood mulR1 (mulRC (tau C i)); apply leR_wpmul2r; [apply sq_RV_ge0 |
  rewrite -{2}(mulR1 (P i)); apply leR_wpmul2l; [ | apply H_0C1]].
 by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
 Qed.
@@ -132,9 +149,29 @@ Proof.
   by rewrite !H HPr_good.
 Qed.
 
-(* TODO: move to infotheo *)
-Lemma invR_ge0 (x : R) :  0 < x -> 0 <= / x.
-Proof. by move=> x0; apply/ltRW/invR_gt0. Qed.
+Local Definition weightedf (C : {ffun U -> R}) : {ffun U -> R} :=
+  [ffun i => P i * C i / \sum_(i in U) P i * C i].
+
+Local Lemma weightedf0 (C : {ffun U -> R})
+  (PC0 : 0 < \sum_(i in U) P i * C i) (C0 : forall u, 0 <= C u) :
+  [forall a, 0 <b= weightedf C a].
+Proof.
+apply/forallP => u; apply/leRP; rewrite /weightedf ffunE.
+by apply: mulR_ge0; [apply: mulR_ge0 => //|apply/invR_ge0].
+Qed.
+
+Local Lemma weightedf1 (C : {ffun U -> R})
+  (PC0 : 0 < \sum_(i in U) P i * C i) (C0 : forall u, 0 <= C u) :
+  \sum_(a in U) mkPosFfun (weightedf0 PC0 C0) a == 1.
+Proof.
+rewrite /= /weightedf.
+under eq_bigr do rewrite ffunE.
+by rewrite -big_distrl /= -divRE divRR//; exact/gtR_eqF.
+Qed.
+
+Definition weightedP (C : {ffun U -> R})
+  (PC0 : 0 < \sum_(i in U) P i * C i) (C0 : forall u, 0 <= C u) :
+  {fdist U} := FDist.mk (weightedf1 PC0 C0).
 
 Lemma lemma_1_4_step1 (C : {ffun U -> R}) :
   (0 < \sum_(i in U) P i * C i) ->
@@ -153,31 +190,21 @@ suff h : `| mu_hat C - mu_wave C | <= sqrt (var_hat C * 2 * eps / (1 - eps)).
 pose delta := 1 - eps.
 have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
 rewrite -/delta distRC.
-have @f' : {ffun U -> R} := [ffun i => P i * C i / \sum_(i in U) P i * C i].
-have f'0 : [forall a, 0 <b= f' a].
-  apply/forallP => u; apply/leRP; rewrite /f' ffunE.
-  by apply: mulR_ge0; [exact: mulR_ge0|exact/invR_ge0].
-move=> [:hidden].
-have @P' : {fdist U}.
-  apply: (@FDist.mk _ (mkPosFfun f'0)).
-  abstract: hidden.
-  rewrite /= /f'.
-  under eq_bigr do rewrite ffunE.
-  by rewrite -big_distrl /= -divRE divRR//; exact/gtR_eqF.
+pose P' : {fdist U} := weightedP PC0 C0.
 pose X' : {RV P' -> R} := X.
 have mu_hatE : mu_hat C = `E X'. (* TODO: lemma? *)
-  rewrite /mu_hat /Ex /X' /ambient_dist /P' /= /f' /=.
+  rewrite /mu_hat /Ex /X' /ambient_dist /P' /= /weightedf.
   under [in RHS]eq_bigr do rewrite ffunE !mulRA -divRE.
   rewrite -big_distrl/= -divRE; congr (_ / _).
   by under eq_bigr do rewrite mulRAC (mulRC (P _)).
 rewrite mu_hatE.
 have -> : mu_wave C = `E_[X' | good].
-  rewrite /mu_wave cEx_ExInd /Ex /ambient_dist /Ind /X' {1}/P' /= /f'.
+  rewrite /mu_wave cEx_ExInd /Ex /ambient_dist /Ind /X' {1}/P' /= /weightedf.
   under [in RHS]eq_bigr do rewrite ffunE !mulRA.
   rewrite -big_distrl /= [in RHS]divRE -mulRA; congr (_ * _).
     rewrite big_mkcond /=; apply eq_bigr => u _.
     by case: ifP => _; rewrite !(mulR0,mul0R,mulR1)// mulRAC (mulRC (P _)).
-  rewrite /Pr /= /f'.
+  rewrite /Pr /= /weightedf.
   under [in X in _ = _ * X]eq_bigr do rewrite ffunE.
   rewrite -big_distrl /= invRM; last 2 first.
     - apply/gtR_eqF.
@@ -185,17 +212,17 @@ have -> : mu_wave C = `E_[X' | good].
     - exact/invR_neq0'/gtR_eqF.
   rewrite mulRCA invRK; last exact/gtR_eqF.
   by rewrite mulVR ?mulR1//; exact/gtR_eqF.
-have -> : var_hat C = `V X'.
+have -> : var_hat C = `V X'. (*TODO: turn this into a lemma*)
   rewrite /var_hat divRE big_distrl /=; apply eq_bigr => u _ /=.
-  by rewrite /f' /= ffunE [in RHS]mulRCA -mulRA /tau mu_hatE.
+  by rewrite /weightedf /= ffunE [in RHS]mulRCA -mulRA /tau mu_hatE.
 apply: resilience => //.
 - by rewrite /delta; apply/subR_gt0.
-- rewrite /delta -HPr_bad -Pr_to_cplt /Pr /P' /= /f'.
+- rewrite /delta -HPr_bad -Pr_to_cplt /Pr /P' /= /weightedf.
   under [in X in _ <= X]eq_bigr do rewrite ffunE.
   apply: (@leR_trans (1 - eps)).
     by rewrite -/(Pr P good) Pr_to_cplt HPr_bad; exact: leRR.
   by move: invC; rewrite /invariant1 -big_distrl.
-- rewrite /Pr /P' /= /f'.
+- rewrite /Pr /P' /= /weightedf.
   under [in X in X != _]eq_bigr do rewrite ffunE.
   rewrite -big_distrl/= -divRE; apply/ltR_eqF/ltR_pdivr_mulr => //.
   rewrite mul1R [in X in _ < X](bigID (fun x => x \in good))/=.
