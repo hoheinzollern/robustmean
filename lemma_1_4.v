@@ -33,6 +33,12 @@ Definition mu_wave (C : {ffun U -> R}) := (\sum_(i in good) P i * C i * X i) / (
 Definition tau C := (X `-cst mu_hat C)`^2.
 Definition var_hat C := (\sum_(i in U) P i * C i * tau C i) / (\sum_(i in U) P i * C i).
 
+Lemma var_hat_ge0 C : (forall u, 0 <= C u) -> 0 < \sum_(i in U) P i * C i -> 0 <= var_hat C.
+Proof.
+by move=> C0 PC0; apply: divR_ge0 => //; apply: sumR_ge0 => i _; apply: mulR_ge0;
+ [exact: mulR_ge0|exact: sq_RV_ge0].
+Qed.
+
 Lemma eqn1_1 (C: {ffun U -> R}):
   (0 < Pr P good) ->
   (forall a, 0 <= C a <= 1) -> 
@@ -81,8 +87,7 @@ Proof.
   have ->: (\sum_(i in U) P i * C0 i) = 1.
     under eq_bigr do rewrite /C0 ffunE mulR1.
     exact: FDist.f1.
-  have -> : Pr P good = 1 - eps by apply/esym/subR_eq; rewrite -Hbad_ratio Pr_cplt.
-    by rewrite divR1 leR_eqVlt; left.
+  by rewrite Pr_to_cplt Hbad_ratio divR1; exact/leRR.
   move => i. rewrite /C0 ffunE; lra.
 Qed.
 
@@ -93,8 +98,7 @@ Lemma lemma1_4_start (C : {ffun U -> R}) :
   weight C -> invariant C -> invariant1 C.
 Proof.
   rewrite /weight/invariant/invariant1 => HCi_gt0 HPr_bad Heps HwC HIC.
-  have HPr_good: Pr P good = 1 - eps.
-    by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
+  have HPr_good : Pr P good = 1 - eps by rewrite Pr_to_cplt HPr_bad.
   rewrite -!HPr_good.
   apply leR_trans with (y := (Pr P good / 2 * (1 + Pr P good + (\sum_(i in bad) P i * C i))) / (\sum_(i in U) P i * C i)).
   apply leR_pmul2r with (m := (\sum_(i in U) P i * C i) * 2).
@@ -128,79 +132,75 @@ Proof.
   by rewrite !H HPr_good.
 Qed.
 
+(* TODO: move to infotheo *)
+Lemma invR_ge0 (x : R) :  0 < x -> 0 <= / x.
+Proof. by move=> x0; apply/ltRW/invR_gt0. Qed.
+
 Lemma lemma_1_4_step1 (C : {ffun U -> R}) :
+  (0 < \sum_(i in U) P i * C i) ->
+  (forall u, 0 <= C u) ->
+  invariant1 C ->
   0 <= eps < 1 ->
   Pr P bad = eps ->
   Rsqr (mu_hat C - mu_wave C) <= var_hat C * 2 * eps / (1 - eps).
 Proof.
-move=> [eps0 eps1] HPr_bad.
+move=> PC0 C0 invC [eps0 eps1] HPr_bad.
 suff h : `| mu_hat C - mu_wave C | <= sqrt (var_hat C * 2 * eps / (1 - eps)).
-  admit.
+  rewrite Rsqr_abs -[X in _ <= X]Rsqr_sqrt; last first.
+    apply: mulR_ge0; last exact/invR_ge0/subR_gt0.
+    by apply: mulR_ge0 => //; apply: mulR_ge0 => //; [exact: var_hat_ge0|lra].
+  by apply/Rsqr_incr_1 => //; [exact/normR_ge0|exact: sqrt_pos].
 pose delta := 1 - eps.
 have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
-rewrite -/delta.
-rewrite distRC.
-have @f' : {ffun U -> R} := [ffun i => P i * C i / (\sum_(i in U) P i * C i)].
-have Hf' : [forall a, 0 <b= f' a].
+rewrite -/delta distRC.
+have @f' : {ffun U -> R} := [ffun i => P i * C i / \sum_(i in U) P i * C i].
+have f'0 : [forall a, 0 <b= f' a].
   apply/forallP => u; apply/leRP; rewrite /f' ffunE.
-  apply: mulR_ge0; last first.
-   apply/ltRW/invR_gt0. (* should be ok *) admit.
-   apply/mulR_ge0 => //. (* should be ok *) admit.
+  by apply: mulR_ge0; [exact: mulR_ge0|exact/invR_ge0].
 move=> [:hidden].
 have @P' : {fdist U}.
-  apply: (@FDist.mk _ (mkPosFfun Hf')).
+  apply: (@FDist.mk _ (mkPosFfun f'0)).
   abstract: hidden.
   rewrite /= /f'.
   under eq_bigr do rewrite ffunE.
-  (* should be ok *) admit.
+  by rewrite -big_distrl /= -divRE divRR//; exact/gtR_eqF.
 pose X' : {RV P' -> R} := X.
-have mu_hatE : mu_hat C = `E X'.
-  rewrite /mu_hat /Ex /X' /ambient_dist.
-  rewrite /P' /= /f' /=.
-  under [in RHS]eq_bigr do rewrite ffunE.
-  (* should be ok *) admit.
+have mu_hatE : mu_hat C = `E X'. (* TODO: lemma? *)
+  rewrite /mu_hat /Ex /X' /ambient_dist /P' /= /f' /=.
+  under [in RHS]eq_bigr do rewrite ffunE !mulRA -divRE.
+  rewrite -big_distrl/= -divRE; congr (_ / _).
+  by under eq_bigr do rewrite mulRAC (mulRC (P _)).
 rewrite mu_hatE.
 have -> : mu_wave C = `E_[X' | good].
-  rewrite /mu_wave.
-  rewrite cEx_ExInd /Ex /ambient_dist /Ind /X'.
-  rewrite {1}/P' /= /f'.
-  under [in RHS]eq_bigr do rewrite ffunE.
-  under [in RHS]eq_bigr do rewrite !mulRA.
+  rewrite /mu_wave cEx_ExInd /Ex /ambient_dist /Ind /X' {1}/P' /= /f'.
+  under [in RHS]eq_bigr do rewrite ffunE !mulRA.
   rewrite -big_distrl /= [in RHS]divRE -mulRA; congr (_ * _).
-    (* should be ok *) admit.
+    rewrite big_mkcond /=; apply eq_bigr => u _.
+    by case: ifP => _; rewrite !(mulR0,mul0R,mulR1)// mulRAC (mulRC (P _)).
   rewrite /Pr /= /f'.
   under [in X in _ = _ * X]eq_bigr do rewrite ffunE.
-  rewrite -big_distrl /=.
-  rewrite invRM; last 2 first.
-    (* should be ok *) admit.
-    (* should be ok *) admit.
-  rewrite mulRCA invRK; last first.
-    (* should be ok *) admit.
-  rewrite mulVR; last first.
-    (* should be ok *) admit.
-  by rewrite mulR1.
+  rewrite -big_distrl /= invRM; last 2 first.
+    - apply/gtR_eqF.
+      admit.
+    - exact/invR_neq0'/gtR_eqF.
+  rewrite mulRCA invRK; last exact/gtR_eqF.
+  by rewrite mulVR ?mulR1//; exact/gtR_eqF.
 have -> : var_hat C = `V X'.
-  rewrite /var_hat divRE big_distrl /=.
-  apply eq_bigr => u _ /=.
-  rewrite /f' /= ffunE [in RHS]mulRCA -mulRA; congr (_ * _).
-  by rewrite /tau mu_hatE.
+  rewrite /var_hat divRE big_distrl /=; apply eq_bigr => u _ /=.
+  by rewrite /f' /= ffunE [in RHS]mulRCA -mulRA /tau mu_hatE.
 apply: resilience => //.
 - by rewrite /delta; apply/subR_gt0.
-- rewrite (_ : delta = Pr P good); last by (* ok *) admit.
-  rewrite /Pr /P' /= /f'.
+- rewrite /delta -HPr_bad -Pr_to_cplt /Pr /P' /= /f'.
   under [in X in _ <= X]eq_bigr do rewrite ffunE.
-  apply: leR_sumR => u ugood.
-  rewrite -{1}(mulR1 (P u)).
-  rewrite divRE -mulRA.
-  apply/leR_pmul2l.
-    admit. (* TODO: we can get rid of this by doing beforehand a case analysis wrt P u = 0 *)
-  (* Goal at this point: 1 <= C u * / (\sum_(i in U) P i * C i)
-     this does not look provable...
-   *)
-  admit.
+  apply: (@leR_trans (1 - eps)).
+    by rewrite -/(Pr P good) Pr_to_cplt HPr_bad; exact: leRR.
+  by move: invC; rewrite /invariant1 -big_distrl.
 - rewrite /Pr /P' /= /f'.
   under [in X in X != _]eq_bigr do rewrite ffunE.
-  (* should be ok *) admit.
+  rewrite -big_distrl/= -divRE; apply/ltR_eqF/ltR_pdivr_mulr => //.
+  rewrite mul1R [in X in _ < X](bigID (fun x => x \in good))/=.
+  apply/ltR_addl.
+  admit.
 Admitted.
 
 Lemma eqn_a6_a9 (C : {ffun U -> R}) :
