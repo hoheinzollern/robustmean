@@ -27,11 +27,13 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope proba_scope.
 Local Open Scope R_scope.
+Local Open Scope reals_ext_scope.
 
 (* NB: to appear in the next release of infotheo *)
 Lemma invR_ge0 (x : R) : 0 < x -> 0 <= / x.
 Proof. by move=> x0; apply/ltRW/invR_gt0. Qed.
 
+(* TODO: move to infotheo *)
 Section move_to_infotheo.
 Section rExtrema. (* Reals_ext.v *)
 Local Open Scope ring_scope.
@@ -188,6 +190,7 @@ by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
 Qed.
 
 Definition tau_max (C : {ffun U -> R}) := \rmax_(i in [set: U]) tau C i.
+(*
 Definition tau_max' (C : {ffun U -> R}) :=
   \big[Num.max/0]_(i in [set: U]) tau C i.
 
@@ -197,30 +200,38 @@ Proof.
 rewrite /tau_max /tau_max'; apply big_ind2=> //.
 by move=> ? ? ? ? -> ->; rewrite RmaxE.
 Qed.
+*)
+
+Lemma tau_max_ge0 C : 0 <= tau_max C.
+Proof.
+rewrite /tau_max -big_filter; apply bigmaxR_ge0=> *; exact:tau_ge0.
+Qed.
 
 Definition arg_tau_max (C : {ffun U -> R}) :=
   [arg max_(i > (fdist_supp_choice P) in [set: U]) tau C i]%O.
 
+(*
 Definition update (C : {ffun U -> R}) : {ffun U -> R} :=
   [ffun i => C i * (1 - tau C i / tau_max C)].
-(*
+*)
 Definition update_ffun (C : {ffun U -> R}) : {ffun U -> R} :=
-  [ffun i => C i * (1 - tau C i / tau_max C)].
+  [ffun i => if tau_max C == 0 then 0 else C i * (1 - tau C i / tau_max C)].
 
-Definition update (C : pos_ffun U) : pos_ffun U.
+Lemma update_pos_ffun (C : pos_ffun U) : [forall a, 0 <b= update_ffun C a].
 Proof.
-refine (@mkPosFfun _ (update_ffun C) _).
 apply/forallP=> u; apply/leRP.
 rewrite /update_ffun ffunE.
+have [_ |] := eqVneq (tau_max C) 0; first exact/leRR.
+move/eqP; rewrite eqR_le => /boolp.not_andP []; last by move/(_ (tau_max_ge0 _)).
+rewrite -ltRNge => tau_max_gt0.
 apply mulR_ge0; first exact: pos_ff_ge0.
-rewrite subR_ge0 leR_pdivr_mulr.
-rewrite /tau_max.
-have : forall i : U, tau C i <= \rmax_(i in [set: U]) tau C i.
-- move=> i.
-  rewrite -big_filter.
-  apply: (leR_bigmaxR (tau C)).
-  by rewrite mem_filter inE mem_index_enum.
-*)
+rewrite subR_ge0 leR_pdivr_mulr //.
+rewrite mul1R /tau_max -big_filter.
+apply: (leR_bigmaxR (tau C)).
+by rewrite mem_filter inE mem_index_enum.
+Qed.
+
+Definition update (C : pos_ffun U) : pos_ffun U := mkPosFfun (update_pos_ffun C).
 
 Definition invariant (C : {ffun U -> R}) :=
   (\sum_(i in good) P i * (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) P i * (1 - C i)).
@@ -388,22 +399,25 @@ Lemma eqn_a6_a9 (C : {ffun U -> R}) :
 Proof.
 Admitted.
 
-Lemma eqn1_3_4 (C : {ffun U -> R}) (S: {set U}):
+(* TODO: improve the notation for pos_ffun (and for pos_fun) *)
+Lemma eqn1_3_4 (C : U ->R+) (S: {set U}):
   let C' := update C in
+  0 < tau_max C ->
   \sum_(i in S) P i * (1 - C' i) =
     (\sum_(i in S) P i * (1 - C i)) + 1 / tau_max C * (\sum_(i in S ) P i * (C i * tau C i)).
 Proof.
-  move => C'.
+  move => C' tau_max_gt0.
   have <-: \sum_(i in S) P i * (C i - C' i) = 1 / tau_max C * (\sum_(i in S) P i * (C i * tau C i)).
     rewrite /C' /update big_distrr.
-    apply eq_bigr => i _. simpl.
-    by rewrite /Rminus /Rdiv ffunE (mulRDr (C i)) mulR1 oppRD addRA mulRN oppRK addRN add0R !mulRA !mulR1 mul1R mulRC !mulRA.
+    apply eq_bigr => i _ /=.
+    rewrite /update_ffun ffunE ifF; last exact/negbTE/gtR_eqF.
+    by field; exact/eqP/gtR_eqF.
   rewrite -big_split.
   apply eq_bigr => i HiS. simpl.
   rewrite -mulRDr. congr (_*_). lra.
 Qed.
 
-Lemma lemma_1_5 (C : {ffun U -> R}) :
+Lemma lemma_1_5 (C : U ->R+) :
   let C' := update C in
   0 < tau_max C ->
   \sum_(i in good) P i * (C i * tau C i) <= (1 - eps) / 2 * (\sum_(i in bad) P i * (C i * tau C i)) ->
@@ -411,36 +425,18 @@ Lemma lemma_1_5 (C : {ffun U -> R}) :
 Proof.
   rewrite /invariant.
   move => H0 H1 IH1.
-  rewrite !eqn1_3_4 !mulRDr.
+  rewrite !eqn1_3_4 // !mulRDr.
   apply leR_add; first by [].
   rewrite (mulRC ((1 - eps) / 2)) -mulRA.
   apply leR_pmul2l; first by rewrite /Rdiv mul1R; apply invR_gt0.
   by rewrite mulRC.
 Qed.
 
-(*
-  rewrite /update => i.
-  split.
-  apply mulR_ge0.
-  apply IH3.
-  apply leR_trans with (y:=1 - (\rmax_(i0 in [set: U]) tau C i0) / (\rmax_(i0 in [set: U]) tau C i0)).
-  have [Hmax_gt0|Hmax_eq0]: 0 <= (\rmax_(i0 in [set: U]) tau C i0).
-  admit.
-  by rewrite divRR; [rewrite subRR; apply leR_eqVlt; left|apply gtR_eqF].
-  rewrite -!Hmax_eq0 /Rdiv mul0R; lra.
-  apply leR_add. by right.
-  apply Ropp_le_contravar.
-  apply leR_wpmul2r.
-  admit.
-  admit.
-  apply leR_bigmaxR.
-Admitted.
-*)
-
+(* TODO: split file here? *)
 Require Import Program.Wf.
 
 Local Obligation Tactic := idtac.
-Program Fixpoint filter1d (C : {ffun U -> R}) (* (C_nneg : forall u, 0 <= C u) *)
+Program Fixpoint filter1d (C : U ->R+)
         {measure #| 0.-support (tau C) | } :=
   match #| 0.-support (tau C) | with
   | 0      => None
