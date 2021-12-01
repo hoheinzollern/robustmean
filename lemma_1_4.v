@@ -32,6 +32,50 @@ Local Open Scope R_scope.
 Lemma invR_ge0 (x : R) : 0 < x -> 0 <= / x.
 Proof. by move=> x0; apply/ltRW/invR_gt0. Qed.
 
+Module WeightedFDist.
+Section def.
+Variables (A : finType) (p : prob) (d0 : {fdist A}) (c : pos_ffun A).
+Definition weighted_total := \sum_(a in A) c a * d0 a.
+Definition axiom := weighted_total != 0.
+Variable weighting_is_valid : axiom.
+Definition f := [ffun a => c a * d0 a / weighted_total].
+Lemma weighted_total_gt0 : 0 < weighted_total.
+Proof.
+rewrite ltR_neqAle; split; first by apply/nesym/eqP.
+apply sumR_ge0=> i _; apply/mulR_ge0/FDist.ge0/pos_ff_ge0.
+Qed.
+Lemma f0 a : 0 <= f a.
+Proof.
+rewrite ffunE; apply divR_ge0.
+- by apply/mulR_ge0/FDist.ge0/pos_ff_ge0.
+- by apply weighted_total_gt0.
+Qed.
+Lemma f1 : \sum_(a in A) f a = 1.
+Proof.
+rewrite /f.
+under eq_bigr do rewrite ffunE divRE.
+by rewrite -big_distrl /= -/weighted_total mulRV.
+Qed.
+Definition d : fdist A := locked (FDist.make f0 f1).
+Lemma dE a : d a = c a * d0 a / weighted_total.
+Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
+Definition orig := d0.
+Definition weight := c.
+End def.
+Section prop.
+Variables (A : finType) (p : prob) (d0 : {fdist A}) (c : pos_ffun A).
+(*
+Lemma fdist1 (g : 'I_n -> fdist A) a : d (FDist1.d a) g = g a.
+Proof.
+apply/fdist_ext => a0; rewrite dE (bigD1 a) //= FDist1.dE eqxx mul1R.
+by rewrite big1 ?addR0 // => i ia; rewrite FDist1.dE (negbTE ia) mul0R.
+Qed.
+Lemma cst (e : {fdist 'I_n}) (a : {fdist A}) : d e (fun=> a) = a.
+Proof. by apply/fdist_ext => ?; rewrite dE -big_distrl /= FDist.f1 mul1R. Qed.
+*)
+End prop.
+End WeightedFDist.
+
 Section lemma_1_4.
 Variables (U : finType) (P : fdist U).
 
@@ -174,7 +218,7 @@ Definition weightedP (C : {ffun U -> R})
   {fdist U} := FDist.mk (weightedf1 PC0 C0).
 
 Lemma lemma_1_4_step1 (C : {ffun U -> R}) :
-  (0 < \sum_(i in U) P i * C i) ->
+  (0 < \sum_(i in U) P i * C i) (* NB: this can be proved from the termination condition *) ->
   (forall u, 0 <= C u) ->
   invariant1 C ->
   0 <= eps < 1 ->
@@ -182,6 +226,9 @@ Lemma lemma_1_4_step1 (C : {ffun U -> R}) :
   Rsqr (mu_hat C - mu_wave C) <= var_hat C * 2 * eps / (1 - eps).
 Proof.
 move=> PC0 C0 invC [eps0 eps1] HPr_bad.
+rewrite /mu_hat /mu_wave.
+(* NB: we can assume that sum bad != 0, ow easy, TODO: do this case analysis *)
+(* NB: sum good != 0 because == 0 contradicts the invariant *)
 suff h : `| mu_hat C - mu_wave C | <= sqrt (var_hat C * 2 * eps / (1 - eps)).
   rewrite Rsqr_abs -[X in _ <= X]Rsqr_sqrt; last first.
     apply: mulR_ge0; last exact/invR_ge0/subR_gt0.
@@ -190,6 +237,12 @@ suff h : `| mu_hat C - mu_wave C | <= sqrt (var_hat C * 2 * eps / (1 - eps)).
 pose delta := 1 - eps.
 have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
 rewrite -/delta distRC.
+(*have C0' : [forall a, 0 <b= C a] by apply/forallP => u; apply/leRP.
+pose Cpos_fun := mkPosFfun C0'.
+have hP' : WeightedFDist.axiom P Cpos_fun.
+  apply/gtR_eqF => /=; rewrite /WeightedFDist.weighted_total.
+  by under eq_bigr do rewrite mulRC.
+pose P' : {fdist U} := WeightedFDist.d hP'.*)
 pose P' : {fdist U} := weightedP PC0 C0.
 pose X' : {RV P' -> R} := X.
 have mu_hatE : mu_hat C = `E X'. (* TODO: lemma? *)
