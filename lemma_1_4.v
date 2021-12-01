@@ -201,6 +201,9 @@ Qed.
 Definition arg_tau_max (C : {ffun U -> R}) :=
   [arg max_(i > (fdist_supp_choice P) in [set: U]) tau C i]%O.
 
+Definition update (C : {ffun U -> R}) : {ffun U -> R} :=
+  [ffun i => C i * (1 - tau C i / tau_max C)].
+(*
 Definition update_ffun (C : {ffun U -> R}) : {ffun U -> R} :=
   [ffun i => C i * (1 - tau C i / tau_max C)].
 
@@ -217,7 +220,7 @@ have : forall i : U, tau C i <= \rmax_(i in [set: U]) tau C i.
   rewrite -big_filter.
   apply: (leR_bigmaxR (tau C)).
   by rewrite mem_filter inE mem_index_enum.
-
+*)
 
 Definition invariant (C : {ffun U -> R}) :=
   (\sum_(i in good) P i * (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) P i * (1 - C i)).
@@ -437,7 +440,7 @@ Admitted.
 Require Import Program.Wf.
 
 Local Obligation Tactic := idtac.
-Program Fixpoint filter1d (C : {ffun U -> R}) (C_nneg : forall u, 0 <= C u)
+Program Fixpoint filter1d (C : {ffun U -> R}) (* (C_nneg : forall u, 0 <= C u) *)
         {measure #| 0.-support (tau C) | } :=
   match #| 0.-support (tau C) | with
   | 0      => None
@@ -459,7 +462,7 @@ have max_notin_sutC: arg_tau_max C \notin stuC.
   rewrite /mu_hat.
   rewrite /update.
 
-
+(*
 have max_in_stC: arg_tau_max C \in stC.
 - rewrite supportE.
   apply/eqP/nesym; apply ltR_neqAle.
@@ -467,6 +470,7 @@ have max_in_stC: arg_tau_max C \in stC.
 suff: stuC \proper stC by move/proper_card/leP.
 apply/properP; split => //.
 by exists (arg_tau_max C).
+*)
 Admitted.
 Next Obligation. Admitted.
 
