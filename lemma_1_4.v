@@ -327,7 +327,7 @@ Definition weightedP (C : {ffun U -> R})
   {fdist U} := FDist.mk (weightedf1 PC0 C0).
 
 Lemma lemma_1_4_step1 (C : {ffun U -> R}) :
-  (0 < \sum_(i in U) P i * C i) (* NB: this can be proved from the termination condition *) ->
+  0 < \sum_(i in U) P i * C i (* NB: this can be proved from the termination condition *) ->
   (forall u, 0 <= C u) ->
   invariant1 C ->
   0 <= eps < 1 ->
@@ -336,8 +336,24 @@ Lemma lemma_1_4_step1 (C : {ffun U -> R}) :
 Proof.
 move=> PC0 C0 invC [eps0 eps1] HPr_bad.
 rewrite /mu_hat /mu_wave.
+have [good0|good_neq0] := eqVneq (\sum_(i in good) P i * C i) 0.
+  by move: invC; rewrite /invariant1 good0 div0R => /subr_le0; rewrite leRNgt.
 (* NB: we can assume that sum bad != 0, ow easy, TODO: do this case analysis *)
-(* NB: sum good != 0 because == 0 contradicts the invariant *)
+have [bad0|bad_neq0] := eqVneq (\sum_(i in bad) P i * C i) 0.
+  rewrite [in X in Rsqr (_ / X - _)](bigID [pred x | x \in bad]) /= bad0 add0R.
+  rewrite [in X in Rsqr (_ / X - _)](eq_bigl [pred x | x \in good]); last first.
+    by move=> *; rewrite /= /bad inE negbK.
+  rewrite -mulRBl.
+  rewrite [in X in Rsqr ((X - _) / _)](bigID [pred x | x \in bad]) /=.
+  rewrite [in X in Rsqr ((_ + X - _) / _)](eq_bigl [pred x | x \in good]); last first.
+    by move=> *; rewrite /= /bad inE negbK.
+  rewrite addRK.
+  have /psumR_eq0P[/(_ bad0) {}bad0 _] : forall a, a \in bad -> 0 <= P a * C a.
+    by move=> a abad; apply: mulR_ge0.
+  rewrite big1 ?mul0R ?div0R? Rsqr_0; last by move=> u ubad; rewrite bad0// mul0R.
+  apply: mulR_ge0; last exact/invR_ge0/subR_gt0.
+  apply: mulR_ge0 => //; apply: mulR_ge0; last by lra.
+  exact: var_hat_ge0.
 suff h : `| mu_hat C - mu_wave C | <= sqrt (var_hat C * 2 * eps / (1 - eps)).
   rewrite Rsqr_abs -[X in _ <= X]Rsqr_sqrt; last first.
     apply: mulR_ge0; last exact/invR_ge0/subR_gt0.
@@ -346,51 +362,67 @@ suff h : `| mu_hat C - mu_wave C | <= sqrt (var_hat C * 2 * eps / (1 - eps)).
 pose delta := 1 - eps.
 have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
 rewrite -/delta distRC.
-(*have C0' : [forall a, 0 <b= C a] by apply/forallP => u; apply/leRP.
+have C0' : [forall a, 0 <b= C a] by apply/forallP => u; apply/leRP.
 pose Cpos_fun := mkPosFfun C0'.
 have hP' : WeightedFDist.axiom P Cpos_fun.
   apply/gtR_eqF => /=; rewrite /WeightedFDist.weighted_total.
   by under eq_bigr do rewrite mulRC.
-pose P' : {fdist U} := WeightedFDist.d hP'.*)
-pose P' : {fdist U} := weightedP PC0 C0.
+pose P' : {fdist U} := WeightedFDist.d hP'.
+(*pose P' : {fdist U} := weightedP PC0 C0.*)
 pose X' : {RV P' -> R} := X.
+have h1 : WeightedFDist.weighted_total P Cpos_fun != 0.
+  rewrite /WeightedFDist.weighted_total.
+  under eq_bigr do rewrite mulRC.
+  exact/gtR_eqF.
 have mu_hatE : mu_hat C = `E X'. (* TODO: lemma? *)
-  rewrite /mu_hat /Ex /X' /ambient_dist /P' /= /weightedf.
-  under [in RHS]eq_bigr do rewrite ffunE !mulRA -divRE.
-  rewrite -big_distrl/= -divRE; congr (_ / _).
-  by under eq_bigr do rewrite mulRAC (mulRC (P _)).
+  rewrite /mu_hat /Ex /X' /ambient_dist divRE.
+  rewrite big_distrl/=; apply: eq_bigr => u _.
+  rewrite -mulRA mulRCA; congr (_ * _).
+  rewrite /P' WeightedFDist.dE (mulRC _ (P u)) -divRE; congr (_ / _).
+  by under eq_bigr do rewrite mulRC.
 rewrite mu_hatE.
 have -> : mu_wave C = `E_[X' | good].
-  rewrite /mu_wave cEx_ExInd /Ex /ambient_dist /Ind /X' {1}/P' /= /weightedf.
-  under [in RHS]eq_bigr do rewrite ffunE !mulRA.
-  rewrite -big_distrl /= [in RHS]divRE -mulRA; congr (_ * _).
-    rewrite big_mkcond /=; apply eq_bigr => u _.
-    by case: ifP => _; rewrite !(mulR0,mul0R,mulR1)// mulRAC (mulRC (P _)).
-  rewrite /Pr /= /weightedf.
-  under [in X in _ = _ * X]eq_bigr do rewrite ffunE.
-  rewrite -big_distrl /= invRM; last 2 first.
-    - apply/gtR_eqF.
-      admit.
-    - exact/invR_neq0'/gtR_eqF.
-  rewrite mulRCA invRK; last exact/gtR_eqF.
-  by rewrite mulVR ?mulR1//; exact/gtR_eqF.
+  rewrite /mu_wave cEx_ExInd /Ex /ambient_dist /Ind /X'.
+  rewrite 2!divRE 2!big_distrl /= big_mkcond /=; apply: eq_bigr => u _.
+  case: ifPn => ugood; last by rewrite !(mulR0,mul0R).
+  rewrite mulR1 -mulRA mulRCA -[in RHS]mulRA; congr (_ * _).
+  rewrite {1}/P' {1}WeightedFDist.dE /Cpos_fun /= (mulRC _ (P u)).
+  rewrite [in RHS]divRE -[in RHS]mulRA; congr (_ * _).
+  rewrite /Pr /P'.
+  under [in RHS]eq_bigr do rewrite WeightedFDist.dE.
+  rewrite -big_distrl /= invRM //; last 2 first.
+    by under eq_bigr do rewrite mulRC.
+    by apply/eqP/invR_neq0/eqP.
+  rewrite invRK// mulRCA mulVR// mulR1.
+  by under eq_bigr do rewrite mulRC.
 have -> : var_hat C = `V X'. (*TODO: turn this into a lemma*)
   rewrite /var_hat divRE big_distrl /=; apply eq_bigr => u _ /=.
-  by rewrite /weightedf /= ffunE [in RHS]mulRCA -mulRA /tau mu_hatE.
+  rewrite mulRAC (mulRC _ (tau C u)) /tau mu_hatE; congr (_ * _).
+  rewrite /ambient_dist /P' WeightedFDist.dE /Cpos_fun /=.
+  rewrite -divRE (mulRC _ (C u)); congr (_ / _).
+  by under eq_bigr do rewrite mulRC.
 apply: resilience => //.
 - by rewrite /delta; apply/subR_gt0.
-- rewrite /delta -HPr_bad -Pr_to_cplt /Pr /P' /= /weightedf.
-  under [in X in _ <= X]eq_bigr do rewrite ffunE.
+- rewrite /delta -HPr_bad -Pr_to_cplt /Pr /P' /=.
+  under [in X in _ <= X]eq_bigr do rewrite WeightedFDist.dE /= mulRC.
   apply: (@leR_trans (1 - eps)).
     by rewrite -/(Pr P good) Pr_to_cplt HPr_bad; exact: leRR.
-  by move: invC; rewrite /invariant1 -big_distrl.
-- rewrite /Pr /P' /= /weightedf.
-  under [in X in X != _]eq_bigr do rewrite ffunE.
+  move: invC; rewrite /invariant1 -big_distrl /=.
+  by under [X in _ <= _ / X -> _]eq_bigr do rewrite mulRC.
+- rewrite /Pr /P' /=.
+  under [in X in X != _]eq_bigr do rewrite WeightedFDist.dE /=.
   rewrite -big_distrl/= -divRE; apply/ltR_eqF/ltR_pdivr_mulr => //.
-  rewrite mul1R [in X in _ < X](bigID (fun x => x \in good))/=.
+    rewrite ltR_neqAle; split; first exact/nesym/eqP.
+    by apply: sumR_ge0 => u _; apply: mulR_ge0.
+  rewrite mul1R.
+  rewrite /WeightedFDist.weighted_total [in X in _ < X](bigID (fun x => x \in good))/=.
   apply/ltR_addl.
-  admit.
-Admitted.
+  under eq_bigr do rewrite mulRC.
+  rewrite ltR_neqAle; split.
+    apply/nesym/eqP.
+    by apply: contra bad_neq0 => /eqP <-; apply/eqP/eq_bigl => u; rewrite !inE.
+  by apply: sumR_ge0 => u _; apply: mulR_ge0.
+Qed.
 
 Lemma eqn_a6_a9 (C : {ffun U -> R}) :
   weight C ->
