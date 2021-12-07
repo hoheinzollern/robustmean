@@ -2,10 +2,12 @@ From mathcomp Require Import all_ssreflect ssralg fingroup perm finalg matrix.
 From mathcomp Require Import all_algebra. (* for GRing.Theory *)
 From mathcomp Require boolp classical_sets. (* classical_sets for pointedType *)
 From mathcomp Require Import Rstruct topology. (* topology for fct_ringType *)
-Require Import Reals Lra ROrderedType.
+Require Import Reals Lra ROrderedType Lia Interval.Tactic.
 From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext.
 From infotheo Require Import Rbigop proba fdist.
 Require Import robustmean.
+(*Require Import Reals Interval.Tactic.*)
+(*Open Scope R_scope.*)
 
 (******************************************************************************)
 (*                                                                            *)
@@ -270,6 +272,7 @@ Proof.
   rewrite /weight/invariant/invariant1 => HCi_gt0 HPr_bad Heps HwC HIC.
   have HPr_good : Pr P good = 1 - eps by rewrite Pr_to_cplt HPr_bad.
   rewrite -!HPr_good.
+  Print leR_trans.
   apply leR_trans with (y := (Pr P good / 2 * (1 + Pr P good + (\sum_(i in bad) P i * C i))) / (\sum_(i in U) P i * C i)).
   apply leR_pmul2r with (m := (\sum_(i in U) P i * C i) * 2).
     by apply mulR_gt0.
@@ -392,11 +395,159 @@ apply: resilience => //.
   admit.
 Admitted.
 
+(*new. Alternative to Lemma lemma_1_4_step1 *)
+Lemma lemma_1_4_1 (C : {ffun U -> R}) :
+  Pr P bad = eps ->
+  Rabs (mu - mu_hat C) <= sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)).
+Proof.
+  move => HPr_bad.
+  rewrite /mu_hat /mu_wave.
+Admitted.
+
+(*new. eqn1_1 with a C, helper for Lemma eqn_a6_a9*)
+Lemma eqn1_1C (C: {ffun U -> R}):
+  (0 < Pr P good) ->
+  (forall a, 0 <= C a <= 1) -> 
+  (\sum_(i in good) P i * C i * tau C i) / Pr P good <= var_hat C + (mu_hat C - mu_wave C)².
+Proof.
+move => HPgood H_0C1.
+apply leR_trans with (y := `E_[tau C | good]).
+  rewrite cEx_ExInd.
+  apply leR_pmul2r; [by apply invR_gt0|].
+  apply leR_sumRl => i Higood; last by [].
+  by unfold Ind; rewrite Higood mulR1 (mulRC (tau C i)); apply leR_wpmul2r; [apply sq_RV_ge0 | 
+    rewrite -{2}(mulR1 (P i)); apply leR_wpmul2l; [ | apply H_0C1]].
+  by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
+
+apply/leR_eqVlt;left. unfold tau. rewrite cVarDist. admit. 
+(*Print cVarDist.
+apply/cVarDist.
+: forall (U : finType) (P : fdist U) (X : {RV (P) -> (R)}) 
+         (F : {set U}) (x : R),
+       0 < Pr P F ->
+       `E_[((X `-cst x) `^2) | F] = `V_[ X | F] + (`E_[X | F] - x)²   *)
+exact: HPgood.
+Admitted.
+
 Lemma eqn_a6_a9 (C : {ffun U -> R}) :
+  16 * var <= var_hat C ->
+  0 < eps -> eps <= 1/12 -> 
   weight C ->
   Pr P bad = eps ->
   \sum_(i in good) P i * C i * tau C i <= 0.32 * (1 - eps) * var_hat C.
 Proof.
+  move => var16 esp_pos eps1_12 H HPr_bad.
+  have var_hat_pos: 0 <= var_hat C.
+   apply : (leR_trans _ var16). 
+   apply mulR_ge0; first by lra.
+   by apply cvariance_nonneg.
+  have PrPgoodpos : 0 < Pr P good.
+    move: HPr_bad; rewrite Pr_of_cplt; by lra.
+  (*a6*)
+  apply leR_trans with (y := (1 - eps) * (var + (mu - mu_hat C)²)).
+    have HPr_good: Pr P good = 1 - eps.
+      by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
+    rewrite -!HPr_good Rmult_comm -leR_pdivr_mulr. 
+      apply eqn1_1. by exact PrPgoodpos.
+      move => a. by auto. 
+    by exact PrPgoodpos.
+
+  (*a6-a7*)
+  apply leR_trans with (y :=(1 - eps) * (var + (sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat C * 2 * eps / (1-eps)))²)).
+    apply leR_wpmul2l. 
+      rewrite -HPr_bad subR_ge0; by exact: Pr_1.
+    apply leR_add2l. 
+    apply Rsqr_le_abs_1. rewrite [x in _ <= x]geR0_norm.
+      by apply lemma_1_4_1 => //.
+    by apply /addR_ge0/sqrt_pos/sqrt_pos.
+
+  (*a7-a8*)
+  apply leR_trans with (y := (1 - eps) * var_hat C * (/16 + 2 * eps * (/(4*sqrt(2-eps)) + /(sqrt(1-eps)))²)).
+    rewrite -(mulRA (1-eps)).
+    apply leR_pmul2l; first lra.
+    rewrite mulRDr.
+    apply leR_add; first lra.
+    rewrite mulRA mulRA.
+    rewrite -(Rsqr_sqrt (var_hat C * 2 * eps)); last by rewrite -mulRA; apply mulR_ge0 => //; lra.
+    rewrite -Rsqr_mult mulRDr.
+    apply Rsqr_incr_1;
+      last (apply addR_ge0; (apply mulR_ge0; first apply sqrt_pos; left; apply invR_gt0; interval));
+      last (apply addR_ge0; apply sqrt_pos).
+    apply leR_add;
+      [rewrite -(sqrt_Rsqr 4); last lra;
+      rewrite -sqrt_mult/Rsqr; [|lra|lra]| ];
+      (rewrite inv_sqrt; last by lra);
+      (rewrite -sqrt_mult; [|nra|left; apply invR_gt0; lra]).
+      apply sqrt_le_1.
+        rewrite /Rdiv -!mulRA; apply mulR_ge0.
+          by apply cvariance_nonneg.
+        rewrite mulRA; apply mulR_ge0; by [lra|left; apply invR_gt0; lra].
+        rewrite -mulRA;apply mulR_ge0. by lra.
+        apply mulR_ge0; by [lra|left;apply invR_gt0;lra].
+    rewrite invRM; try (rewrite /Rsqr; apply /eqP; lra).
+    rewrite (mulRC (/ _)) mulRA (mulRC _ (/ _)) mulRA mulRA mulRA.
+    rewrite /Rdiv -4!mulRA.
+    apply leR_pmul; [apply cvariance_nonneg |
+        rewrite mulRA; apply mulR_ge0; [lra | left; apply invR_gt0; lra]| | ].
+      rewrite mulRC /Rsqr; by lra.
+    by right.
+  rewrite Rsqr_sqrt; [by right|nra].
+    
+  (*a8-a9*)
+  pose eps_max := 1/12.
+  apply leR_trans with (y := (1-eps) * var_hat C * (/16 + 2 * eps_max * Rsqr (/(4 * sqrt (2 - eps_max)) + /sqrt(1-eps_max)))).
+    rewrite /eps_max.
+    apply leR_pmul.
+      apply mulR_ge0 => //; by lra.
+      apply addR_ge0; first lra. apply mulR_ge0; first lra. by apply Rle_0_sqr. 
+      by right.
+    apply leR_add.
+      by right.
+    apply leR_pmul; first lra. 
+      by apply Rle_0_sqr.
+      by lra.
+    apply Rsqr_bounds_le. split.
+      by interval.
+    apply leR_add.
+      apply leR_inv.
+        apply mulR_gt0; first lra. by apply sqrt_lt_R0; first lra.
+      apply leR_wpmul2l; first lra. by apply sqrt_le_1; lra.
+    apply leR_inv.
+      by apply sqrt_lt_R0; lra.
+    apply sqrt_le_1; lra.
+  rewrite mulRC mulRA.
+  apply leR_wpmul2r => //.
+  apply leR_wpmul2r; first lra.
+  rewrite /eps_max.
+  interval.
+Qed.
+
+Lemma eqn_a10_a11 (C : {ffun U -> R}) (S: {set U}):
+  0 < eps -> eps <= 1/12 -> 
+  weight C ->
+  Pr P bad = eps ->
+  \sum_(i in bad) P i * C i * tau C i >= 2/3 * var_hat C.
+Proof.
+  move => esp_pos eps1_12 H HPr_bad.
+  have H1 : \sum_(i in bad) P i * C i * tau C i = var_hat C * \sum_(i in S) P i * C i  - \sum_(i in good) P i * C i * tau C i .
+    admit.
+  rewrite H1.
+
+  (*
+  Definition invariant (C : {ffun U -> R}) :=
+   (\sum_(i in good) P i * (1 - C i) <= (1 - eps)/2 * \sum_(i in bad) P i * (1 - C i)).
+  Definition invariant1 C :=
+   (1 - eps <= (\sum_(i in good) P i * C i) / (\sum_(i in U) P i * C i)).
+
+  Lemma eqn_a6_a9 (C : {ffun U -> R}) :
+   16 * var <= var_hat C ->
+   0 < eps -> eps <= 1/12 -> 
+   weight C ->
+   Pr P bad = eps ->
+   \sum_(i in good) P i * C i * tau C i <= 0.32 * (1 - eps) * var_hat C.
+
+
+  *)
 Admitted.
 
 (* TODO: improve the notation for pos_ffun (and for pos_fun) *)
