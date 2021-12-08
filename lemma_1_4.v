@@ -142,13 +142,6 @@ Section lemma_1_4.
 Variables (U : finType) (P : fdist U).
 
 Variable X : {RV P -> R}.
-Variable good : {set U}.
-Variable eps : R.
-
-Definition C0 : {ffun U -> R} := [ffun=> 1]. (*Definition C0 (i: U) := 1. *)
-Definition bad := ~: good.
-Definition mu := `E_[X | good].
-Definition var := `V_[X | good].
 
 Variable C : U ->R+.
 Hypothesis PC_neq0 : Weighted.total P C != 0.
@@ -166,9 +159,6 @@ rewrite /P' Weighted.dE (mulRC _ (P u)) -divRE; congr (_ / _).
 by under eq_bigr do rewrite mulRC.
 Qed.
 
-Definition mu_wave :=
-  (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i). (*TODO: rename to mu_tilda*)
-
 Definition tau := (X `-cst mu_hat)`^2.
 Definition var_hat := (\sum_(i in U) P i * C i * tau i) / (\sum_(i in U) P i * C i).
 
@@ -180,22 +170,6 @@ Qed.
 
 Lemma tau_ge0 i : 0 <= tau i.
 Proof. rewrite /tau sq_RV_pow2; exact: pow2_ge_0. Qed.
-
-Lemma eqn1_1 :
-  0 < Pr P good ->
-  (forall a, 0 <= C a <= 1) ->
-  (\sum_(i in good) P i * C i * tau i) / Pr P good <= var + (mu - mu_hat)².
-Proof.
-move => HPgood H_0C1.
-apply leR_trans with (y := `E_[tau | good]);
-  last by apply/leR_eqVlt;left;apply/cVarDist.
-rewrite cEx_ExInd.
-apply leR_pmul2r; [by apply invR_gt0|].
-apply leR_sumRl => i Higood; last by [].
-by unfold Ind; rewrite Higood mulR1 (mulRC (tau i)); apply leR_wpmul2r; [apply sq_RV_ge0 |
- rewrite -{2}(mulR1 (P i)); apply leR_wpmul2l; [ | apply H_0C1]].
-by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
-Qed.
 
 Definition tau_max := \rmax_(i in [set: U]) tau i.
 (*
@@ -240,6 +214,38 @@ by rewrite mem_filter inE mem_index_enum.
 Qed.
 
 Definition update : pos_ffun U := mkPosFfun update_pos_ffun.
+
+Lemma update_valid_weight : Weighted.total P update != 0.
+Proof.
+Admitted.
+
+(* TODO: new section *)
+Variable good : {set U}.
+Variable eps : R.
+
+Definition C0 : {ffun U -> R} := [ffun=> 1]. (*Definition C0 (i: U) := 1. *)
+Definition bad := ~: good.
+Definition mu := `E_[X | good].
+Definition var := `V_[X | good].
+
+Definition mu_wave :=
+  (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i). (*TODO: rename to mu_tilda*)
+
+Lemma eqn1_1 :
+  0 < Pr P good ->
+  (forall a, 0 <= C a <= 1) ->
+  (\sum_(i in good) P i * C i * tau i) / Pr P good <= var + (mu - mu_hat)².
+Proof.
+move => HPgood H_0C1.
+apply leR_trans with (y := `E_[tau | good]);
+  last by apply/leR_eqVlt;left;apply/cVarDist.
+rewrite cEx_ExInd.
+apply leR_pmul2r; [by apply invR_gt0|].
+apply leR_sumRl => i Higood; last by [].
+by unfold Ind; rewrite Higood mulR1 (mulRC (tau i)); apply leR_wpmul2r; [apply sq_RV_ge0 |
+ rewrite -{2}(mulR1 (P i)); apply leR_wpmul2l; [ | apply H_0C1]].
+by apply mulR_ge0; [apply mulR_ge0; [apply sq_RV_ge0 | apply Ind_ge0] | ].
+Qed.
 
 Definition invariant (C : {ffun U -> R}) :=
   (\sum_(i in good) P i * (1 - C i) <= (1 - eps) / 2 * \sum_(i in bad) P i * (1 - C i)).
@@ -457,14 +463,14 @@ Program Fixpoint filter1d (C : U ->R+) (HC : Weighted.total P C != 0)
   | 0      => None
   | S gas' => if Rleb (var_hat X H) (var X good)
               then Some (mu_hat X H)
-              else filter1d (update X H) H
+              else filter1d (update_valid_weight X HC)
   end
 end.
 Next Obligation.
-move=> /= C _ n Hn.
+move=> /= C HC _ H _ n Hn.
 move: (ltn0Sn n); rewrite Hn => /card_gt0P [] u; rewrite supportE.
-move: (tau_ge0 C u)=> /[swap] /eqP /nesym /[conj] /ltR_neqAle => Hu.
-
+move: (tau_ge0 X H u)=> /[swap] /eqP /nesym /[conj] /ltR_neqAle Hu.
+(*
 set stuC := 0.-support (tau (update C)).
 set stC := 0.-support (tau C).
 have stuC_stC: stuC \subset stC by admit.
@@ -473,7 +479,7 @@ have max_notin_sutC: arg_tau_max C \notin stuC.
   rewrite /tau /trans_min_RV sq_RV_pow2; apply/eqP/mulR_eq0; left.
   rewrite /mu_hat.
   rewrite /update.
-
+*)
 (*
 have max_in_stC: arg_tau_max C \in stC.
 - rewrite supportE.
@@ -494,8 +500,9 @@ Definition filter1d gas :=
   end in filter1d_iter gas C0.
 *)
 
+(*
 Lemma first_note (C: {ffun U -> R}):
   invariant C -> 1 - eps <= (\sum_(i in good) C i * P i) / (\sum_(i in U) C i * P i).
 Admitted.
-
+*)
 End filter1d.
