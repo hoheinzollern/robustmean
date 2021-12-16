@@ -328,10 +328,10 @@ Lemma lemma_1_4_step1 :
   Rsqr (mu_hat - mu_wave) <= var_hat * 2 * eps / (1 - eps).
 Proof.
 move=> PC0 C0 invC [eps0 eps1] HPr_bad.
-rewrite mu_hatE /mu_wave.
 have [good0|good_neq0] := eqVneq (\sum_(i in good) P i * C i) 0.
   by move: invC; rewrite /invariant1 good0 div0R => /subr_le0; rewrite leRNgt.
 have [bad0|bad_neq0] := eqVneq (\sum_(i in bad) P i * C i) 0.
+  rewrite mu_hatE /mu_wave.
   rewrite [in X in Rsqr (_ / X - _)](bigID [pred x | x \in bad]) /= bad0 add0R.
   rewrite [in X in Rsqr (_ / X - _)](eq_bigl [pred x | x \in good]); last first.
     by move=> *; rewrite /= /bad inE negbK.
@@ -347,7 +347,6 @@ have [bad0|bad_neq0] := eqVneq (\sum_(i in bad) P i * C i) 0.
   apply: mulR_ge0 => //; apply: mulR_ge0; last by lra.
   exact: var_hat_ge0.
 suff h : `| mu_hat - mu_wave | <= sqrt (var_hat * 2 * eps / (1 - eps)).
-  rewrite -mu_hatE.
   rewrite Rsqr_abs -[X in _ <= X]Rsqr_sqrt; last first.
     apply: mulR_ge0; last exact/invR_ge0/subR_gt0.
     by apply: mulR_ge0 => //; apply: mulR_ge0 => //; [exact: var_hat_ge0|lra].
@@ -412,32 +411,55 @@ Lemma lemma_1_4_step2 :
   invariant C ->
   Rsqr (mu - mu_wave) <= `V_[X | good] * 2*eps / (2-eps).
 Proof.
-  rewrite /weight/invariant => HPr_bad Hlow_eps HwC Hinv.
-  have HPr_good: Pr P good = 1 - eps.
-    by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
-  have Hgood_mass: 1 - eps/2 <= (\sum_(i in good) P i * C i) / Pr P good.
-    apply leR_trans with (y := 1 - (1-eps)/2/Pr P good * Pr P bad).
-      by rewrite HPr_bad HPr_good -!mulRA mulRC (mulRC (/(_-_))) mulRA -mulRA mulVR; [rewrite mulR1 mulRC; right|apply /gtR_eqF; lra].
-    apply leR_trans with (y := 1 - (1-eps)/2/Pr P good * \sum_(i in bad) P i * (1 - C i)).
-      apply leR_add2l.
-      apply leR_oppl; rewrite oppRK.
-      apply leR_pmul2l; [
-        rewrite HPr_good /Rdiv mulRC mulRA mulVR; [|apply gtR_eqF]; lra|].
-      apply leR_sumR => i Hi_bad.
-      rewrite -{2}(mulR1 (P i)).
-      by move: (FDist.ge0 P i) => [HPi_gt0|HPi_eq0];
-        [apply leR_pmul2l; [auto|move:(HwC i); lra]
-        |rewrite -HPi_eq0 !mul0R; right].
-    rewrite -HPr_good /Rdiv -(mulRA (Pr P good)) (mulRC (/2)) mulRA mulRV; last by (apply gtR_eqF; lra).
-    apply leR_pmul2r with (m := Pr P good);
-      [rewrite HPr_good; lra|rewrite -(mulRA _ (/ Pr P good)) mulVR; [rewrite mul1R mulR1|apply gtR_eqF; lra]].
-    rewrite mulRDl mul1R {2}HPr_good mulRC mulRN.
-    apply Rplus_le_reg_l with (r := -Pr P good).
-    rewrite addRA (addRC (- _)) addRN add0R mulRA.
-    apply leR_oppl.
-    rewrite oppRD oppRK /Pr -(mul1R (- _)) mulRN -mulNR big_distrr -big_split; simpl.
-    by under eq_bigr => i _; [
-      rewrite mulNR mul1R -mulRN -{1}(mulR1 (P i)) -mulRDr;over|].
+rewrite /weight => HPr_bad Hlow_eps HwC Hinv.
+have HPr_good: Pr P good = 1 - eps.
+  by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
+have Hgood_mass: 1 - eps/2 <= (\sum_(i in good) P i * C i) / Pr P good.
+  apply leR_trans with (y := 1 - (1-eps)/2/Pr P good * Pr P bad).
+    by rewrite HPr_bad HPr_good -!mulRA mulRC (mulRC (/(_-_))) mulRA -mulRA mulVR; [rewrite mulR1 mulRC; right|apply /gtR_eqF; lra].
+  apply leR_trans with (y := 1 - (1-eps)/2/Pr P good * \sum_(i in bad) P i * (1 - C i)).
+    apply leR_add2l.
+    apply leR_oppl; rewrite oppRK.
+    apply leR_pmul2l; [
+      rewrite HPr_good /Rdiv mulRC mulRA mulVR; [|apply gtR_eqF]; lra|].
+    apply leR_sumR => i Hi_bad.
+    rewrite -{2}(mulR1 (P i)).
+    by move: (FDist.ge0 P i) => [HPi_gt0|HPi_eq0];
+      [apply leR_pmul2l; [auto|move:(HwC i); lra]
+      |rewrite -HPi_eq0 !mul0R; right].
+  rewrite -HPr_good /Rdiv -(mulRA (Pr P good)) (mulRC (/2)) mulRA mulRV; last by (apply gtR_eqF; lra).
+  apply leR_pmul2r with (m := Pr P good);
+    [rewrite HPr_good; lra|rewrite -(mulRA _ (/ Pr P good)) mulVR; [rewrite mul1R mulR1|apply gtR_eqF; lra]].
+  rewrite mulRDl mul1R {2}HPr_good mulRC mulRN.
+  apply Rplus_le_reg_l with (r := -Pr P good).
+  rewrite addRA (addRC (- _)) addRN add0R mulRA.
+  apply leR_oppl.
+  rewrite oppRD oppRK /Pr -(mul1R (- _)) mulRN -mulNR big_distrr -big_split; simpl.
+  by under eq_bigr => i _; [
+    rewrite mulNR mul1R -mulRN -{1}(mulR1 (P i)) -mulRDr;over|].
+rewrite /invariant in Hinv.
+suff h : `| mu - mu_wave | <= sqrt (`V_[ X | good] * 2 * eps / (1 - eps)).
+  admit.
+rewrite distRC.
+pose delta := 1 - eps.
+have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
+rewrite -/delta.
+rewrite /mu.
+evar (F : {set U}).
+have -> : mu_wave = `E_[ X | F ].
+  admit.
+apply cresilience => //.
+- admit.
+- rewrite /delta.
+  apply (@leR_trans (1 - eps / 2)).
+    admit.
+  rewrite {1}/Pr.
+  have <- : (\sum_(i in good) P i * C i) = (\sum_(a in F) P a).
+    admit.
+  done.
+
+
+
 Admitted.
 
 Lemma lemma_1_4_1 :
