@@ -47,68 +47,68 @@ by move/(_ j Pj).
 Qed.
 End rExtrema.
 
-Section pos_fun. (* Reals_ext.v *)
+Section nneg_fun. (* Reals_ext.v *)
 Local Open Scope R_scope.
-Lemma pos_fun_le0 (I : Type) (F : pos_fun I) i : (F i == 0) = (F i <b= 0).
+Lemma nneg_fun_le0 (I : Type) (F : nneg_fun I) i : (F i == 0) = (F i <b= 0).
 Proof.
 apply/sameP/idP/(iffP idP); first by move/eqP->; apply/leRR'.
-by move/leRP/Rle_antisym/(_ (pos_f_ge0 _ _)) ->.
+by move/leRP/Rle_antisym/(_ (nneg_f_ge0 _ _)) ->.
 Qed.
 
-Variables (I : eqType) (r : seq I) (P : pred I) (F : pos_fun I).
-Lemma pos_fun_bigmaxR0P :
+Variables (I : eqType) (r : seq I) (P : pred I) (F : nneg_fun I).
+Lemma nneg_fun_bigmaxR0P :
   reflect (forall i : I, i \in r -> P i -> F i = 0)
           (\rmax_(i <- r | P i) F i == 0).
 Proof.
 apply: (iffP idP) => [/eqP H i ir Pi| H].
-- apply/eqP; rewrite pos_fun_le0 -H; apply/leRP.
+- apply/eqP; rewrite nneg_fun_le0 -H; apply/leRP.
   rewrite -big_filter; apply: leR_bigmaxR.
   by rewrite mem_filter ir Pi.
 - rewrite -big_filter big_seq.
   under eq_bigr=> i do rewrite mem_filter=> /andP [] /[swap] /(H i) /[apply] ->.
   by rewrite -big_seq big_const_seq iter_fix // maxRR.
 Qed.
-End pos_fun.
+End nneg_fun.
 
-Section pos_ffun. (* Reals_ext.v *)
+Section nneg_finfun. (* Reals_ext.v *)
 Local Open Scope R_scope.
-Lemma pos_ffun_le0 (I : finType) (F : pos_ffun I) i : (F i == 0) = (F i <b= 0).
+Lemma nneg_finfun_le0 (I : finType) (F : nneg_finfun I) i : (F i == 0) = (F i <b= 0).
 Proof.
 apply/idP/idP => [/eqP ->|]; first exact/leRR'.
-by move=> /leRP/Rle_antisym/(_ (pos_ff_ge0 _ _)) ->.
+by move=> /leRP/Rle_antisym/(_ (nneg_finfun_ge0 _ _)) ->.
 Qed.
 
-Variables (I : finType) (r : seq I) (P : pred I) (F : pos_ffun I).
+Variables (I : finType) (r : seq I) (P : pred I) (F : nneg_finfun I).
 Fail Check F : pos_fun _. (* Why no coercion pos_ffun >-> pos_fun? *)
 Lemma pos_ffun_bigmaxR0P :
   reflect (forall i : I, i \in r -> P i -> F i = 0)
           (\rmax_(i <- r | P i) F i == 0).
 apply: (iffP idP) => [/eqP H i ir Pi|H].
-- apply/eqP; rewrite pos_ffun_le0 -H; apply/leRP.
+- apply/eqP; rewrite nneg_finfun_le0 -H; apply/leRP.
   rewrite -big_filter; apply: leR_bigmaxR.
   by rewrite mem_filter ir Pi.
 - rewrite -big_filter big_seq.
   under eq_bigr=> i do rewrite mem_filter=> /andP [] /[swap] /(H i) /[apply] ->.
   by rewrite -big_seq big_const_seq iter_fix // maxRR.
 Qed.
-End pos_ffun.
+End nneg_finfun.
 End move_to_infotheo.
 
 Module Weighted.
 Section def.
-Variables (A : finType) (p : prob) (d0 : {fdist A}) (c : pos_ffun A).
+Variables (A : finType) (p : prob) (d0 : {fdist A}) (c : nneg_finfun A).
 Definition total := \sum_(a in A) c a * d0 a.
 Hypothesis total_neq0 : total != 0.
 Definition f := [ffun a => c a * d0 a / total].
 Lemma total_gt0 : 0 < total.
 Proof.
 rewrite ltR_neqAle; split; first exact/nesym/eqP.
-by apply sumR_ge0=> i _; apply/mulR_ge0/FDist.ge0/pos_ff_ge0.
+by apply sumR_ge0=> i _; apply/mulR_ge0/FDist.ge0/nneg_finfun_ge0.
 Qed.
 Lemma f0 a : 0 <= f a.
 Proof.
 rewrite ffunE; apply divR_ge0; last exact/total_gt0.
-exact/mulR_ge0/FDist.ge0/pos_ff_ge0.
+exact/mulR_ge0/FDist.ge0/nneg_finfun_ge0.
 Qed.
 Lemma f1 : \sum_(a in A) f a = 1.
 Proof.
@@ -121,7 +121,7 @@ Lemma dE a : d a = c a * d0 a / total.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
 End def.
 Section prop.
-Variables (A : finType) (p : prob) (d0 : {fdist A}) (c : pos_ffun A).
+Variables (A : finType) (p : prob) (d0 : {fdist A}) (c : nneg_finfun A).
 (*
 Lemma fdist1 (g : 'I_n -> fdist A) a : d (FDist1.d a) g = g a.
 Proof.
@@ -208,14 +208,14 @@ rewrite /update_ffun ffunE.
 have [_ |] := eqVneq tau_max 0; first exact/leRR.
 move/eqP; rewrite eqR_le => /boolp.not_andP []; last by move/(_ tau_max_ge0).
 rewrite -ltRNge => tau_max_gt0.
-apply mulR_ge0; first exact: pos_ff_ge0.
+apply mulR_ge0; first exact: nneg_finfun_ge0.
 rewrite subR_ge0 leR_pdivr_mulr //.
 rewrite mul1R /tau_max -big_filter.
 apply: (leR_bigmaxR tau).
 by rewrite mem_filter inE mem_index_enum.
 Qed.
 
-Definition update : pos_ffun U := mkPosFfun update_pos_ffun.
+Definition update : nneg_finfun U := mkNNFinfun update_pos_ffun.
 
 Lemma update_valid_weight : Weighted.total P update != 0.
 Proof.
@@ -295,7 +295,7 @@ Proof.
   rewrite mul1R -addRR mulRDl -addRA mulRDr.
   apply leR_add.
     apply leR_pmul2l; first by rewrite HPr_good; lra.
-    rewrite -(Pr_setT P) /Pr sumR_setT.
+    rewrite -(Pr_setT P) /Pr.
     by apply leR_sumRl; move => i _; first by
       rewrite -{2}(mulR1 (P i));
       apply leR_wpmul2l; [|apply HwC].
@@ -329,7 +329,7 @@ Lemma lemma_1_4_step1 :
 Proof.
 move=> PC0 C0 invC [eps0 eps1] HPr_bad.
 have [good0|good_neq0] := eqVneq (\sum_(i in good) P i * C i) 0.
-  by move: invC; rewrite /invariant1 good0 div0R => /subr_le0; rewrite leRNgt.
+  by move: invC; rewrite /invariant1 good0 div0R => /subR_le0; rewrite leRNgt.
 have [bad0|bad_neq0] := eqVneq (\sum_(i in bad) P i * C i) 0.
   rewrite mu_hatE /mu_wave.
   rewrite [in X in Rsqr (_ / X - _)](bigID [pred x | x \in bad]) /= bad0 add0R.
@@ -355,7 +355,7 @@ pose delta := 1 - eps.
 have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
 rewrite -/delta distRC.
 have C0' : [forall a, 0 <b= C a] by apply/forallP => u; apply/leRP.
-pose Cpos_fun := mkPosFfun C0'.
+pose Cpos_fun := mkNNFinfun C0'.
 pose X' : {RV P' -> R} := X.
 have h1 : Weighted.total P Cpos_fun != 0.
   rewrite /Weighted.total.
@@ -444,9 +444,17 @@ rewrite distRC.
 pose delta := 1 - eps.
 have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
 rewrite -/delta.
-rewrite /mu.
 evar (F : {set U}).
+evar (d : {fdist U}). (* NB: uniform *)
+have H1 : Pr d F = (\sum_(i in good) P i * C i) / Pr P good.
+  admit.
 have -> : mu_wave = `E_[ X | F ].
+  rewrite /mu_wave.
+  rewrite cEx_ExInd /Ex.
+  rewrite /ambient_dist.
+  transitivity ((\sum_(u in F) X u * P u) / Pr P F); last by admit.
+  rewrite H1.
+  transitivity (((\sum_(u in F) X u * P u) * Pr P good) / (\sum_(i in good) P i * C i)); last by admit.
   admit.
 apply cresilience => //.
 - admit.
