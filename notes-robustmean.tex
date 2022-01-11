@@ -76,7 +76,16 @@ which is close, but not quite, what we are looking for.
 
 One thing that we have not considered is how far smaller is \(\sum_{i\in S} c_i\) than \(\sum_i c_i\) which might be the missing piece, but I have not found any result on the bounds of the sum of the remaining \(c_i\)s.
 There might be some information on how big \(\sum_{i \in \overline S} c_i\) is that comes from the fact that \(\hat\sigma_c^2 \ge 16 \sigma^2\).
-At the moment I don't konw how to get it though.
+At the moment I don't know how to get it though.
 
 We have built a Python script just to test empirically that the invariant holds, and at least in the experiments the tighter bound seems to hold, and the practical bounds are quite larger than the theoretical result. I tend to believe that the statement from the lemma definition is correct, and not the execution in equations A10-A11.
+
+\section{Issue regarding termination}
+We originally thought that the termination argument relies on the support set for the $c_i$s being strictly decreasing.
+This is not the case: at the first iteration of the algorithm, only the $c_i$s of the points that are furthest away from the empirical mean $\hat\mu_c$ are set to 0, but then no other $c_i$ is set to 0 with subsequent updates.
+
+Maybe the argument for termination relies on some bound for the decreasing of the empirical variance $\hat\sigma_c^2$, but we don't know which bound can be proven and the thesis does not mention it.
+
+Would you have a clue on how to construct the termination argument?
+
 \end{document}
