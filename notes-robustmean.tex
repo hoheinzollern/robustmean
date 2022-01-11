@@ -27,6 +27,26 @@
 \begin{document}
 
 \maketitle
+
+\section{First issue regarding the proof of Lemma 1.4}
+
+Regarding the first part of the proof of Lemma 1.4 as explained in p.\ 63.
+We are able to formalize the first step (saying that $\hat\mu - \widetilde{\mu}$ is
+upper bounded) as an application the resilience lemma (see
+\url{https://github.com/affeldt-aist/robustmean/blob/mu_wave_mu/lemma_1_4.v#L322-L328}).
+However, we have not yet succeeded at proving the fact that $\mu - \widetilde{\mu}$
+is upper bounded as indicated p.\ 63 in the sentence started from ``In addition,''
+(see the tentative formal statement at
+\url{https://github.com/affeldt-aist/robustmean/blob/mu_wave_mu/lemma_1_4.v#L407-L412}).
+
+We are able to show the inequality mentioned line 5 of p.\ 63. However,
+we have not been able to make sense of the statement in parentheses and we are
+not sure that we have to use the resilience lemma here.
+Can you confirm that this is an application of the resilience lemma
+and can you provide details about the statement in parentheses?
+
+\section{Second issue regarding the steps A10-A11 of Lemma 1.4}
+
 Ieva and I spent some time together last week on understanding A10-A11, unfortunately without success.
 
 The formula that seems to be needed for the proof is the one in the theorem statement:
