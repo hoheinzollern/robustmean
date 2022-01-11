@@ -404,6 +404,17 @@ apply: resilience => //.
   by apply: sumR_ge0 => u _; apply: mulR_ge0.
 Qed.
 
+Lemma cExE F : `E_[X | F] = (\sum_(u in F) X u * P u) / Pr P F.
+Proof.
+rewrite cEx_ExInd.
+congr (_ / _).
+rewrite /Ex /ambient_dist /Ind.
+under eq_bigr do rewrite 2!fun_if if_arg.
+rewrite [in RHS]big_mkcond /=.
+apply eq_bigr => i _.
+by rewrite mulR0 mul0R mulR1.
+Qed.
+
 Lemma lemma_1_4_step2 :
   Pr P bad = eps ->
   eps < 1/12 ->
@@ -456,6 +467,7 @@ have -> : mu_wave = `E_[ X | F ].
   rewrite H1.
   transitivity (((\sum_(u in F) X u * P u) * Pr P good) / (\sum_(i in good) P i * C i)); last by admit.
   admit.
+rewrite 2!cExE.
 apply cresilience => //.
 - admit.
 - rewrite /delta.
