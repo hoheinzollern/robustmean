@@ -1,0 +1,62 @@
+% Created 2021-12-15 Wed 19:15
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\author{Alessandro Bruni}
+\date{\today}
+\title{Notes on Lemma 1.4}
+\hypersetup{
+ pdfauthor={Alessandro Bruni},
+ pdftitle={Notes on Lemma 1.4},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 27.2 (Org mode 9.4.4)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+Ieva and I spent some time together last week on understanding A10-A11, unfortunately without success.
+
+The formula that seems to be needed for the proof is the one in the theorem statement:
+\[ \sum_{i \in \overline S} c_i \tau_i \ge 2/3 \cdot \hat\sigma_c^2 \cdot n \]
+
+The best proof I have so far is for the sum over all elements:
+
+We know \(\hat\sigma_c^2 = {\sum_i c_i \tau_i \over \sum_i c_i}\) by definition, and that  \(\sum_{i \in S} c_i \ge (1-{\epsilon\over 2})|S| = (1-{\epsilon\over 2})(1-\epsilon)n \ge 1-3\epsilon/2\) from the first part of the proof.
+
+Therefore we can conclude
+\begin{align*}
+\sum_i c_i \tau_i &= \hat\sigma_c^2 \cdot \sum_i c_i &&\text{by definition of }\hat\sigma_c^2\\
+&\ge \hat\sigma_c^2 \sum_{i \in S} c_i &&\text{reducing the sum of the $c_i$s}\\
+&\ge \hat\sigma_c^2 (1-3\epsilon/2)n &&\text{applying the result above}\\
+&\ge {2\over 3} \hat\sigma_c^2 n &&\text{if }\epsilon \le {1\over12}
+\end{align*}
+
+Another option is to split the sum:
+\begin{align*}
+\sum_{i \in \overline S} c_i \tau_i &= \hat\sigma_c^2 \cdot \sum_i c_i - \sum_{i \in S} c_i \tau_i &&\text{by definition}\\
+&\ge \hat\sigma_c^2(1-3\epsilon/2)n - \sum_{i\in S}c_i \tau_i&&\text{from the previous result}\\
+&\ge \hat\sigma_c^2(1-3\epsilon/2)n - {1-\epsilon \over 3}\hat\sigma_c^2n &&\text{from equations A6-A9}\\
+&= \hat\sigma_c^2n(1-{3\epsilon\over 2} - {1-\epsilon \over 3}) &&\text{grouping}\\
+&= \hat\sigma_c^2n({4-7\epsilon \over 6})
+\end{align*}
+which is close, but not quite, what we are looking for.
+
+One thing that we have not considered is how far smaller is \(\sum_{i\in S} c_i\) than \(\sum_i c_i\) which might be the missing piece, but I have not found any result on the bounds of the sum of the remaining \(c_i\)s.
+There might be some information on how big \(\sum_{i \in \overline S} c_i\) is that comes from the fact that \(\hat\sigma_c^2 \ge 16 \sigma^2\).
+At the moment I don't konw how to get it though.
+
+We have built a Python script just to test empirically that the invariant holds, and at least in the experiments the tighter bound seems to hold, and the practical bounds are quite larger than the theoretical result. I tend to believe that the statement from the lemma definition is correct, and not the execution in equations A10-A11.
+\end{document}
