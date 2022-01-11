@@ -467,7 +467,7 @@ have -> : mu_wave = `E_[ X | F ].
   rewrite H1.
   transitivity (((\sum_(u in F) X u * P u) * Pr P good) / (\sum_(i in good) P i * C i)); last by admit.
   admit.
-rewrite 2!cExE.
+(* rewrite 2!cExE. *)
 apply cresilience => //.
 - admit.
 - rewrite /delta.
