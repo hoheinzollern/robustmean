@@ -173,7 +173,7 @@ Qed.
 Lemma tau_ge0 i : 0 <= tau i.
 Proof. rewrite /tau sq_RV_pow2; exact: pow2_ge_0. Qed.
 
-Definition tau_max := \rmax_(i in [set: U]) tau i.
+Definition tau_max := \rmax_(i in [set: U] | C i != 0) tau i.
 (*
 Definition tau_max' (C : {ffun U -> R}) :=
   \big[Num.max/0]_(i in [set: U]) tau C i.
@@ -199,20 +199,23 @@ Definition update (C : {ffun U -> R}) : {ffun U -> R} :=
   [ffun i => C i * (1 - tau C i / tau_max C)].
 *)
 Definition update_ffun : {ffun U -> R} :=
-  [ffun i => if tau_max == 0 then 0 else C i * (1 - tau i / tau_max)].
+  [ffun i => if (tau_max == 0) || (C i == 0) then 0 else
+            C i * (1 - tau i / tau_max)].
 
 Lemma update_pos_ffun : [forall a, 0 <b= update_ffun a].
 Proof.
 apply/forallP=> u; apply/leRP.
 rewrite /update_ffun ffunE.
-have [_ |] := eqVneq tau_max 0; first exact/leRR.
+have [_|/=] := eqVneq tau_max 0; first exact/leRR.
 move/eqP; rewrite eqR_le => /boolp.not_andP []; last by move/(_ tau_max_ge0).
 rewrite -ltRNge => tau_max_gt0.
+case: ifPn=> [|Cu0]; first by move=> _; exact: leRR.
 apply mulR_ge0; first exact: nneg_finfun_ge0.
 rewrite subR_ge0 leR_pdivr_mulr //.
-rewrite mul1R /tau_max -big_filter.
+rewrite mul1R /tau_max.
+rewrite -big_filter.
 apply: (leR_bigmaxR tau).
-by rewrite mem_filter inE mem_index_enum.
+by rewrite mem_filter inE/= mem_index_enum andbT.
 Qed.
 
 Definition update : nneg_finfun U := mkNNFinfun update_pos_ffun.
@@ -611,23 +614,23 @@ Admitted.
 
 Lemma eqn_a10_a11 :
   16 * var <= var_hat ->
-  0 < eps -> eps <= 1/12 -> 
+  0 < eps -> eps <= 1/12 ->
   weight C ->
   Pr P bad = eps ->
   2/3 * var_hat <= \sum_(i in bad) P i * C i * tau i.
 Proof.
   move => var16 esp_pos eps1_12 H HPr_bad.
   have var_hat_pos: 0 <= var_hat.
-   apply : (leR_trans _ var16). 
+   apply : (leR_trans _ var16).
    apply mulR_ge0; first by lra.
    apply cvariance_nonneg.
   have PrPgoodpos : 0 < Pr P good.
     move: HPr_bad; rewrite Pr_of_cplt; lra.
-  
+
   have ->: \sum_(i in bad) P i * C i * tau i =
     var_hat * (\sum_(i in U) P i * C i) - (\sum_(i in good) P i * C i * tau i).
     admit.
-  
+
   apply leR_trans with (y := var_hat * (1-eps)).
 Abort.
 
@@ -636,32 +639,36 @@ Lemma eqn1_3_4 (S: {set U}):
   let C' := update in
   0 < tau_max ->
   \sum_(i in S) P i * (1 - C' i) =
-    (\sum_(i in S) P i * (1 - C i)) + 1 / tau_max * (\sum_(i in S ) P i * (C i * tau i)).
+    (\sum_(i in S) P i * (1 - C i)) +
+    1 / tau_max * (\sum_(i in S ) P i * (C i * tau i)).
 Proof.
-  move => C' tau_max_gt0.
-  have <-: \sum_(i in S) P i * (C i - C' i) = 1 / tau_max * (\sum_(i in S) P i * (C i * tau i)).
-    rewrite /C' /update big_distrr.
-    apply eq_bigr => i _ /=.
-    rewrite /update_ffun ffunE ifF; last exact/negbTE/gtR_eqF.
-    by field; exact/eqP/gtR_eqF.
-  rewrite -big_split.
-  apply eq_bigr => i HiS. simpl.
-  rewrite -mulRDr. congr (_*_). lra.
+move => C' tau_max_gt0.
+have <- : \sum_(i in S) P i * (C i - C' i) =
+         1 / tau_max * (\sum_(i in S) P i * (C i * tau i)).
+  rewrite /C' /update big_distrr.
+  apply eq_bigr => i _ /=.
+  rewrite /update_ffun ffunE.
+  have [->|Ci-] := eqVneq (C i) 0; first by rewrite orbT subRR !(mulR0,mul0R).
+  rewrite orbF ifF; last by rewrite (negbTE (gtR_eqF _ _ tau_max_gt0))/=.
+  by field; exact/eqP/gtR_eqF.
+rewrite -big_split/=.
+apply eq_bigr => i HiS.
+by rewrite -mulRDr addRA subRK.
 Qed.
 
 Lemma lemma_1_5 :
   let C' := update in
   0 < tau_max ->
-  \sum_(i in good) P i * (C i * tau i) <= (1 - eps) / 2 * (\sum_(i in bad) P i * (C i * tau i)) ->
+  \sum_(i in good) P i * (C i * tau i) <=
+    (1 - eps) / 2 * (\sum_(i in bad) P i * (C i * tau i)) ->
   invariant C -> invariant C'.
 Proof.
-  rewrite /invariant.
-  move => H0 H1 IH1.
-  rewrite !eqn1_3_4 // !mulRDr.
-  apply leR_add; first by [].
-  rewrite (mulRC ((1 - eps) / 2)) -mulRA.
-  apply leR_pmul2l; first by rewrite /Rdiv mul1R; apply invR_gt0.
-  by rewrite mulRC.
+rewrite /invariant => tau_max_gt0 H1 IH1.
+rewrite !eqn1_3_4 // !mulRDr.
+apply leR_add; first by [].
+rewrite (mulRC ((1 - eps) / 2)) -mulRA.
+apply leR_pmul2l; first by rewrite /Rdiv mul1R; apply invR_gt0.
+by rewrite mulRC.
 Qed.
 
 End lemma_1_4.
