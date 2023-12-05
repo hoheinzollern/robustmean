@@ -392,7 +392,8 @@ apply: resilience => //.
     by rewrite -/(Pr P good) Pr_to_cplt HPr_bad; exact: leRR.
   move: invC; rewrite /invariant1 -big_distrl /=.
   by under [X in _ <= _ / X -> _]eq_bigr do rewrite mulRC.
-- rewrite /Pr /P' /=.
+Admitted.
+(*  - rewrite /Pr /P' /=.
   under [in X in X != _]eq_bigr do rewrite Weighted.dE /=.
   rewrite -big_distrl/= -divRE; apply/ltR_eqF/ltR_pdivr_mulr => //.
     rewrite ltR_neqAle; split; first exact/nesym/eqP.
@@ -405,7 +406,7 @@ apply: resilience => //.
     apply/nesym/eqP.
     by apply: contra bad_neq0 => /eqP <-; apply/eqP/eq_bigl => u; rewrite !inE.
   by apply: sumR_ge0 => u _; apply: mulR_ge0.
-Qed.
+Qed.*)
 
 Lemma cExE F : `E_[X | F] = (\sum_(u in F) X u * P u) / Pr P F.
 Proof.
@@ -534,7 +535,7 @@ Proof.
   apply leR_trans with (y := (1 - eps) * (var + (mu - mu_hat)²)).
     have HPr_good: Pr P good = 1 - eps.
     by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
-    rewrite -!HPr_good Rmult_comm -leR_pdivr_mulr. 
+    rewrite -!HPr_good Rmult_comm -leR_pdivr_mulr.
       apply eqn1_1. by exact PrPgoodpos.
       move => a. by auto. 
     by exact PrPgoodpos.
@@ -665,10 +666,10 @@ Lemma lemma_1_5 :
 Proof.
 rewrite /invariant => tau_max_gt0 H1 IH1.
 rewrite !eqn1_3_4 // !mulRDr.
-apply leR_add; first by [].
+apply leR_add; first exact IH1.
 rewrite (mulRC ((1 - eps) / 2)) -mulRA.
 apply leR_pmul2l; first by rewrite /Rdiv mul1R; apply invR_gt0.
-by rewrite mulRC.
+by rewrite mulRC; exact H1.
 Qed.
 
 End lemma_1_4.

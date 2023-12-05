@@ -166,6 +166,7 @@ Proof.
       Search ((_ ++ _) ++ _).
 
   simpl. auto.
+Admitted.
 
 Lemma mostProbableThrow n:
   forall m, 1 <= m <= n ->

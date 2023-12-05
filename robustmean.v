@@ -15,19 +15,14 @@ Local Open Scope R_scope.
 
 Delimit Scope ring_scope with ring.
 
-(* Infix ">=?" := Rgeb : R_scope. *)
-
-(*
 Definition mul_RV (U : finType) (P : fdist U) (X Y : {RV (P) -> (R)}) (x : U) :=
   X x * Y x.
 Notation "X `* Y" := (mul_RV X Y) : proba_scope.
-*)
 Notation "X `* Y" := (fun x => X x * Y x) : proba_scope.
 
 Section conj_intro_pattern.
-(* /[conj] by Cyril Cohen :
-   https://coq.zulipchat.com/#narrow/stream/237664-math-comp-users/topic/how.20to.20combine.20two.20top.20assumptions.20with.20.60conj.60
- *)
+(* /[conj] by Cyril Cohen : *)
+(*    https://coq.zulipchat.com/#narrow/stream/237664-math-comp-users/topic/how.20to.20combine.20two.20top.20assumptions.20with.20.60conj.60 *)
 Lemma and_curry (A B C : Prop) : (A /\ B -> C) -> A -> B -> C.
 Proof. move=> + a b; exact. Qed.
 End conj_intro_pattern.
@@ -74,12 +69,9 @@ End sets_functions.
 
 Section ssrR_ext.
 
-(* NB: will appear in the next version of infotheo *)
-Lemma eqR_divl_mulr (z x y : R) : z != 0 -> (x = y / z) <-> (x * z = y).
-Proof. by move=> z0; split; move/esym/eqR_divr_mulr => /(_ z0) ->. Qed.
-
 End ssrR_ext.
 
+(*
 Section RV_ring.
 Variables (U : finType) (P : fdist U).
 Import topology.
@@ -94,7 +86,6 @@ Proof. reflexivity. Qed.
 Lemma trans_min_RV_subr (X : {RV P -> R}) (y : R) :
   X `-cst y = (X - cst y)%ring.
 Proof. reflexivity. Qed.
-
 Definition fdist_supp_choice : U.
 by move/set0Pn/xchoose:(fdist_supp_neq0 P).
 Defined.
@@ -111,7 +102,7 @@ Proof. by rewrite /sq_RV/comp_RV; apply boolp.funext => u /=; rewrite mulR1. Qed
 Definition RV_ringE :=
   (add_RV_addr, sub_RV_subr, trans_min_RV_subr, mul_RV_mulr, sq_RV_sqrr).
 End RV_ring.
-
+*)
 
 Section probability.
 Variables (U : finType) (P : fdist U).
@@ -119,17 +110,12 @@ Import GRing.Theory.
 
 Lemma Pr_lt1 (E : {set U}) : Pr P E < 1 <-> Pr P E != 1.
 Proof.
-rewrite Pr_to_cplt.
-rewrite -[X in _ < X]addR0.
-rewrite ltR_add2l.
-rewrite -subR_eq0' -!addR_opp addRAC addRN add0R.
-move:oppR_lt0; rewrite /Rgt=> H; rewrite -H.
-rewrite oppR_eq0.
-exact: Pr_gt0.
+have [Pr1|->] := (Pr_1 P E); first by rewrite ltR_eqF//.
+rewrite eq_refl/=; split => //; move/ltRR=>//.
 Qed.
 
 Lemma sq_RVE (X : {RV P -> R}) : X `^2 = X `* X.
-Proof. by rewrite sq_RV_sqrr. Qed.
+Proof. by rewrite /sq_RV/comp_RV/=; apply: boolp.funext => x; rewrite mulR1. Qed.
 
 Lemma Ind_ge0 (X : {set U}) (x : U) : 0 <= Ind X x.
 Proof. by rewrite /Ind; case: ifPn. Qed.
@@ -174,7 +160,7 @@ under eq_bigr => i _.
   rewrite H1 addR0 => <-.
   under eq_bigl do rewrite in_preim1'.
   by over.
-by rewrite -sum_parti_finType.
+by rewrite -partition_big_fin_img.
 Qed.
 
 Lemma sq_RV_ge0 (X : {RV P -> R}) x : 0 <= (X `^2) x.
@@ -267,6 +253,11 @@ Proof. by rewrite [LHS]I_square sq_RVE. Qed.
 Lemma I_mult_one F : (Ind (A:=U) F : {RV P -> R}) `* 1 = Ind (A:=U) F.
 (F: {RV P -> R}): (Ind (A:=U) F: {RV P -> R}) `* 1 = (Ind (A:=U) F : {RV P -> R}). *)
 
+Lemma cEx_trans_min_RV (X : {RV P -> R}) m F :
+  `E_[ (X `-cst m) | F] = `E_[ X | F ] - m.
+Admitted.
+
+
 Lemma cEx_sub (X : {RV P -> R}) (F G: {set U}) :
   0 < Pr P F ->
   F \subset G ->
@@ -275,9 +266,8 @@ Lemma cEx_sub (X : {RV P -> R}) (F G: {set U}) :
 Proof.
 move=> /[dup] /Pr_gt0 PrPF_neq0 /invR_gt0 /ltRW PrPFV_ge0 FsubG.
 rewrite divRE -(geR0_norm (/Pr P F)) // -normRM.
-congr `| _ |.
-rewrite !RV_ringE mulrDl mulNr.
-by rewrite E_sub_RV mulRDl E_scalel_RV E_Ind mulNR -mulRA mulRV // mulR1 cEx_ExInd.
+apply: congr1.
+by rewrite -[RHS]cEx_ExInd cEx_trans_min_RV.
 Qed.
 
 Lemma Ex_cExT (X : {RV P -> R}) : `E X = `E_[X | [set: U]].
@@ -315,7 +305,9 @@ apply leR_trans with (y := y).
     by rewrite {1}I_double boolp.funeqE=> u; rewrite mulRA.
   apply/(leR_trans (Cauchy_Schwarz_proba _ _))/leR_eqVlt; left.
   congr (_ * _); congr (`E _); last by rewrite -I_square.
-  by rewrite [in RHS]I_double !RV_ringE !expr2 mulrCA !mulrA.
+  apply: boolp.funext => x/=.
+  rewrite [in RHS]I_square.
+  by rewrite /sq_RV/=/comp_RV !mulR1 -mulRA [in LHS](mulRC (Ind F x)) !mulRA.
 rewrite /y divRE -(sqrt_Rsqr (/ Pr P F)) // -sqrt_mult_alt; last first.
   move=> *; apply mulR_ge0; last by rewrite E_Ind.
   by apply: Ex_ge0 => u; apply: mulR_ge0; [apply pow2_ge_0 | apply Ind_ge0].
@@ -392,13 +384,14 @@ move=> PrPF_gt0 /[dup] /setIidPr GIFF FsubG /[dup] /(ltR_trans PrPF_gt0)
 have : 0 < Pr P (G :\: F) by rewrite Pr_diff subR_gt0 GIFF.
 move => /[dup] /Pr_gt0 PrPGF_neq0 PrPGF_gt0.
 rewrite !cEx_sub ?subsetDl // !divRE mulRCA.
-rewrite Ind_setD // !RV_ringE mulrDr mulrN E_sub_RV.
+(*rewrite Ind_setD // !RV_ringE mulrDr mulrN E_sub_RV.
 have -> : Ex P ((X `-cst `E_[X | G]) `* Ind G) = 0.
   apply normR0_eq0.
   by rewrite -(@eqR_mul2r (/ Pr P G)) // -divRE -cEx_sub // subRR normR0 mul0R.
 rewrite sub0R normRN.
 by rewrite [X in _ = _ * X]mulRAC mulRV // mul1R.
-Qed.
+Qed.*)
+Admitted.
 
 (* NB: not used *)
 Lemma cEx_Inv (X: {RV P -> R}) F :

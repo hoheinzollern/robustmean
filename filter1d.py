@@ -4,7 +4,7 @@ eps = 1/12
 sigma = 200
 var = sigma**2
 N = 12000
-X = [random.gauss(10000,var) for i in range(N//12)]+[random.gauss(0,sigma) for i in range(N*11//12)]
+X = [random.gauss(0,var*1000) for i in range(N//12)]+[random.gauss(0,sigma) for i in range(N*11//12)]
 
 def trimmed_mean(X, eps):
     N = len(X)
@@ -16,7 +16,7 @@ def filter1d(X, var):
     C = [1 for i in range(N)]
     while True:
         mu_hat = sum(C[i] * X[i] for i in range(N)) / sum(C)
-        tau = [(X[i] - mu_hat)**2 for i in range(N)]
+        tau = [(X[i] - mu_hat)**2 if C[i] else 0 for i in range(N)]
         var_hat = sum(C[i] * tau[i] for i in range(N)) / sum(C)
         print("{:.2e}\t{:.2f}\t{:.2f}\t{:.2f}".format(
             var_hat,
@@ -28,6 +28,19 @@ def filter1d(X, var):
         tau_max = max(tau)
         C = [C[i] * (1-tau[i]/tau_max) for i in range(N)]
 
+
+
+def filter1d(X, var):
+    N = len(X)
+    C = [1 for i in range(N)]
+    while True:
+        mu_hat = sum(C[i] * X[i] for i in range(N)) / sum(C)
+        tau = [(X[i] - mu_hat)**2 for i in range(N)]
+        var_hat = sum(C[i] * tau[i] for i in range(N)) / sum(C)
+        if var_hat <= 16*var: return mu_hat
+        #tau_max = max(tau[i] if C[i] != 0 else 0 for i in range(N))
+        tau_max = max(tau)
+        C = [C[i] * (1-tau[i]/tau_max) for i in range(N)]
 
 print("filter1d     =", filter1d(X, var))
 print("trimmed_mean =", trimmed_mean(X, eps))
