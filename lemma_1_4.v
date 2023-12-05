@@ -1,13 +1,24 @@
-From mathcomp Require Import all_ssreflect ssralg fingroup perm finalg matrix.
-From mathcomp Require Import all_algebra. (* for GRing.Theory *)
-From mathcomp Require boolp classical_sets. (* classical_sets for pointedType *)
-From mathcomp Require Import Rstruct topology. (* topology for fct_ringType *)
-Require Import Reals Lra ROrderedType Lia Interval.Tactic.
-From infotheo Require Import ssrR Reals_ext logb ssr_ext ssralg_ext bigop_ext.
-From infotheo Require Import Rbigop proba fdist.
+From mathcomp Require Import all_ssreflect ssralg ssrnum matrix.
+From mathcomp Require boolp.
+From mathcomp Require Import Rstruct reals.
+Require Import Reals Lra.
+From infotheo Require Import ssrR Reals_ext realType_ext logb ssr_ext ssralg_ext.
+From infotheo Require Import bigop_ext fdist proba.
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
+Local Open Scope R_scope.
+Local Open Scope reals_ext_scope.
+Local Open Scope fdist_scope.
+Local Open Scope proba_scope.
+
+Import Order.POrderTheory Order.Theory Num.Theory GRing.Theory.
+
+Notation R := real_realType.
+
 Require Import robustmean.
-(*Require Import Reals Interval.Tactic.*)
-(*Open Scope R_scope.*)
 
 (******************************************************************************)
 (*                                                                            *)
@@ -23,18 +34,6 @@ Require Import robustmean.
 (*                                                                            *)
 (******************************************************************************)
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
-
-Local Open Scope proba_scope.
-Local Open Scope R_scope.
-Local Open Scope reals_ext_scope.
-
-(* NB: to appear in the next release of infotheo *)
-Lemma invR_ge0 (x : R) : 0 < x -> 0 <= / x.
-Proof. by move=> x0; apply/ltRW/invR_gt0. Qed.
-
 (* TODO: move to infotheo *)
 Section move_to_infotheo.
 Section rExtrema. (* Reals_ext.v *)
@@ -48,11 +47,11 @@ Qed.
 End rExtrema.
 
 Section nneg_fun. (* Reals_ext.v *)
-Local Open Scope R_scope.
-Lemma nneg_fun_le0 (I : Type) (F : nneg_fun I) i : (F i == 0) = (F i <b= 0).
+
+Lemma nneg_fun_le0 (I : Type) (F : nneg_fun I) i : (F i == 0) = (F i <= 0)%mcR.
 Proof.
-apply/sameP/idP/(iffP idP); first by move/eqP->; apply/leRR'.
-by move/leRP/Rle_antisym/(_ (nneg_f_ge0 _ _)) ->.
+apply/sameP/idP/(iffP idP); first by move/eqP->.
+by move/RleP/Rle_antisym/(_ (nneg_f_ge0 _ _)) ->.
 Qed.
 
 Variables (I : eqType) (r : seq I) (P : pred I) (F : nneg_fun I).
@@ -61,7 +60,7 @@ Lemma nneg_fun_bigmaxR0P :
           (\rmax_(i <- r | P i) F i == 0).
 Proof.
 apply: (iffP idP) => [/eqP H i ir Pi| H].
-- apply/eqP; rewrite nneg_fun_le0 -H; apply/leRP.
+- apply/eqP; rewrite nneg_fun_le0 -coqRE -H; apply/RleP.
   rewrite -big_filter; apply: leR_bigmaxR.
   by rewrite mem_filter ir Pi.
 - rewrite -big_filter big_seq.
@@ -72,10 +71,11 @@ End nneg_fun.
 
 Section nneg_finfun. (* Reals_ext.v *)
 Local Open Scope R_scope.
-Lemma nneg_finfun_le0 (I : finType) (F : nneg_finfun I) i : (F i == 0) = (F i <b= 0).
+Lemma nneg_finfun_le0 (I : finType) (F : nneg_finfun I) i : (F i == 0) = (F i <= 0)%mcR.
 Proof.
-apply/idP/idP => [/eqP ->|]; first exact/leRR'.
-by move=> /leRP/Rle_antisym/(_ (nneg_finfun_ge0 _ _)) ->.
+apply/idP/idP => [/eqP -> //|].
+case: F => F /= /forallP /(_ i).
+by rewrite eq_le coqRE => -> ->.
 Qed.
 
 Variables (I : finType) (r : seq I) (P : pred I) (F : nneg_finfun I).
@@ -84,8 +84,8 @@ Lemma pos_ffun_bigmaxR0P :
   reflect (forall i : I, i \in r -> P i -> F i = 0)
           (\rmax_(i <- r | P i) F i == 0).
 apply: (iffP idP) => [/eqP H i ir Pi|H].
-- apply/eqP; rewrite nneg_finfun_le0 -H; apply/leRP.
-  rewrite -big_filter; apply: leR_bigmaxR.
+- apply/eqP; rewrite nneg_finfun_le0 -coqRE -H.
+  rewrite -big_filter; apply/RleP; apply: leR_bigmaxR.
   by rewrite mem_filter ir Pi.
 - rewrite -big_filter big_seq.
   under eq_bigr=> i do rewrite mem_filter=> /andP [] /[swap] /(H i) /[apply] ->.
@@ -96,32 +96,39 @@ End move_to_infotheo.
 
 Module Weighted.
 Section def.
-Variables (A : finType) (p : prob) (d0 : {fdist A}) (c : nneg_finfun A).
+Variables (A : finType) (p : prob R) (d0 : {fdist A}) (c : nneg_finfun A).
 Definition total := \sum_(a in A) c a * d0 a.
 Hypothesis total_neq0 : total != 0.
 Definition f := [ffun a => c a * d0 a / total].
-Lemma total_gt0 : 0 < total.
+Lemma total_gt0 : (0 < total)%mcR.
 Proof.
-rewrite ltR_neqAle; split; first exact/nesym/eqP.
-by apply sumR_ge0=> i _; apply/mulR_ge0/FDist.ge0/nneg_finfun_ge0.
+rewrite lt_neqAle eq_sym total_neq0/=.
+rewrite /total.
+rewrite sumr_ge0// => i _. 
+apply/mulr_ge0/FDist.ge0.
+by case: c => c' /= /forallP.
 Qed.
-Lemma f0 a : 0 <= f a.
+
+Lemma f0 a : (0 <= f a)%mcR.
 Proof.
-rewrite ffunE; apply divR_ge0; last exact/total_gt0.
-exact/mulR_ge0/FDist.ge0/nneg_finfun_ge0.
+rewrite ffunE /f coqRE divr_ge0//; last first.
+  rewrite ltW//. exact  total_gt0.
+rewrite coqRE mulr_ge0 => //.
+case: c => c' /= /forallP. exact.
 Qed.
+
 Lemma f1 : \sum_(a in A) f a = 1.
 Proof.
 rewrite /f.
 under eq_bigr do rewrite ffunE divRE.
 by rewrite -big_distrl /= mulRV.
 Qed.
-Definition d : fdist A := locked (FDist.make f0 f1).
+Definition d : {fdist A} := locked (FDist.make f0 f1).
 Lemma dE a : d a = c a * d0 a / total.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
 End def.
 Section prop.
-Variables (A : finType) (p : prob) (d0 : {fdist A}) (c : nneg_finfun A).
+Variables (A : finType) (d0 : {fdist A}) (p : prob R)  (c : nneg_finfun A).
 (*
 Lemma fdist1 (g : 'I_n -> fdist A) a : d (FDist1.d a) g = g a.
 Proof.
@@ -141,11 +148,11 @@ Definition wd := WeightedFDist.d ax.
 *)
 
 Section lemma_1_4.
-Variables (U : finType) (P : fdist U).
+Variables (U : finType) (P : {fdist U}).
 
 Variable X : {RV P -> R}.
 
-Variable C : U ->R+.
+Variable C : nneg_finfun U.
 Hypothesis PC_neq0 : Weighted.total P C != 0.
 Let P' := Weighted.d PC_neq0.
 
@@ -166,8 +173,11 @@ Definition var_hat := (\sum_(i in U) P i * C i * tau i) / (\sum_(i in U) P i * C
 
 Lemma var_hat_ge0 : (forall u, 0 <= C u) -> 0 < \sum_(i in U) P i * C i -> 0 <= var_hat.
 Proof.
-by move=> C0 PC0; apply: divR_ge0 => //; apply: sumR_ge0 => i _; apply: mulR_ge0;
- [exact: mulR_ge0|exact: sq_RV_ge0].
+move=> C0 PC0; apply: divR_ge0 => //. 
+apply/RleP; apply: sumr_ge0 => i _.
+apply: mulr_ge0.
+  by rewrite coqRE; apply: mulr_ge0 => //; apply/RleP; apply: C0.
+by rewrite /tau; apply/RleP; apply: sq_RV_ge0.
 Qed.
 
 Lemma tau_ge0 i : 0 <= tau i.
