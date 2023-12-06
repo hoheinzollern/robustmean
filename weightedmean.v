@@ -545,8 +545,28 @@ Lemma eqn_a6_a9 :
   \sum_(i in good) P i * C i * tau i <= 0.32 * (1 - eps) * var_hat.
 Proof.
   move => var16 esp_pos eps1_12 Hweight HPr_bad.
+  have sumCi_ge0 : 0 <= \sum_(i in U) P i * C i.
+    by apply/RleP; apply sumr_ge0 => i _;
+       rewrite coqRE mulr_ge0//; apply /RleP; apply Hweight.
+  have [/psumr_eq0P PiCieq0|?] := eqVneq (\sum_(i in U) P i * C i) 0.
+    apply: (@leR_trans 0).
+      right; apply/eqP; rewrite psumr_eq0.
+        apply/allP => i _; rewrite PiCieq0//; first rewrite mul0R eqxx implybT//.
+        by move=> i0 _; rewrite coqRE mulr_ge0//; apply/RleP; apply Hweight.
+      move=>i _. rewrite !coqRE mulr_ge0//; last by apply/RleP; apply tau_ge0.
+      by rewrite mulr_ge0//; apply/RleP; apply Hweight.
+      apply: mulR_ge0.
+      apply: mulR_ge0. interval. lra.
+      apply: (@leR_trans (16 * var)) => //. 
+      by apply: mulR_ge0; first lra; apply cvariance_nonneg.
+  have sumCi_gt0 : 0 < \sum_(i in U) P i * C i.
+    apply ltR_neqAle; split.
+    - by apply/eqP; rewrite eq_sym.
+    - apply/RleP. apply sumr_ge0 => i _. rewrite RmultE mulr_ge0//. apply/RleP. apply Hweight.
   have Hvar_hat_2_eps: 0 <= var_hat * 2 * eps.
-    by rewrite -mulRA; apply mulR_ge0 => //; [apply var_hat_ge0;[move => i; apply Hweight|admit]|lra].
+    rewrite -mulRA; apply mulR_ge0 => //; last lra.
+      rewrite /var_hat.
+      by apply var_hat_ge0; first by move => i; apply Hweight.
   have PrPgoodpos : 0 < Pr P good.
     move: HPr_bad; rewrite Pr_of_cplt; by lra.
   (*a6*)
@@ -605,7 +625,8 @@ Proof.
   apply leR_trans with (y := (1-eps) * var_hat * (/16 + 2 * eps_max * Rsqr (/(4 * sqrt (2 - eps_max)) + /sqrt(1-eps_max)))).
     rewrite /eps_max.
     apply leR_pmul.
-      apply mulR_ge0 => //. by lra. admit.
+      apply mulR_ge0; first lra.
+        by apply var_hat_ge0 => [u|//]; apply Hweight. 
       apply addR_ge0; first lra. apply mulR_ge0; first lra. by apply Rle_0_sqr. 
       by right.
     apply leR_add.
@@ -625,11 +646,11 @@ Proof.
       by apply sqrt_lt_R0; lra.
     apply sqrt_le_1; lra.
   rewrite mulRC mulRA.
-  apply leR_wpmul2r => //. admit.
+  apply leR_wpmul2r => //. apply var_hat_ge0 => [u|//]. apply Hweight.
   apply leR_wpmul2r; first lra.
   rewrite /eps_max.
   interval.
-Admitted.
+Qed.
 
 Lemma eqn_a10_a11 :
   16 * var <= var_hat ->
