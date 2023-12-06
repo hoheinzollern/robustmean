@@ -670,9 +670,26 @@ Proof.
 
   have ->: \sum_(i in bad) P i * C i * tau i =
     var_hat * (\sum_(i in U) P i * C i) - (\sum_(i in good) P i * C i * tau i).
+    rewrite /var_hat -mulRA Rinv_l ?mulR1; last admit.
     admit.
 
-  apply leR_trans with (y := var_hat * (1-eps)).
+  apply (@leR_trans (var_hat * (1-3/2*eps) - \sum_(i in good) P i * C i * tau i)); last first.
+    apply/RleP; rewrite !coqRE lerB// ler_pM// ?subr_ge0 -!coqRE; apply/RleP => //. lra. admit.
+
+  apply (@leR_trans ((1 - 3 / 2 * eps - 0.25 * (1 - eps)) * var_hat)); last first.
+    apply/RleP; rewrite !coqRE mulrBl (mulrC var_hat) lerB// -!coqRE; apply/RleP; exact: eqn_a6_a9.
+
+  apply (@leR_trans ((1 - 3 / 2 * eps_max - 0.25 * (1 - eps_max)) * var_hat)); last first.
+    apply leR_wpmul2r=>//. apply/RleP.
+    rewrite -!subRD !coqRE lerB// !mulrBr. 
+    rewrite (addrC (_*1)) (addrC (_*1)) !addrA lerD//.
+    rewrite -!mulrBl ler_pM// /eps_max.
+    - by rewrite -!coqRE; apply/RleP; interval.
+    - by rewrite ltW//; apply/RltP.
+    - by apply/RleP.
+
+   apply leR_wpmul2r => //; interval.
+
 Abort.
 
 (* TODO: improve the notation for pos_ffun (and for pos_fun) *)
