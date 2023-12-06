@@ -246,6 +246,8 @@ Admitted.
 Variable good : {set U}.
 Variable eps : R.
 
+Definition eps_max := 1/16.
+
 Definition C0 : {ffun U -> R} := [ffun=> 1]. (*Definition C0 (i: U) := 1. *)
 Definition bad := ~: good.
 Definition mu := `E_[X | good].
@@ -439,12 +441,12 @@ Qed.
 
 Lemma lemma_1_4_step2 :
   Pr P bad = eps ->
-  eps < 1/12 ->
+  eps < eps_max ->
   weight C ->
   invariant C ->
   Rsqr (mu - mu_wave) <= `V_[X | good] * 2*eps / (2-eps).
 Proof.
-rewrite /weight => HPr_bad Hlow_eps HwC Hinv.
+rewrite /eps_max/weight => HPr_bad Hlow_eps HwC Hinv.
 have HPr_good: Pr P good = 1 - eps.
   by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
 have Hgood_mass: 1 - eps/2 <= (\sum_(i in good) P i * C i) / Pr P good.
@@ -539,12 +541,12 @@ Admitted.
 
 Lemma eqn_a6_a9 :
   16 * var <= var_hat ->
-  0 < eps -> eps <= 1/12 -> 
+  0 < eps -> eps <= eps_max -> 
   weight C ->
   Pr P bad = eps ->
-  \sum_(i in good) P i * C i * tau i <= 0.32 * (1 - eps) * var_hat.
+  \sum_(i in good) P i * C i * tau i <= 0.25 * (1 - eps) * var_hat.
 Proof.
-  move => var16 esp_pos eps1_12 Hweight HPr_bad.
+  rewrite /eps_max; move => var16 esp_pos eps1_12 Hweight HPr_bad.
   have sumCi_ge0 : 0 <= \sum_(i in U) P i * C i.
     by apply/RleP; apply sumr_ge0 => i _;
        rewrite coqRE mulr_ge0//; apply /RleP; apply Hweight.
@@ -621,7 +623,6 @@ Proof.
   rewrite Rsqr_sqrt; [by right|nra].
 
   (*a8-a9*)
-  pose eps_max := 1/12.
   apply leR_trans with (y := (1-eps) * var_hat * (/16 + 2 * eps_max * Rsqr (/(4 * sqrt (2 - eps_max)) + /sqrt(1-eps_max)))).
     rewrite /eps_max.
     apply leR_pmul.
@@ -654,12 +655,12 @@ Qed.
 
 Lemma eqn_a10_a11 :
   16 * var <= var_hat ->
-  0 < eps -> eps <= 1/12 ->
+  0 < eps -> eps <= eps_max ->
   weight C ->
   Pr P bad = eps ->
   2/3 * var_hat <= \sum_(i in bad) P i * C i * tau i.
 Proof.
-  move => var16 esp_pos eps1_12 H HPr_bad.
+  rewrite /eps_max; move => var16 esp_pos eps1_12 H HPr_bad.
   have var_hat_pos: 0 <= var_hat.
    apply : (leR_trans _ var16).
    apply mulR_ge0; first by lra.
