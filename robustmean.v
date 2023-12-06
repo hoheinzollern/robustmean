@@ -30,9 +30,9 @@ Proof. move=> + a b; exact. Qed.
 End conj_intro_pattern.
 Notation "[conj]" := (ltac:(apply and_curry)) (only parsing) : ssripat_scope.
 
-(* Section RV_ring. *)
-(* Variables (U : finType) (P : {fdist U}). *)
-(* Import topology. *)
+Section RV_ring.
+Variables (U : finType) (P : {fdist U}).
+(* Import topology.*)
 
 (* Lemma add_RV_addr (X Y : {RV P -> R}) : X `+ Y = (X + Y)%mcR. *)
 (* Proof. reflexivity. Qed. *)
@@ -43,9 +43,9 @@ Notation "[conj]" := (ltac:(apply and_curry)) (only parsing) : ssripat_scope.
 (* Lemma trans_min_RV_subr (X : {RV P -> R}) (y : R) : *)
 (*   X `-cst y = (X - cst y)%ring. *)
 (* Proof. reflexivity. Qed. *)
-(* Definition fdist_supp_choice : U. *)
-(* by move/set0Pn/xchoose:(fdist_supp_neq0 P). *)
-(* Defined. *)
+Definition fdist_supp_choice : U.
+by move/set0Pn/xchoose:(fdist_supp_neq0 P).
+Defined.
 
 (* Canonical fdist_supp_pointedType := *)
 (*   @classical_sets.Pointed.pack U fdist_supp_choice _ _ idfun. *)
@@ -58,7 +58,7 @@ Notation "[conj]" := (ltac:(apply and_curry)) (only parsing) : ssripat_scope.
 
 (* Definition RV_ringE := *)
 (*   (add_RV_addr, sub_RV_subr, trans_min_RV_subr, mul_RV_mulr, sq_RV_sqrr). *)
-(* End RV_ring. *)
+End RV_ring.
 
 
 Section sets_functions.
