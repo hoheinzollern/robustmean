@@ -240,6 +240,7 @@ Definition update : nneg_finfun U := mkNNFinfun update_pos_ffun.
 
 Lemma update_valid_weight : Weighted.total P update != 0.
 Proof.
+rewrite /Weighted.total/update/update_ffun/=.
 Admitted.
 
 (* TODO: new section *)
@@ -487,10 +488,21 @@ have -> : mu_wave = `E_[ X | F ].
   rewrite /mu_wave.
   rewrite cEx_ExInd /Ex.
   rewrite /ambient_dist.
-  transitivity ((\sum_(u in F) X u * P u) / Pr P F); last by admit.
+  transitivity ((\sum_(u in F) X u * P u) / Pr P F); last first.
+    congr (_ / _).
+    rewrite big_seq big_mkcond.
+    apply: eq_big; first by move=> x; rewrite mem_index_enum.
+    by move => i _; rewrite /Ind /=; case: ifPn => /= _; rewrite ?mulR1?mulR0?mul0R.
   rewrite H1.
-  transitivity (((\sum_(u in F) X u * P u) * Pr P good) / (\sum_(i in good) P i * C i)); last by admit.
-  admit.
+  transitivity (((\sum_(u in F) X u * P u) * Pr P good) / (\sum_(i in good) P i * C i)); last first.
+    rewrite !divRE -mulRA.
+    congr (_ * _).
+    rewrite invRM.
+    + rewrite invRK mulRC//.
+    + admit.
+    by rewrite invR_neq0'// -Pr_gt0 HPr_good; lra.
+  congr (_ / _).
+  admit. (* this sounds wrong *)
 (* rewrite 2!cExE. *)
 apply cresilience => //.
 - admit.
@@ -642,9 +654,11 @@ Proof.
 
   have ->: \sum_(i in bad) P i * C i * tau i =
     var_hat * (\sum_(i in U) P i * C i) - (\sum_(i in good) P i * C i * tau i).
-    rewrite /var_hat -mulRA Rinv_l ?mulR1; last admit.
-    admit.
-
+    rewrite /var_hat -mulRA Rinv_l ?mulR1; last first.
+      by apply/eqP; under eq_bigr => i _ do rewrite mulRC; exact: PC_neq0.
+    rewrite -addR_opp big_morph_oppR big_mkcond [X in _ + X]big_mkcond -big_split/=.
+    apply: eq_bigr => i _; rewrite /bad in_setC; symmetry.
+    by case: ifP => /= _; rewrite ?addRN ?addR0.
   apply (@leR_trans (var_hat * (1-3/2*eps) - \sum_(i in good) P i * C i * tau i)); last first.
     apply/RleP; rewrite !coqRE lerB// ler_pM// ?subr_ge0 -!coqRE; apply/RleP => //. lra. admit.
 
