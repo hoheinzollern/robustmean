@@ -414,12 +414,12 @@ apply: resilience => //.
     by rewrite -/(Pr P good) Pr_to_cplt HPr_bad; apply/RleP.
   move: invC; rewrite /invariant1 -big_distrl /=.
   by under [X in _ <= _ / X -> _]eq_bigr do rewrite mulRC.
-Admitted.
-(*  - rewrite /Pr /P' /=.
-  under [in X in X != _]eq_bigr do rewrite Weighted.dE /=.
-  rewrite -big_distrl/= -divRE; apply/ltR_eqF/ltR_pdivr_mulr => //.
+- rewrite /Pr /P' /=.
+  under [in X in X < 1]eq_bigr do rewrite Weighted.dE /=.
+  rewrite -big_distrl/= -divRE; apply/ltR_pdivr_mulr => //.
     rewrite ltR_neqAle; split; first exact/nesym/eqP.
-    by apply: sumR_ge0 => u _; apply: mulR_ge0.
+    apply/RleP/sumr_ge0 => u _; rewrite mulr_ge0//.
+    by rewrite {Cpos_fun h1}; move/forallP : C0'; exact.
   rewrite mul1R.
   rewrite /Weighted.total [in X in _ < X](bigID (fun x => x \in good))/=.
   apply/ltR_addl.
@@ -427,8 +427,9 @@ Admitted.
   rewrite ltR_neqAle; split.
     apply/nesym/eqP.
     by apply: contra bad_neq0 => /eqP <-; apply/eqP/eq_bigl => u; rewrite !inE.
-  by apply: sumR_ge0 => u _; apply: mulR_ge0.
-Qed.*)
+  apply/RleP/sumr_ge0 => u _; rewrite mulr_ge0//.
+  by rewrite {Cpos_fun h1}; move/forallP : C0'; exact.
+Qed.
 
 Lemma cExE F : `E_[X | F] = (\sum_(u in F) X u * P u) / Pr P F.
 Proof.
