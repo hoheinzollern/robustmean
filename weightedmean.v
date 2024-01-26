@@ -343,6 +343,13 @@ Proof.
   by rewrite !H HPr_good.
 Qed.
 
+Lemma sumCi_ge0 : weight C -> 0 <= \sum_(i in U) P i * C i.
+Proof.
+move=> Hweight.
+by apply/RleP; apply sumr_ge0 => i _;
+  rewrite coqRE mulr_ge0//; apply /RleP; apply Hweight.
+Qed.
+
 Lemma lemma_1_4_step1 :
   0 < \sum_(i in U) P i * C i (* NB: this can be proved from the termination condition *) ->
   (forall u, 0 <= C u) ->
@@ -528,11 +535,41 @@ Admitted.
 
 Lemma lemma_1_4_1 :
   Pr P bad = eps ->
+  eps < eps_max ->
+  weight C ->
+  invariant C ->
+  invariant1 C ->
   Rabs (mu - mu_hat) <= sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat * 2 * eps / (1-eps)).
 Proof.
-  move => HPr_bad.
-  rewrite /mu_hat /mu_wave.
-Admitted.
+move => HPr_bad eps_le_max WC IC I1C.
+apply: (@Rle_trans _ (`|mu - mu_wave| + `|mu_hat - mu_wave|)).
+  have -> : mu - mu_hat = (mu - mu_wave) + (mu_wave - mu_hat) by lra.
+  apply: (Rle_trans _ _ _ (Rabs_triang _ _)).
+  apply Rplus_le_compat_l.
+  rewrite Rabs_minus_sym.
+  by right.
+have ? : 0 <= eps. rewrite -HPr_bad. apply Pr_ge0.
+move: eps_le_max; rewrite /eps_max => eps_le_max.
+have ? : 0 < \sum_(i in U) P i * C i.
+  apply ltR_neqAle; split.
+  apply/eqP; rewrite eq_sym; under eq_bigr => i _ do rewrite mulRC; exact: PC_neq0.
+  apply sumCi_ge0 => //.
+apply: leR_add; rewrite -(geR0_norm _ (sqrt_pos _)); apply Rsqr_le_abs_0; rewrite Rsqr_sqrt.
+- apply lemma_1_4_step2 => //.
+- repeat apply mulR_ge0; try lra.
+  + apply cvariance_nonneg.
+  + apply invR_ge0; lra.
+- apply lemma_1_4_step1 => //.
+  + move=> i; apply (WC i).1.
+  + split => //; lra.
+- repeat apply mulR_ge0; try lra.
+  + apply/RleP; apply sumr_ge0 => i _.
+    rewrite !coqRE; apply mulr_ge0.
+      by apply mulr_ge0; first apply FDist.ge0; apply/RleP; apply ((WC i).1).
+    by apply/RleP; apply sq_RV_ge0.
+  + apply invR_ge0 => //.
+  + apply invR_ge0; lra.
+Qed.
 
 Lemma eqn_a6_a9 :
   16 * var <= var_hat ->
@@ -542,9 +579,6 @@ Lemma eqn_a6_a9 :
   \sum_(i in good) P i * C i * tau i <= 0.25 * (1 - eps) * var_hat.
 Proof.
 rewrite /eps_max; move => var16 esp_pos eps1_12 Hweight HPr_bad.
-have sumCi_ge0 : 0 <= \sum_(i in U) P i * C i.
-  by apply/RleP; apply sumr_ge0 => i _;
-     rewrite coqRE mulr_ge0//; apply /RleP; apply Hweight.
 have [/psumr_eq0P PiCieq0|?] := eqVneq (\sum_(i in U) P i * C i) 0.
   apply: (@leR_trans 0).
     right; apply/eqP; rewrite psumr_eq0.
