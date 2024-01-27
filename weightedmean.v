@@ -238,6 +238,8 @@ Qed.
 
 Definition update : nneg_finfun U := mkNNFinfun update_pos_ffun.
 
+(* Note: this theorem does not hold in general: it should only work
+   when the empirical variance is at least 16 times the actual variance *)
 Lemma update_valid_weight : Weighted.total P update != 0.
 Proof.
 rewrite /Weighted.total/update/update_ffun/=.
@@ -524,10 +526,14 @@ have -> : mu_wave = `E_[ X | F ].
   admit. (* this sounds wrong *)
 (* rewrite 2!cExE. *)
 apply cresilience => //.
-- admit.
+- rewrite /delta; lra.
 - rewrite /delta.
   apply (@leR_trans (1 - eps / 2)).
-    admit.
+    apply leR_add2l; apply (@leR_add2l eps).
+    rewrite Rplus_opp_r -Rdiv_opp_l -{1}(mulR1 eps).
+    rewrite -(divRR 2); last by rewrite gt_eqF//; apply/RltP; apply Rlt_0_2.
+    rewrite mulRA -Rdiv_plus_distr mulRC -addRR -addRA addR_opp subRR addR0.
+    by apply divR_ge0 => //; rewrite -HPr_bad; apply Pr_ge0.
   rewrite {1}/Pr.
   have <- : (\sum_(i in good) P i * C i) = (\sum_(a in F) P a).
     admit.
