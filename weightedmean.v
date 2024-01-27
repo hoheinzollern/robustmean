@@ -243,6 +243,26 @@ Definition update : nneg_finfun U := mkNNFinfun update_pos_ffun.
 Lemma update_valid_weight : Weighted.total P update != 0.
 Proof.
 rewrite /Weighted.total/update/update_ffun/=.
+move=> [:tmp].
+rewrite gt_eqF// lt_neqAle; apply/andP; split.
+  rewrite eq_sym psumr_neq0; last first.
+    abstract: tmp.
+    move=> u uU; rewrite ffunE/=; case: ifPn; first by rewrite mul0R.
+    rewrite negb_or => /andP[taumax0 Cu0].
+    rewrite mulr_ge0// mulr_ge0//.
+      exact/RleP/nneg_finfun_ge0.
+    rewrite subr_ge0 RdivE// ler_pdivrMr ?mul1r//.
+      rewrite /tau_max.
+      Unset Printing Notations.
+      rewrite big_mkcond.
+      apply: bigmax_sup.
+      admit.
+    rewrite lt_neqAle eq_sym taumax0/=.
+    admit.
+  apply/hasP.
+  admit.
+apply: sumr_ge0.
+exact: tmp.
 Admitted.
 
 (* TODO: new section *)
@@ -427,8 +447,7 @@ apply: resilience => //.
   under [in X in X < 1]eq_bigr do rewrite Weighted.dE /=.
   rewrite -big_distrl/= -divRE; apply/ltR_pdivr_mulr => //.
     rewrite ltR_neqAle; split; first exact/nesym/eqP.
-    apply/RleP/sumr_ge0 => u _; rewrite mulr_ge0//.
-    by rewrite {Cpos_fun h1}; move/forallP : C0'; exact.
+    by apply/RleP/sumr_ge0 => u _; rewrite mulr_ge0//; exact/RleP/nneg_finfun_ge0.
   rewrite mul1R.
   rewrite /Weighted.total [in X in _ < X](bigID (fun x => x \in good))/=.
   apply/ltR_addl.
@@ -436,8 +455,7 @@ apply: resilience => //.
   rewrite ltR_neqAle; split.
     apply/nesym/eqP.
     by apply: contra bad_neq0 => /eqP <-; apply/eqP/eq_bigl => u; rewrite !inE.
-  apply/RleP/sumr_ge0 => u _; rewrite mulr_ge0//.
-  by rewrite {Cpos_fun h1}; move/forallP : C0'; exact.
+  by apply/RleP/sumr_ge0 => u _; rewrite mulr_ge0//; exact/RleP/nneg_finfun_ge0.
 Qed.
 
 Lemma cExE F : `E_[X | F] = (\sum_(u in F) X u * P u) / Pr P F.
