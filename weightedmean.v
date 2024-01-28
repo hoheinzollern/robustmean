@@ -562,10 +562,15 @@ Lemma lemma_1_4_1 :
   eps < eps_max ->
   weight C ->
   invariant C ->
-  invariant1 C ->
   Rabs (mu - mu_hat) <= sqrt(var * 2 * eps / (2-eps)) + sqrt(var_hat * 2 * eps / (1-eps)).
 Proof.
-move => HPr_bad eps_le_max WC IC I1C.
+move => HPr_bad eps_le_max WC IC.
+have I1C : invariant1 C.
+  apply: lemma1_4_start => //.
+    under eq_bigr=>i _ do rewrite mulRC.
+    apply/RltP; rewrite lt_neqAle eq_sym PC_neq0/=.
+    by apply sumr_ge0 => i _; rewrite coqRE mulr_ge0//; apply/RleP; apply (WC _).1.
+  by move: eps_le_max; rewrite /eps_max; lra.
 apply: (@Rle_trans _ (`|mu - mu_wave| + `|mu_hat - mu_wave|)).
   have -> : mu - mu_hat = (mu - mu_wave) + (mu_wave - mu_hat) by lra.
   apply: (Rle_trans _ _ _ (Rabs_triang _ _)).
@@ -599,17 +604,25 @@ Lemma eqn_a6_a9 :
   16 * var <= var_hat ->
   0 < eps -> eps < eps_max -> 
   weight C ->
+  invariant C ->
   Pr P bad = eps ->
   \sum_(i in good) P i * C i * tau i <= 0.25 * (1 - eps) * var_hat.
 Proof.
-rewrite /eps_max; move => var16 esp_pos eps1_12 Hweight HPr_bad.
+rewrite /eps_max; move => var16 esp_pos eps1_12 WC IC HPr_bad.
+have I1C : invariant1 C. (* todo: repeated, factor out *)
+  apply: lemma1_4_start => //.
+    under eq_bigr=>i _ do rewrite mulRC.
+    apply/RltP; rewrite lt_neqAle eq_sym PC_neq0/=.
+    by apply sumr_ge0 => i _; rewrite coqRE mulr_ge0//; apply/RleP; apply (WC _).1.
+  by move: eps1_12; lra.
+
 have [/psumr_eq0P PiCieq0|?] := eqVneq (\sum_(i in U) P i * C i) 0.
   apply: (@leR_trans 0).
     right; apply/eqP; rewrite psumr_eq0.
       apply/allP => i _; rewrite PiCieq0//; first rewrite mul0R eqxx implybT//.
-      by move=> i0 _; rewrite coqRE mulr_ge0//; apply/RleP; apply Hweight.
+      by move=> i0 _; rewrite coqRE mulr_ge0//; apply/RleP; apply WC.
     move=>i _. rewrite !coqRE mulr_ge0//; last by apply/RleP; apply tau_ge0.
-    by rewrite mulr_ge0//; apply/RleP; apply Hweight.
+    by rewrite mulr_ge0//; apply/RleP; apply WC.
     apply: mulR_ge0.
     apply: mulR_ge0. interval. lra.
     apply: (@leR_trans (16 * var)) => //. 
@@ -617,11 +630,11 @@ have [/psumr_eq0P PiCieq0|?] := eqVneq (\sum_(i in U) P i * C i) 0.
 have sumCi_gt0 : 0 < \sum_(i in U) P i * C i.
     apply ltR_neqAle; split.
     - by apply/eqP; rewrite eq_sym.
-    - apply/RleP. apply sumr_ge0 => i _. rewrite RmultE mulr_ge0//. apply/RleP. apply Hweight.
+    - apply/RleP. apply sumr_ge0 => i _. rewrite RmultE mulr_ge0//. apply/RleP. apply WC.
 have Hvar_hat_2_eps: 0 <= var_hat * 2 * eps.
   rewrite -mulRA; apply mulR_ge0 => //; last lra.
   rewrite /var_hat.
-  by apply var_hat_ge0; first by move => i; apply Hweight.
+  by apply var_hat_ge0; first by move => i; apply WC.
 have PrPgoodpos : 0 < Pr P good.
   move: HPr_bad; rewrite Pr_of_cplt; by lra.
 
@@ -640,7 +653,7 @@ apply leR_trans with (y :=(1 - eps) * (var + (sqrt(var * 2 * eps / (2-eps)) + sq
     rewrite -HPr_bad subR_ge0; by exact: Pr_1.
   apply leR_add2l. 
   apply Rsqr_le_abs_1. rewrite [x in _ <= x]geR0_norm.
-    by apply lemma_1_4_1 => //.
+    apply lemma_1_4_1 => //.
   by apply /addR_ge0/sqrt_pos/sqrt_pos.
 
 (*a7-a8*)
@@ -680,7 +693,7 @@ apply leR_trans with (y := (1-eps) * var_hat * (/16 + 2 * eps_max * Rsqr (/(4 * 
   rewrite /eps_max.
   apply leR_pmul.
     apply mulR_ge0; first lra.
-      by apply var_hat_ge0 => [u|//]; apply Hweight. 
+      by apply var_hat_ge0 => [u|//]; apply WC. 
     apply addR_ge0; first lra. apply mulR_ge0; first lra. by apply Rle_0_sqr. 
     by right.
   apply leR_add.
@@ -700,7 +713,7 @@ apply leR_trans with (y := (1-eps) * var_hat * (/16 + 2 * eps_max * Rsqr (/(4 * 
     by apply sqrt_lt_R0; lra.
   apply sqrt_le_1; lra.
 rewrite mulRC mulRA.
-apply leR_wpmul2r => //. apply var_hat_ge0 => [u|//]. apply Hweight.
+apply leR_wpmul2r => //. apply var_hat_ge0 => [u|//]. apply WC.
 apply leR_wpmul2r; first lra.
 rewrite /eps_max.
 interval.
