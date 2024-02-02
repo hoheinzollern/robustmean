@@ -379,10 +379,10 @@ Definition Cpos_fun h := mkNNFinfun (C0' h).
 Definition X' : {RV P' -> R} := X.
 Lemma h1 h : Weighted.total P (Cpos_fun h) != 0.
 Proof.
-  rewrite /Weighted.total.
-  under eq_bigr do rewrite mulRC.
-  apply/gtR_eqF.
-Admitted.
+move: PC_neq0.
+rewrite /Weighted.total.
+by under eq_bigr do rewrite mulRC.
+Qed.
 
 Lemma mu_wave_expectation : mu_wave = `E_[X' | good].
 Proof.
