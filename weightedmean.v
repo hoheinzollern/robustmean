@@ -394,12 +394,18 @@ Proof.
   rewrite [in RHS]divRE -[in RHS]mulRA; congr (_ * _).
   rewrite /Pr /P'.
   under [in RHS]eq_bigr do rewrite Weighted.dE.
+  have [/eqP PC0|PC0] := boolP (\sum_(i in good) P i * C i == 0).
+    rewrite PC0 Rinv_0.
+    under eq_bigr do rewrite RdivE'.
+    rewrite -big_distrl/=.
+    under eq_bigr do rewrite mulRC.
+    by rewrite PC0 mul0R Rinv_0 mulR0.
   rewrite -big_distrl /= invRM //; last 2 first.
-    under eq_bigr do rewrite mulRC. admit.
+    by under eq_bigr do rewrite mulRC.
     exact/eqP/invR_neq0/eqP.
   rewrite invRK// mulRCA mulVR// mulR1.
   by under eq_bigr do rewrite mulRC.
-Admitted.
+Qed.
 
 Lemma var_hat_variance : var_hat = `V X'.
 Proof.
