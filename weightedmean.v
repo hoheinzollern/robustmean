@@ -523,17 +523,41 @@ Lemma lemma_1_4_step2 :
   eps < eps_max ->
   weight C ->
   invariant C ->
-  Rsqr (mu - mu_wave) <= var_hat * 2*eps / (2-eps).
+  (mu - mu_wave)² <= var * 2*eps / (2-eps).
 Proof.
 rewrite /eps_max/weight => HPr_bad Hlow_eps HwC Hinv.
 have HPr_good: Pr P good = 1 - eps.
   by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
 rewrite /invariant in Hinv.
-suff h : `| mu - mu_wave | <= sqrt (var_hat * 2 * eps / (2 - eps)).
+suff h : (2 - eps) * (mu - mu_wave)² <= var * 2 * eps.
+  apply: (Rmult_le_reg_r (2-eps)); first lra.
+  by rewrite mulRC -(mulRA _ (/ _)) Rinv_l ?mulR1; last lra.
+apply: (@leR_trans ((2 * ((\sum_(i in good) P i * C i) / Pr P good)) * (mu - mu_wave)²)).
+  apply leR_wpmul2r; first apply Rle_0_sqr.
+  apply: (Rmult_le_reg_l (/2)); first lra.
+  rewrite mulRA Rinv_l ?mul1R; last lra.
+  rewrite Rmult_minus_distr_l (mulRC _ eps) Rinv_l; last lra.
+  exact: good_mass.
+suff: ((\sum_(i in good) P i * C i) / Pr P good) * (mu - mu_wave)² <= var * eps.
+  admit.
+rewrite mu_wave_expectation.
+
+Lemma lemma_1_4_step2 :
+  Pr P bad = eps ->
+  eps < eps_max ->
+  weight C ->
+  invariant C ->
+  Rsqr (mu - mu_wave) <= var * 2*eps / (2-eps).
+Proof.
+rewrite /eps_max/weight => HPr_bad Hlow_eps HwC Hinv.
+have HPr_good: Pr P good = 1 - eps.
+  by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
+rewrite /invariant in Hinv.
+suff h : `| mu - mu_wave | <= sqrt (var * 2 * eps / (2 - eps)).
   apply sqrt_le_0; first by apply Rle_0_sqr.
-  rewrite var_hat_variance.
+  rewrite /var.
   repeat apply mulR_ge0;
-    [exact: variance_nonneg|lra|rewrite -HPr_bad; apply Pr_ge0|apply invR_ge0; lra].
+    [exact: cvariance_nonneg|lra|rewrite -HPr_bad; apply Pr_ge0|apply invR_ge0; lra].
   by rewrite sqrt_Rsqr_abs.
 rewrite distRC mu_wave_expectation.
 rewrite -cEx_trans_min_RV.
@@ -547,7 +571,7 @@ apply: (@leR_trans (sqrt ((`V X') / (Pr P' good)))).
     apply: invR_gt0; apply Rlt_0_sqr. admit.
   exact: Cauchy_Schwarz_proba.
   have -> : `E ((X' `-cst mu) `^2) = `V X'.
-    rewrite/Var. admit.
+    rewrite/Var/mu. admit.
   admit.
 Admitted.
 
