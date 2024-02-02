@@ -535,7 +535,13 @@ rewrite -sqrt_Rsqr_abs.
 rewrite cEx_ExInd.
 rewrite Rsqr_div'.
 apply: (@leR_trans (sqrt ((`V X') / (Pr P' good)))).
-  suff h : (`E ((X' `-cst mu) `* Ind good))² <= `E ((X' `-cst mu)`^2) * `E ((Ind good)`^2 : {RV P' -> R}); last exact: Cauchy_Schwarz_proba.
+  apply: sqrt_le_1_alt.
+  apply: (@leR_trans ((`E ((X' `-cst mu) `^2) * `E (Ind good `^2))/ Rsqr(Pr P' good))).
+  apply leR_pmul2r.
+    apply: invR_gt0; apply Rlt_0_sqr. admit.
+  exact: Cauchy_Schwarz_proba.
+  have -> : `E ((X' `-cst mu) `^2) = `V X'.
+    rewrite/Var. admit.
   admit.
 Admitted.
 
