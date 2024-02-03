@@ -143,6 +143,47 @@ Proof. by apply/fdist_ext => ?; rewrite dE -big_distrl /= FDist.f1 mul1R. Qed.
 End prop.
 End Weighted.
 
+Module Split.
+Section def.
+Variables (A : finType) (p : prob R) (d0 : {fdist A}) (c : nneg_finfun A).
+Definition total := \sum_(a in A) c a * d0 a.
+Hypothesis total_neq0 : total != 0.
+Hypothesis weights_01 : forall i, 0 <= c i <= 1.
+Definition f := [ffun a => (if a.2 then c a.1 else (1 - c a.1)) * d0 a.1 / total].
+Lemma total_gt0 : (0 < total)%mcR.
+Proof.
+rewrite lt_neqAle eq_sym total_neq0/=.
+rewrite /total.
+rewrite sumr_ge0// => i _. 
+apply/mulr_ge0/FDist.ge0.
+by case: c => c' /= /forallP.
+Qed.
+
+Lemma f0 a : (0 <= f a)%mcR.
+Proof.
+rewrite ffunE /f coqRE divr_ge0//; last first.
+  rewrite ltW//. exact  total_gt0.
+rewrite coqRE mulr_ge0 => //.
+case: ifPn => _;
+  first by case: c => c' /= /forallP; exact.
+have [_ ?] := weights_01 a.1.
+by apply/RleP; apply subR_ge0.
+Qed.
+
+Lemma f1 : \sum_a f a = 1.
+Proof.
+rewrite /f.
+under eq_bigr do rewrite ffunE divRE.
+Admitted.
+Definition d : {fdist _} := locked (FDist.make f0 f1).
+Lemma dE a : d a = (if a.2 then c a.1 else (1 - c a.1)) * d0 a.1 / total.
+Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
+End def.
+Section prop.
+Variables (A : finType) (d0 : {fdist A}) (p : prob R)  (c : nneg_finfun A).
+End prop.
+End Split.
+
 (*
 Variable (A : finType) (d0 : {fdist A}) (c : pos_ffun A) (ax : WeightedFDist.axiom d0 c).
 Definition wd := WeightedFDist.d ax.
@@ -453,6 +494,7 @@ pose delta := 1 - eps.
 have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
 rewrite -/delta distRC.
 rewrite mu_wave_expectation var_hat_variance.
+rewrite /mu_hat.
 apply: resilience => //.
 - by rewrite /delta; apply/subR_gt0.
 - rewrite /delta -HPr_bad -Pr_to_cplt /Pr /P' /=.
@@ -523,32 +565,11 @@ Lemma lemma_1_4_step2 :
   eps < eps_max ->
   weight C ->
   invariant C ->
-  (mu - mu_wave)² <= var * 2*eps / (2-eps).
-Proof.
-rewrite /eps_max/weight => HPr_bad Hlow_eps HwC Hinv.
-have HPr_good: Pr P good = 1 - eps.
-  by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
-rewrite /invariant in Hinv.
-suff h : (2 - eps) * (mu - mu_wave)² <= var * 2 * eps.
-  apply: (Rmult_le_reg_r (2-eps)); first lra.
-  by rewrite mulRC -(mulRA _ (/ _)) Rinv_l ?mulR1; last lra.
-apply: (@leR_trans ((2 * ((\sum_(i in good) P i * C i) / Pr P good)) * (mu - mu_wave)²)).
-  apply leR_wpmul2r; first apply Rle_0_sqr.
-  apply: (Rmult_le_reg_l (/2)); first lra.
-  rewrite mulRA Rinv_l ?mul1R; last lra.
-  rewrite Rmult_minus_distr_l (mulRC _ eps) Rinv_l; last lra.
-  exact: good_mass.
-suff h: ((\sum_(i in good) P i * C i) / Pr P good) * (mu - mu_wave)² <= var * eps.
-  by rewrite (mulRC _ 2) -!mulRA; apply: Rmult_le_compat_l; lra.
-rewrite mu_wave_expectation.
-
-Lemma lemma_1_4_step2 :
-  Pr P bad = eps ->
-  eps < eps_max ->
-  weight C ->
-  invariant C ->
   Rsqr (mu - mu_wave) <= var * 2*eps / (2-eps).
 Proof.
+pose P'' (i,b) := if b then P i * C i
+rewrite /mu_wave/mu /Ex.
+
 rewrite /eps_max/weight => HPr_bad Hlow_eps HwC Hinv.
 have HPr_good: Pr P good = 1 - eps.
   by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
