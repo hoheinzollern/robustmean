@@ -538,8 +538,8 @@ apply: (@leR_trans ((2 * ((\sum_(i in good) P i * C i) / Pr P good)) * (mu - mu_
   rewrite mulRA Rinv_l ?mul1R; last lra.
   rewrite Rmult_minus_distr_l (mulRC _ eps) Rinv_l; last lra.
   exact: good_mass.
-suff: ((\sum_(i in good) P i * C i) / Pr P good) * (mu - mu_wave)² <= var * eps.
-  admit.
+suff h: ((\sum_(i in good) P i * C i) / Pr P good) * (mu - mu_wave)² <= var * eps.
+  by rewrite (mulRC _ 2) -!mulRA; apply: Rmult_le_compat_l; lra.
 rewrite mu_wave_expectation.
 
 Lemma lemma_1_4_step2 :
