@@ -582,8 +582,7 @@ Lemma lemma_1_4_step2 :
   invariant C ->
   Rsqr (mu - mu_wave) <= var * 2*eps / (2-eps).
 Proof.
-rewrite /eps_max/weight => HPr_bad Hlow_eps HwC Hinv.
-rewrite/mu/mu_wave.
+rewrite /eps_max/weight/mu/mu_wave => HPr_bad Hlow_eps HwC Hinv.
 have -> : `E_[X | good] = `E_[X'' | good `* [set: bool]].
   admit.
 have -> : (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i) = `E_[X'' | good `* [set true]].
