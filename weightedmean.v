@@ -202,12 +202,17 @@ Definition wd := WeightedFDist.d ax.
 
 Section lemma_1_4.
 Variables (U : finType) (P : {fdist U}).
-
 Variable X : {RV P -> R}.
+
+Definition weight (C : {ffun U -> R}) :=
+  (forall i, 0 <= C i <= 1).
 
 Variable C : nneg_finfun U.
 Hypothesis PC_neq0 : Weighted.total P C != 0.
 Let P' := Weighted.d PC_neq0.
+Hypothesis PCb_neq0 : Split.total P C != 0.
+Hypothesis weight_C : weight C.
+Let P'' := Split.d PCb_neq0 weight_C.
 
 Definition mu_hat := `E (X : {RV P' -> R}).
 
@@ -351,8 +356,6 @@ Definition invariant (C : {ffun U -> R}) :=
 Definition invariant1 C :=
   (1 - eps <= (\sum_(i in good) P i * C i) / (\sum_(i in U) P i * C i)).
 
-Definition weight (C : {ffun U -> R}) :=
-  (forall i, 0 <= C i <= 1).
 
 Lemma base_case: Pr P bad = eps -> invariant C0 /\ invariant1 C0 /\ weight C0.
 Proof.
@@ -570,6 +573,8 @@ by under eq_bigr => i _; [
   rewrite mulNR mul1R -mulRN -{1}(mulR1 (P i)) -mulRDr;over|].
 Qed.
 
+Definition X'' : {RV P'' -> R} := fun x => X x.1.
+
 Lemma lemma_1_4_step2 :
   Pr P bad = eps ->
   eps < eps_max ->
@@ -577,33 +582,29 @@ Lemma lemma_1_4_step2 :
   invariant C ->
   Rsqr (mu - mu_wave) <= var * 2*eps / (2-eps).
 Proof.
-pose P'' (i,b) := if b then P i * C i
-rewrite /mu_wave/mu /Ex.
-
 rewrite /eps_max/weight => HPr_bad Hlow_eps HwC Hinv.
-have HPr_good: Pr P good = 1 - eps.
-  by rewrite -HPr_bad Pr_of_cplt subRB subRR add0R.
-rewrite /invariant in Hinv.
-suff h : `| mu - mu_wave | <= sqrt (var * 2 * eps / (2 - eps)).
-  apply sqrt_le_0; first by apply Rle_0_sqr.
-  rewrite /var.
-  repeat apply mulR_ge0;
-    [exact: cvariance_nonneg|lra|rewrite -HPr_bad; apply Pr_ge0|apply invR_ge0; lra].
-  by rewrite sqrt_Rsqr_abs.
-rewrite distRC mu_wave_expectation.
-rewrite -cEx_trans_min_RV.
-rewrite -sqrt_Rsqr_abs.
-rewrite cEx_ExInd.
-rewrite Rsqr_div'.
-apply: (@leR_trans (sqrt ((`V X') / (Pr P' good)))).
-  apply: sqrt_le_1_alt.
-  apply: (@leR_trans ((`E ((X' `-cst mu) `^2) * `E (Ind good `^2))/ Rsqr(Pr P' good))).
-  apply leR_pmul2r.
-    apply: invR_gt0; apply Rlt_0_sqr. admit.
-  exact: Cauchy_Schwarz_proba.
-  have -> : `E ((X' `-cst mu) `^2) = `V X'.
-    rewrite/Var/mu. admit.
+rewrite/mu/mu_wave.
+have -> : `E_[X | good] = `E_[X'' | good `* [set: bool]].
   admit.
+have -> : (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i) = `E_[X'' | good `* [set true]].
+  admit.
+rewrite Rsqr_neg_minus.
+apply: Rle_trans.
+  apply sqrt_le_0. admit. admit.
+  rewrite sqrt_Rsqr_abs.
+  apply: (cresilience (delta := 1 - eps / 2)).
+  - rewrite -!coqRE; interval.
+  - admit. (* this is good_mass *)
+  - admit. (* this only holds if the weights are not all 1, otherwise the statement is trivial (mu = mu_wave) *)
+  - apply/subsetP => x. admit.
+have -> : `V_[ X'' | good `* [set: bool]] = var.
+  admit.
+rewrite !divRE -(mulRA _ eps) -(mulRA _ (1 - _)).
+apply leR_wpmul2l.
+  apply mulR_ge0; [apply cvariance_nonneg|lra].
+rewrite -!coqRE subRB subRR add0R.
+rewrite -!divRE -Rdiv_mult_distr Rmult_minus_distr_l mulR1.
+rewrite Rmult_div_assoc (mulRC 2) -Rmult_div_assoc divRR ?mulR1; last admit.
 Admitted.
 
 Lemma lemma_1_4_1 :
