@@ -146,17 +146,28 @@ End Weighted.
 Module Split.
 Section def.
 Variables (A : finType) (p : prob R) (d0 : {fdist A}) (c : nneg_finfun A).
-Definition total := \sum_(a in A) c a * d0 a.
+Definition g := fun x => if x.2 then c x.1 else (1 - c x.1).
+Definition total := \sum_x g x * d0 x.1.
 Hypothesis total_neq0 : total != 0.
-Hypothesis weights_01 : forall i, 0 <= c i <= 1.
-Definition f := [ffun a => (if a.2 then c a.1 else (1 - c a.1)) * d0 a.1 / total].
+Hypothesis weight_C : forall i, 0 <= c i <= 1.
+Definition f := [ffun x => g x * d0 x.1 / total].
+
+Lemma g_ge0 x : (0 <= g x)%mcR.
+Proof.
+rewrite/g.
+case: ifPn => _.
+by case: c => c' /= /forallP.
+have [_ ?] := weight_C x.1.
+by apply/RleP; apply subR_ge0.
+Qed.
+
 Lemma total_gt0 : (0 < total)%mcR.
 Proof.
 rewrite lt_neqAle eq_sym total_neq0/=.
 rewrite /total.
 rewrite sumr_ge0// => i _. 
 apply/mulr_ge0/FDist.ge0.
-by case: c => c' /= /forallP.
+exact: g_ge0.
 Qed.
 
 Lemma f0 a : (0 <= f a)%mcR.
@@ -164,17 +175,16 @@ Proof.
 rewrite ffunE /f coqRE divr_ge0//; last first.
   rewrite ltW//. exact  total_gt0.
 rewrite coqRE mulr_ge0 => //.
-case: ifPn => _;
-  first by case: c => c' /= /forallP; exact.
-have [_ ?] := weights_01 a.1.
-by apply/RleP; apply subR_ge0.
+exact: g_ge0.
 Qed.
 
 Lemma f1 : \sum_a f a = 1.
 Proof.
 rewrite /f.
 under eq_bigr do rewrite ffunE divRE.
-Admitted.
+by rewrite -big_distrl/= -divRE divRR.
+Qed.
+
 Definition d : {fdist _} := locked (FDist.make f0 f1).
 Lemma dE a : d a = (if a.2 then c a.1 else (1 - c a.1)) * d0 a.1 / total.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
