@@ -143,6 +143,28 @@ Proof. by apply/fdist_ext => ?; rewrite dE -big_distrl /= FDist.f1 mul1R. Qed.
 End prop.
 End Weighted.
 
+(* TODO: move, inspired by mathcomp analysis *)
+Lemma setT_bool : [set: bool] = [set true; false].
+Proof.
+apply/eqP; rewrite eqEsubset; apply/andP; split => //.
+by apply/subsetP => x; rewrite !inE; case: x.
+Qed.
+
+Section cEx_extra.
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}).
+
+Lemma cExE F : `E_[X | F] = (\sum_(u in F) X u * P u) / Pr P F.
+Proof.
+rewrite cEx_ExInd.
+congr (_ / _).
+rewrite /Ex /ambient_dist /Ind.
+under eq_bigr => i _ do rewrite /mul_RV 2!fun_if if_arg mulR0 mul0R mulR1.
+rewrite [in RHS]big_mkcond /=.
+exact: eq_bigr.
+Qed.
+
+End cEx_extra.
+
 Module Split.
 Section def.
 Variables (A : finType) (p : prob R) (d0 : {fdist A}) (c : nneg_finfun A).
@@ -170,6 +192,22 @@ apply/mulr_ge0/FDist.ge0.
 exact: g_ge0.
 Qed.
 
+Lemma total1 : total = 1.
+Proof.
+rewrite /total.
+transitivity (\sum_(x in ([set: A] `* setT)%SET) g x * d0 x.1).
+  by apply: eq_bigl => /= -[a b]; rewrite !inE.
+rewrite big_setX//=.
+rewrite exchange_big//= setT_bool.
+rewrite big_setU1//= ?inE// big_set1//=.
+rewrite -big_split//=.
+rewrite -(Pr_setT d0).
+rewrite /Pr/=.
+apply: eq_bigr => a _.
+rewrite -mulRDl /g/=.
+by rewrite -addRCA addR_opp subRR addR0 mul1R.
+Qed.
+
 Lemma f0 a : (0 <= f a)%mcR.
 Proof.
 rewrite ffunE /f coqRE divr_ge0//; last first.
@@ -188,6 +226,31 @@ Qed.
 Definition d : {fdist _} := locked (FDist.make f0 f1).
 Lemma dE a : d a = (if a.2 then c a.1 else (1 - c a.1)) * d0 a.1 / total.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
+
+Definition X'' (X : {RV d0 -> R}) : {RV d -> R} := fun x => X x.1.
+
+Lemma H1 good : Pr d0 good = Pr d (good `* [set: bool]).
+Proof.
+rewrite /Pr big_setX/=.
+apply: eq_bigr => u ugood.
+rewrite setT_bool big_setU1//= ?inE// big_set1.
+rewrite !dE/=.
+rewrite -mulRDl -mulRDl.
+rewrite addRCA addR_opp subRR addR0 mul1R.
+by rewrite total1 invR1 mulR1.
+Qed.
+
+Lemma cEx (X : {RV d0 -> R}) good :
+  `E_[X | good] = `E_[X'' X | (good `* [set: bool])].
+Proof.
+rewrite !cExE; congr (_ / _); last exact: H1.
+rewrite big_setX//=; apply: eq_bigr => u ugood.
+rewrite setT_bool big_setU1//= ?inE// big_set1.
+rewrite !dE/= /X''/=.
+rewrite -mulRDr -mulRDl total1 invR1 mulR1 -mulRDl addRCA addR_opp.
+by rewrite subRR addR0 mul1R.
+Qed.
+
 End def.
 Section prop.
 Variables (A : finType) (d0 : {fdist A}) (p : prob R)  (c : nneg_finfun A).
@@ -199,6 +262,7 @@ Variable (A : finType) (d0 : {fdist A}) (c : pos_ffun A) (ax : WeightedFDist.axi
 Definition wd := WeightedFDist.d ax.
 !!!!!
 *)
+
 
 Section lemma_1_4.
 Variables (U : finType) (P : {fdist U}).
@@ -531,16 +595,6 @@ apply: resilience => //.
   by apply/RleP/sumr_ge0 => u _; rewrite mulr_ge0//; exact/RleP/nneg_finfun_ge0.
 Qed.
 
-Lemma cExE F : `E_[X | F] = (\sum_(u in F) X u * P u) / Pr P F.
-Proof.
-rewrite cEx_ExInd.
-congr (_ / _).
-rewrite /Ex /ambient_dist /Ind.
-under eq_bigr => i _ do rewrite /mul_RV 2!fun_if if_arg mulR0 mul0R mulR1.
-rewrite [in RHS]big_mkcond /=.
-by apply eq_bigr => i _. 
-Qed.
-
 Lemma good_mass : 
   Pr P bad = eps ->
   eps < eps_max ->
@@ -573,7 +627,7 @@ by under eq_bigr => i _; [
   rewrite mulNR mul1R -mulRN -{1}(mulR1 (P i)) -mulRDr;over|].
 Qed.
 
-Definition X'' : {RV P'' -> R} := fun x => X x.1.
+
 
 Lemma lemma_1_4_step2 :
   Pr P bad = eps ->
@@ -583,27 +637,72 @@ Lemma lemma_1_4_step2 :
   Rsqr (mu - mu_wave) <= var * 2*eps / (2-eps).
 Proof.
 rewrite /eps_max/weight => HPr_bad Hlow_eps HwC Hinv.
+set X'' := Split.X'' PCb_neq0 HwC X.
 have -> : mu = `E_[X'' | good `* [set: bool]].
-  admit.
+  rewrite /mu.
+  exact: Split.cEx.
 have -> : mu_wave = `E_[X'' | good `* [set true]].
-  admit.
+  rewrite /mu_wave cExE big_setX//=; congr (_ / _); last first.
+    rewrite /Pr big_setX//=; apply: eq_bigr => u ugood.
+    by rewrite big_set1 /P'' Split.dE//= Split.total1 divR1 mulRC.
+  apply: eq_bigr => u ugood.
+  rewrite big_set1 /X'' /P''/= Split.dE/= Split.total1 divR1.
+  rewrite [in RHS]mulRC; congr (_ * _).
+  by rewrite mulRC.
 rewrite Rsqr_neg_minus.
-apply: Rle_trans.
-  apply sqrt_le_0. admit. admit.
+apply: (@leR_trans (`V_[ X'' | good `* [set: bool]] * 2 * (1 - (1 - eps / 2)%mcR) / (1 - eps / 2)%mcR)).
+  apply: sqrt_le_0.
+  - exact: Rle_0_sqr.
+  - apply: mulR_ge0.
+    + apply: mulR_ge0.
+      * apply: mulR_ge0.
+        - exact: cvariance_nonneg.
+        - lra.
+      * rewrite -!coqRE.
+        rewrite (_ : 2%:R = 2)//.
+        rewrite subRB subRR add0R.
+        apply: divR_ge0 => //.
+        by rewrite -HPr_bad.
+    + apply: invR_ge0; rewrite -!coqRE (_ : 2%:R = 2)//.
+      lra.
   rewrite sqrt_Rsqr_abs.
   apply: (cresilience (delta := 1 - eps / 2)).
   - rewrite -!coqRE; interval.
-  - admit. (* this is good_mass *)
+  - have := good_mass HPr_bad Hlow_eps weight_C Hinv.
+    rewrite -!coqRE.
+    move=> /leR_trans; apply.
+    apply/leR_eqVlt; left.
+    rewrite /Pr.
+    rewrite !big_setX/=.
+    under [X in _ = X * _]eq_bigr do rewrite big_set1.
+    congr (_ / _).
+      apply: eq_bigr => u ugood.
+      by rewrite /P'' Split.dE/= Split.total1 divR1 mulRC.
+    apply: eq_bigr => u ugood.
+    rewrite setT_bool big_setU1//= ?inE// big_set1.
+    rewrite /P'' !Split.dE/= !Split.total1 divR1.
+    by rewrite divR1 -mulRDl addRCA addR_opp subRR addR0 mul1R.
+  - rewrite /Pr.
   - admit. (* this only holds if the weights are not all 1, otherwise the statement is trivial (mu = mu_wave) *)
-  - apply/subsetP => x. admit.
+  - apply/subsetP => x.
+    by rewrite !inE => /andP[->].
 have -> : `V_[ X'' | good `* [set: bool]] = var.
-  admit.
+  rewrite /var.
+  rewrite /cVar.
+  have -> : `E_[X'' | (good `* [set: bool])] = `E_[X | good].
+    apply/esym.
+    exact: Split.cEx.
+  apply/esym.
+  exact: Split.cEx.
 rewrite !divRE -(mulRA _ eps) -(mulRA _ (1 - _)).
 apply leR_wpmul2l.
   apply mulR_ge0; [apply cvariance_nonneg|lra].
 rewrite -!coqRE subRB subRR add0R.
 rewrite -!divRE -Rdiv_mult_distr Rmult_minus_distr_l mulR1.
-rewrite Rmult_div_assoc (mulRC 2) -Rmult_div_assoc divRR ?mulR1; last admit.
+rewrite Rmult_div_assoc (mulRC 2) -Rmult_div_assoc divRR ?mulR1.
+  rewrite (_ : 2%:R = 2)//.
+  exact: Rle_refl.
+by apply/eqP; lra.
 Admitted.
 
 Lemma lemma_1_4_1 :
