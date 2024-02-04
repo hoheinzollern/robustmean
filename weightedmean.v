@@ -247,7 +247,7 @@ Definition wd := WeightedFDist.d ax.
 Section lemma_1_4.
 Variables (U : finType) (P : {fdist U}).
 Variable X : {RV P -> R}.
-
+ 
 Definition weight (C : {ffun U -> R}) :=
   (forall i, 0 <= C i <= 1).
 
@@ -711,61 +711,38 @@ rewrite /eps_max.
 interval.
 Qed.
 
-(* here *)
-
 Lemma eqn_a10_a11 :
   16 * var <= var_hat ->
-  0 < eps -> eps < eps_max ->
-  weight C ->
-  invariant C ->
-  Pr P bad = eps ->
-  2/3 * var_hat <= \sum_(i in bad) P i * C i * tau i.
+  invariant ->
+  2/3 * var_hat <= \sum_(i in bad) C i * P i * tau i.
 Proof.
-rewrite /eps_max; move => var16 esp_pos eps1_12 HwC HiC HPr_bad.
-have var_hat_pos: 0 <= var_hat.
- apply : (leR_trans _ var16).
- apply mulR_ge0; first by lra.
- apply cvariance_nonneg.
-have PrPgoodpos : 0 < Pr P good.
-  move: HPr_bad; rewrite Pr_of_cplt; lra.
+rewrite /eps_max; move => var16 HiC.
+unfold eps_max in low_eps.
+have PrPgoodpos : 0 < Pr P good by rewrite pr_good; lra.
 
-have ->: \sum_(i in bad) P i * C i * tau i =
-  var_hat * (\sum_(i in U) P i * C i) - (\sum_(i in good) P i * C i * tau i).
-  rewrite /var_hat -mulRA Rinv_l ?mulR1; last first.
-    by apply/eqP; under eq_bigr => i _ do rewrite mulRC; exact: PC_neq0.
-  rewrite -addR_opp big_morph_oppR big_mkcond [X in _ + X]big_mkcond -big_split/=.
-  apply: eq_bigr => i _; rewrite /bad in_setC; symmetry.
-  by case: ifP => /= _; rewrite ?addRN ?addR0.
-apply (@leR_trans (var_hat * (1-3/2*eps) - \sum_(i in good) P i * C i * tau i)); last first.
-  apply/RleP; rewrite !coqRE lerB// ler_pM// ?subr_ge0 -!coqRE; apply/RleP => //; first lra.
-  move: (good_mass HPr_bad eps1_12 HwC HiC).
-  move/(Rmult_le_compat_r (Pr P good) _ _ (Pr_ge0 _ good)).
-  rewrite -Rmult_div_swap Rmult_div_l; last exact: Rgt_not_eq.
-  rewrite Pr_to_cplt HPr_bad.
-  rewrite Rmult_minus_distr_r Rmult_minus_distr_l mulR1.
-  rewrite Rmult_minus_distr_l subRB.
-  move/(Rle_trans (1 - 3/2 * eps)) => H.
-  apply: (Rle_trans _ _ _ (H _)); first nra.
-  apply: leR_sumRl => //.
-  move=> i _; exact: Rle_refl.
-  move=> i _; apply: Rmult_le_pos.
-  - apply/RleP; exact: FDist.ge0.
-  - exact: (HwC i).1.
+have ->: \sum_(i in bad) C i * P i* tau i =
+  var_hat * (\sum_(i in U) C i * P i) - (\sum_(i in good) C i * P i * tau i).
+  rewrite /var_hat /Var{1}/Ex.
+  apply: (Rplus_eq_reg_r (\sum_(i in good) C i * P i * tau i)).
+  rewrite -addRA Rplus_opp_l addR0.
+  rewrite /bad.
+  have -> : \sum_(i in ~: good) C i * P i * tau i + \sum_(i in good) C i * P i * tau i = \sum_(i in U) C i * P i * tau i.
+    admit.
+  rewrite big_distrl/=.
+  apply: eq_bigr => i _.
+  rewrite /tau/mu_hat /P' Weighted.dE.
+  rewrite mulRC {2}/X' -mulRA; congr (_ * _).
+  rewrite /Weighted.total -mulRA Rinv_l ?mulR1//.
+  admit.
 
 apply (@leR_trans ((1 - 3 / 2 * eps - 0.25 * (1 - eps)) * var_hat)); last first.
-  apply/RleP; rewrite !coqRE mulrBl (mulrC var_hat) lerB// -!coqRE; apply/RleP; exact: eqn_a6_a9.
+  apply/RleP; rewrite !coqRE mulrBl (mulrC var_hat) lerB// -!coqRE; apply/RleP; last exact: eqn_a6_a9. admit.
 
 apply (@leR_trans ((1 - 3 / 2 * eps_max - 0.25 * (1 - eps_max)) * var_hat)); last first.
-  apply leR_wpmul2r=>//. apply/RleP.
-  rewrite -!subRD !coqRE lerB// !mulrBr. 
-  rewrite (addrC (_*1)) (addrC (_*1)) !addrA lerD//.
-  rewrite -!mulrBl ler_pM// /eps_max.
-  - by rewrite -!coqRE; apply/RleP; interval.
-  - by rewrite ltW//; apply/RltP.
-  - by rewrite ltW//; apply/RltP.
-
-apply leR_wpmul2r => //; interval.
-Qed.
+  apply leR_wpmul2r; first apply variance_nonneg.
+  rewrite /eps_max. nra.
+by rewrite/eps_max; apply leR_wpmul2r; first apply variance_nonneg; nra.
+Admitted.
 
 (* TODO: improve the notation for pos_ffun (and for pos_fun) *)
 Lemma eqn1_3_4 (S: {set U}):
@@ -789,9 +766,21 @@ apply eq_bigr => i HiS.
 by rewrite -mulRDr addRA subRK.
 Qed.
 
+End lemma_1_4.
+
+Section lemma_1_5.
+(* cleanup here *)
+Variables (U : finType) (P : {fdist U}).
+Variable X : {RV P -> R}.
+
+Variable C : nneg_finfun U.
+Variable good : {set U}.
+
+Variable eps : R.
+
 Lemma lemma_1_5 :
   let C' := update in
-  0 < tau_max ->
+  0 < (tau_max X (h1 _ _)) ->
   \sum_(i in good) P i * (C i * tau i) <=
     (1 - eps) / 2 * (\sum_(i in bad) P i * (C i * tau i)) ->
   invariant C -> invariant C'.
@@ -804,7 +793,7 @@ apply leR_pmul2l; first by rewrite /Rdiv mul1R; apply invR_gt0.
 by rewrite mulRC; exact H1.
 Qed.
 
-End lemma_1_4.
+End lemma_1_5.
 
 
 Section base_case.
