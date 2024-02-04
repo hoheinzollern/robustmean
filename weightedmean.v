@@ -595,8 +595,6 @@ by under eq_bigr => i _; [
   rewrite mulNR mul1R -mulRN -{1}(mulR1 (P i)) -mulRDr;over|].
 Qed.
 
-
-
 Lemma lemma_1_4_step2 :
   Pr P bad = eps ->
   eps < eps_max ->
@@ -651,9 +649,20 @@ apply: (@leR_trans (`V_[ X'' | good `* [set: bool]] * 2 * (1 - (1 - eps / 2)%mcR
     rewrite /P'' !Split.dE/=.
     by rewrite -mulRDl addRCA addR_opp subRR addR0 mul1R.
   - rewrite /Pr.
-  - admit. (* this only holds if the weights are not all 1, otherwise the statement is trivial (mu = mu_wave) *)
-  - apply/subsetP => x.
-    by rewrite !inE => /andP[->].
+  - (* this only holds if the weights are not all 1, otherwise the statement is trivial (mu = mu_wave) *)
+    rewrite !big_setX//=.
+    apply: ltR_sumR_support(* too strong lemma!*) => //.
+    + admit. (* by contradiction *)
+    + move=> u ugood.
+      rewrite big_set1/=.
+      rewrite setT_bool big_setU1//= ?inE// big_set1.
+      rewrite !Split.dE//=.
+      rewrite -mulRDl//= Split.total1 invR1 divR1 mulR1 -mulRDl.
+      rewrite addRCA addR_opp subRR addR0 mul1R.
+      (*apply/ltR_addl.*)
+      admit.
+    + apply/subsetP => -[a b].
+      by rewrite !inE/= => /andP[] ->//.
 have -> : `V_[ X'' | good `* [set: bool]] = var.
   rewrite /var.
   rewrite /cVar.
