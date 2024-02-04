@@ -150,32 +150,6 @@ apply/eqP; rewrite eqEsubset; apply/andP; split => //.
 by apply/subsetP => x; rewrite !inE; case: x.
 Qed.
 
-Section leR_ltR_sumR_finType.
-Variables (A : finType) (f g : A -> R) (P Q : pred A).
-
-Lemma ltR_sumR_support (X : {set A}) : (0 < #|X|)%nat ->
-  (forall i, i \in X -> f i <= g i) ->
-  (exists i, i \in X -> f i < g i) ->
-  \sum_(i in X) f i < \sum_(i in X) g i.
-Admitted.
-
-End leR_ltR_sumR_finType.
-
-Section cEx_extra.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}).
-
-Lemma cExE F : `E_[X | F] = (\sum_(u in F) X u * P u) / Pr P F.
-Proof.
-rewrite cEx_ExInd.
-congr (_ / _).
-rewrite /Ex /ambient_dist /Ind.
-under eq_bigr => i _ do rewrite /mul_RV 2!fun_if if_arg mulR0 mul0R mulR1.
-rewrite [in RHS]big_mkcond /=.
-exact: eq_bigr.
-Qed.
-
-End cEx_extra.
-
 Module Split.
 Section def.
 Variables (A : finType) (d0 : {fdist A}) (c : nneg_finfun A).
@@ -437,18 +411,13 @@ rewrite /Weighted.total.
 by under eq_bigr do rewrite mulRC.
 Qed.
 
-Lemma mu_wave_expectation : (\sum_(i in good) C i * P i * X i) / (\sum_(i in good) C i * P i) = mu_wave.
-Proof.
-Admitted.
-
 Lemma lemma_1_4_step1 :
   0 < \sum_(i in U) C i * P i (* NB: this can be proved from the termination condition *) ->
   Pr P' good != 0 ->
-  Pr P' bad != 0 ->
   invariant1 ->
   Rsqr (mu_hat - mu_wave) <= var_hat * 2 * eps / (1 - eps).
 Proof.
-move=> PC0 pgoodC pbadC invC.
+move=> PC0 pgoodC invC.
 unfold eps_max in low_eps.
 suff h : `| mu_hat - mu_wave | <= sqrt (var_hat * 2 * eps / (1 - eps)).
   rewrite Rsqr_abs -[X in _ <= X]Rsqr_sqrt; last first.
@@ -459,10 +428,8 @@ pose delta := 1 - eps.
 have {1}-> : eps = 1 - delta by rewrite subRB subRR add0R.
 rewrite -/delta distRC.
 rewrite /mu_hat.
-apply: resilience => //.
-- by rewrite /delta; lra.
-admit. (* this could be dropped in resilience *)
-Admitted.
+by apply: resilience => //; rewrite /delta; lra.
+Qed.
 
 Lemma good_mass : 
   invariant ->
@@ -545,7 +512,11 @@ apply: (@leR_trans (`V_[ X'' | good `* [set: bool]] * 2 * (1 - (1 - eps / 2)%mcR
     rewrite /P'' !Split.dE/=.
     by rewrite -mulRDl addRCA addR_opp subRR addR0 mul1R.
   - rewrite /Pr.
-  - admit. (* this only holds if the weights are not all 1, otherwise the statement is trivial (mu = mu_wave) *)
+  - apply leR_sumRl => i; rewrite inE => /andP[igood _].
+    + by right.
+    + rewrite Split.dE; apply mulR_ge0 => //.
+      by case: ifPn => _; move: (weight_C i.1) => [c0 c1]//; apply subR_ge0.
+    + by rewrite inE igood in_setT.
   - apply/subsetP => x.
     by rewrite !inE => /andP[->].
 have -> : `V_[ X'' | good `* [set: bool]] = var.
@@ -593,11 +564,12 @@ apply: leR_add; rewrite -(geR0_norm _ (sqrt_pos _)); apply Rsqr_le_abs_0; rewrit
 - repeat apply mulR_ge0; try lra.
   + apply cvariance_nonneg.
   + apply invR_ge0; lra.
-- apply lemma_1_4_step1 => //. admit. admit.
+- apply lemma_1_4_step1 => //.
+  + by rewrite /invariant1 in I1C; apply/eqP; lra.
 - repeat apply mulR_ge0; try lra.
   + apply variance_nonneg. 
   + apply invR_ge0; lra.
-Admitted.
+Qed.
 
 Lemma eqn_a6_a9 :
   16 * var <= var_hat ->
@@ -713,14 +685,15 @@ Qed.
 
 Lemma eqn_a10_a11 :
   16 * var <= var_hat ->
+  0 < \sum_(i in U) C i * P i ->
   invariant ->
   2/3 * var_hat <= \sum_(i in bad) C i * P i * tau i.
 Proof.
-rewrite /eps_max; move => var16 HiC.
+rewrite /eps_max; move => var16 sumCi_pos HiC.
 unfold eps_max in low_eps.
 have PrPgoodpos : 0 < Pr P good by rewrite pr_good; lra.
 
-have ->: \sum_(i in bad) C i * P i* tau i =
+have ->: \sum_(i in bad) C i * P i * tau i =
   var_hat * (\sum_(i in U) C i * P i) - (\sum_(i in good) C i * P i * tau i).
   rewrite /var_hat /Var{1}/Ex.
   apply: (Rplus_eq_reg_r (\sum_(i in good) C i * P i * tau i)).
@@ -733,10 +706,26 @@ have ->: \sum_(i in bad) C i * P i* tau i =
   rewrite /tau/mu_hat /P' Weighted.dE.
   rewrite mulRC {2}/X' -mulRA; congr (_ * _).
   rewrite /Weighted.total -mulRA Rinv_l ?mulR1//.
-  admit.
+  exact: Rgt_not_eq.
+
+apply (@leR_trans (var_hat * (1-3/2*eps) - \sum_(i in good) C i * P i * tau i)); last first.
+  rewrite -!addR_opp; apply: Rplus_le_compat_r.
+  apply leR_wpmul2l; first exact: variance_nonneg.
+  apply: (@leR_trans ((1 - eps / 2) * (1 - eps))); first nra.
+  apply: leR_trans.
+  move: (good_mass HiC).
+  move/(Rmult_le_compat_r (Pr P good) _ _ (Pr_ge0 _ good)).
+  rewrite -Rmult_div_swap Rmult_div_l; last exact: Rgt_not_eq.
+  rewrite Pr_to_cplt pr_bad; apply.
+  apply leR_sumRl => //i igood.
+  + by right.
+  + by apply mulR_ge0 => //; apply (weight_C _).1.
 
 apply (@leR_trans ((1 - 3 / 2 * eps - 0.25 * (1 - eps)) * var_hat)); last first.
-  apply/RleP; rewrite !coqRE mulrBl (mulrC var_hat) lerB// -!coqRE; apply/RleP; last exact: eqn_a6_a9. admit.
+  rewrite mulRBl (mulRC var_hat). 
+  apply: leR_add; last by apply Ropp_le_contravar; exact: eqn_a6_a9.
+  apply leR_wpmul2r; first exact: variance_nonneg.
+  by right.
 
 apply (@leR_trans ((1 - 3 / 2 * eps_max - 0.25 * (1 - eps_max)) * var_hat)); last first.
   apply leR_wpmul2r; first apply variance_nonneg.
