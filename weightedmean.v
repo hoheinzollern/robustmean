@@ -175,9 +175,18 @@ Qed.
 
 Lemma f1 : \sum_a f a = 1.
 Proof.
-rewrite /f.
-under eq_bigr do rewrite ffunE /g.
-Admitted.
+transitivity (\sum_(x in ([set: A] `* setT)%SET) f x).
+  by apply: eq_bigl => /= -[a b]; rewrite !inE.
+rewrite big_setX/=.
+rewrite exchange_big//= setT_bool.
+rewrite big_setU1//= ?inE// big_set1//=.
+rewrite -big_split//=.
+rewrite -(Pr_setT d0).
+rewrite /Pr/=.
+apply: eq_bigr => a _.
+rewrite !ffunE/g/=.
+lra.
+Qed.
 
 Definition d : {fdist _} := locked (FDist.make f0 f1).
 Lemma dE a : d a = (if a.2 then c a.1 else (1 - c a.1)) * d0 a.1.
