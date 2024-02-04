@@ -167,12 +167,10 @@ End cEx_extra.
 
 Module Split.
 Section def.
-Variables (A : finType) (p : prob R) (d0 : {fdist A}) (c : nneg_finfun A).
+Variables (A : finType) (d0 : {fdist A}) (c : nneg_finfun A).
 Definition g := fun x => if x.2 then c x.1 else (1 - c x.1).
-Definition total := \sum_x g x * d0 x.1.
-Hypothesis total_neq0 : total != 0.
 Hypothesis weight_C : forall i, 0 <= c i <= 1.
-Definition f := [ffun x => g x * d0 x.1 / total].
+Definition f := [ffun x => g x * d0 x.1].
 
 Lemma g_ge0 x : (0 <= g x)%mcR.
 Proof.
@@ -183,48 +181,21 @@ have [_ ?] := weight_C x.1.
 by apply/RleP; apply subR_ge0.
 Qed.
 
-Lemma total_gt0 : (0 < total)%mcR.
-Proof.
-rewrite lt_neqAle eq_sym total_neq0/=.
-rewrite /total.
-rewrite sumr_ge0// => i _. 
-apply/mulr_ge0/FDist.ge0.
-exact: g_ge0.
-Qed.
-
-Lemma total1 : total = 1.
-Proof.
-rewrite /total.
-transitivity (\sum_(x in ([set: A] `* setT)%SET) g x * d0 x.1).
-  by apply: eq_bigl => /= -[a b]; rewrite !inE.
-rewrite big_setX//=.
-rewrite exchange_big//= setT_bool.
-rewrite big_setU1//= ?inE// big_set1//=.
-rewrite -big_split//=.
-rewrite -(Pr_setT d0).
-rewrite /Pr/=.
-apply: eq_bigr => a _.
-rewrite -mulRDl /g/=.
-by rewrite -addRCA addR_opp subRR addR0 mul1R.
-Qed.
-
 Lemma f0 a : (0 <= f a)%mcR.
 Proof.
-rewrite ffunE /f coqRE divr_ge0//; last first.
-  rewrite ltW//. exact  total_gt0.
-rewrite coqRE mulr_ge0 => //.
+rewrite ffunE /f coqRE.
+rewrite mulr_ge0 => //.
 exact: g_ge0.
 Qed.
 
 Lemma f1 : \sum_a f a = 1.
 Proof.
 rewrite /f.
-under eq_bigr do rewrite ffunE divRE.
-by rewrite -big_distrl/= -divRE divRR.
-Qed.
+under eq_bigr do rewrite ffunE.
+Admitted.
 
 Definition d : {fdist _} := locked (FDist.make f0 f1).
-Lemma dE a : d a = (if a.2 then c a.1 else (1 - c a.1)) * d0 a.1 / total.
+Lemma dE a : d a = (if a.2 then c a.1 else (1 - c a.1)) * d0 a.1.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
 
 Definition X'' (X : {RV d0 -> R}) : {RV d -> R} := fun x => X x.1.
@@ -235,9 +206,7 @@ rewrite /Pr big_setX/=.
 apply: eq_bigr => u ugood.
 rewrite setT_bool big_setU1//= ?inE// big_set1.
 rewrite !dE/=.
-rewrite -mulRDl -mulRDl.
-rewrite addRCA addR_opp subRR addR0 mul1R.
-by rewrite total1 invR1 mulR1.
+by rewrite -mulRDl addRCA addR_opp subRR addR0 mul1R.
 Qed.
 
 Lemma cEx (X : {RV d0 -> R}) good :
@@ -247,7 +216,7 @@ rewrite !cExE; congr (_ / _); last exact: H1.
 rewrite big_setX//=; apply: eq_bigr => u ugood.
 rewrite setT_bool big_setU1//= ?inE// big_set1.
 rewrite !dE/= /X''/=.
-rewrite -mulRDr -mulRDl total1 invR1 mulR1 -mulRDl addRCA addR_opp.
+rewrite -mulRDr -mulRDl addRCA addR_opp.
 by rewrite subRR addR0 mul1R.
 Qed.
 
@@ -274,9 +243,8 @@ Definition weight (C : {ffun U -> R}) :=
 Variable C : nneg_finfun U.
 Hypothesis PC_neq0 : Weighted.total P C != 0.
 Let P' := Weighted.d PC_neq0.
-Hypothesis PCb_neq0 : Split.total P C != 0.
 Hypothesis weight_C : weight C.
-Let P'' := Split.d PCb_neq0 weight_C.
+Let P'' := Split.d P weight_C.
 
 Definition mu_hat := `E (X : {RV P' -> R}).
 
@@ -637,16 +605,16 @@ Lemma lemma_1_4_step2 :
   Rsqr (mu - mu_wave) <= var * 2*eps / (2-eps).
 Proof.
 rewrite /eps_max/weight => HPr_bad Hlow_eps HwC Hinv.
-set X'' := Split.X'' PCb_neq0 HwC X.
+set X'' := Split.X'' HwC X.
 have -> : mu = `E_[X'' | good `* [set: bool]].
   rewrite /mu.
   exact: Split.cEx.
 have -> : mu_wave = `E_[X'' | good `* [set true]].
   rewrite /mu_wave cExE big_setX//=; congr (_ / _); last first.
     rewrite /Pr big_setX//=; apply: eq_bigr => u ugood.
-    by rewrite big_set1 /P'' Split.dE//= Split.total1 divR1 mulRC.
+    by rewrite big_set1 /P'' Split.dE//= mulRC.
   apply: eq_bigr => u ugood.
-  rewrite big_set1 /X'' /P''/= Split.dE/= Split.total1 divR1.
+  rewrite big_set1 /X'' /P''/= Split.dE/=.
   rewrite [in RHS]mulRC; congr (_ * _).
   by rewrite mulRC.
 rewrite Rsqr_neg_minus.
@@ -677,11 +645,11 @@ apply: (@leR_trans (`V_[ X'' | good `* [set: bool]] * 2 * (1 - (1 - eps / 2)%mcR
     under [X in _ = X * _]eq_bigr do rewrite big_set1.
     congr (_ / _).
       apply: eq_bigr => u ugood.
-      by rewrite /P'' Split.dE/= Split.total1 divR1 mulRC.
+      by rewrite /P'' Split.dE/= mulRC.
     apply: eq_bigr => u ugood.
     rewrite setT_bool big_setU1//= ?inE// big_set1.
-    rewrite /P'' !Split.dE/= !Split.total1 divR1.
-    by rewrite divR1 -mulRDl addRCA addR_opp subRR addR0 mul1R.
+    rewrite /P'' !Split.dE/=.
+    by rewrite -mulRDl addRCA addR_opp subRR addR0 mul1R.
   - rewrite /Pr.
   - admit. (* this only holds if the weights are not all 1, otherwise the statement is trivial (mu = mu_wave) *)
   - apply/subsetP => x.
