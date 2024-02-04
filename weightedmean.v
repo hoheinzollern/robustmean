@@ -657,7 +657,7 @@ apply: (@leR_trans (`V_[ X'' | good `* [set: bool]] * 2 * (1 - (1 - eps / 2)%mcR
       rewrite big_set1/=.
       rewrite setT_bool big_setU1//= ?inE// big_set1.
       rewrite !Split.dE//=.
-      rewrite -mulRDl//= Split.total1 invR1 divR1 mulR1 -mulRDl.
+      rewrite -mulRDl//=.
       rewrite addRCA addR_opp subRR addR0 mul1R.
       (*apply/ltR_addl.*)
       admit.
