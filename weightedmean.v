@@ -712,8 +712,12 @@ have ->: \sum_(i in bad) C i * P i * tau i =
   apply: (Rplus_eq_reg_r (\sum_(i in good) C i * P i * tau i)).
   rewrite -addRA Rplus_opp_l addR0.
   rewrite /bad.
-  have -> : \sum_(i in ~: good) C i * P i * tau i + \sum_(i in good) C i * P i * tau i = \sum_(i in U) C i * P i * tau i.
-    admit.
+  have -> : \sum_(i in ~: good) C i * P i * tau i +
+            \sum_(i in good) C i * P i * tau i = \sum_(i in U) C i * P i * tau i.
+    rewrite -big_union/=; last first.
+      by rewrite disjoints_subset setCK.
+    rewrite setUC setUCr/=.
+    by apply: eq_bigl => //= u; rewrite inE.
   rewrite big_distrl/=.
   apply: eq_bigr => i _.
   rewrite /tau/mu_hat /P' Weighted.dE.
@@ -744,7 +748,7 @@ apply (@leR_trans ((1 - 3 / 2 * eps_max - 0.25 * (1 - eps_max)) * var_hat)); las
   apply leR_wpmul2r; first apply variance_nonneg.
   rewrite /eps_max. nra.
 by rewrite/eps_max; apply leR_wpmul2r; first apply variance_nonneg; nra.
-Admitted.
+Qed.
 
 (* TODO: improve the notation for pos_ffun (and for pos_fun) *)
 Lemma eqn1_3_4 (S: {set U}):
