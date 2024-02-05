@@ -18,10 +18,14 @@ Import Order.POrderTheory Order.Theory Num.Theory GRing.Theory.
 
 Notation R := real_realType.
 
-(******************************************************************************)
+(**md**************************************************************************)
+(* # resilience, robustmean                                                   *)
 (*                                                                            *)
-(*      X `* Y == multiplication of random variables                          *)
-(*  `V_[X | F] == conditional variance                                        *)
+(* |Definitions  |    | Meaning                                              |*)
+(* |-------------|----|------------------------------------------------------|*)
+(* |    X `* Y   | == | multiplication of random variables                    *)
+(* | `V_[X \| F] | == | conditional variance                                  *)
+(* | ...         | == | ...                                                   *)
 (*                                                                            *)
 (******************************************************************************)
 
@@ -68,7 +72,6 @@ Defined.
 (* Definition RV_ringE := *)
 (*   (add_RV_addr, sub_RV_subr, trans_min_RV_subr, mul_RV_mulr, sq_RV_sqrr). *)
 End RV_ring.
-
 
 Section sets_functions.
 
