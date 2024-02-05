@@ -250,10 +250,15 @@ Proof. by rewrite [LHS]I_square sq_RVE. Qed.
 Lemma I_mult_one F : (Ind (A:=U) F : {RV P -> R}) `* 1 = Ind (A:=U) F.
 (F: {RV P -> R}): (Ind (A:=U) F: {RV P -> R}) `* 1 = (Ind (A:=U) F : {RV P -> R}). *)
 
-Lemma cEx_trans_min_RV (X : {RV P -> R}) m F :
+Lemma cEx_trans_min_RV (X : {RV P -> R}) m F : Pr P F != 0 ->
   `E_[ (X `-cst m) | F] = `E_[ X | F ] - m.
-Admitted.
-
+Proof.
+move=> PF0.
+rewrite !cExE.
+under eq_bigr do rewrite /trans_min_RV mulRDl.
+rewrite big_split/= divRDl; congr (_ + _).
+by rewrite -big_distrr/= -Rmult_div_assoc divRR ?mulR1.
+Qed.
 
 Lemma cEx_sub (X : {RV P -> R}) (F G: {set U}) :
   0 < Pr P F ->
