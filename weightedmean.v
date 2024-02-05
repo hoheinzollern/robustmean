@@ -87,6 +87,7 @@ Fail Check F : pos_fun _. (* Why no coercion pos_ffun >-> pos_fun? *)
 Lemma pos_ffun_bigmaxR0P :
   reflect (forall i : I, i \in r -> P i -> F i = 0)
           (\rmax_(i <- r | P i) F i == 0).
+Proof.
 apply: (iffP idP) => [/eqP H i ir Pi|H].
 - apply/eqP; rewrite nneg_finfun_le0 -coqRE -H.
   rewrite -big_filter; apply/RleP; apply: leR_bigmaxR.
@@ -95,6 +96,7 @@ apply: (iffP idP) => [/eqP H i ir Pi|H].
   under eq_bigr=> i do rewrite mem_filter=> /andP [] /[swap] /(H i) /[apply] ->.
   by rewrite -big_seq big_const_seq iter_fix // maxRR.
 Qed.
+
 End nneg_finfun.
 End move_to_infotheo.
 
@@ -134,12 +136,18 @@ End move_to_mathcomp.
 Definition is_01 (U : finType) (C : {ffun U -> R}) :=
   (forall i, 0 <= C i <= 1).
 
+(** given a distribution d0 and a non-negative function f,
+    Weighted.d is the distribution a |-> f a * d0 a / \sum_a f a * d0 a *)
 Module Weighted.
 Section def.
-Variables (A : finType) (p : prob R) (d0 : {fdist A}) (c : nneg_finfun A).
+Variables (A : finType) (d0 : {fdist A}) (c : nneg_finfun A).
+
 Definition total := \sum_(a in A) c a * d0 a.
+
 Hypothesis total_neq0 : total != 0.
+
 Definition f := [ffun a => c a * d0 a / total].
+
 Lemma total_gt0 : (0 < total)%mcR.
 Proof.
 rewrite lt_neqAle eq_sym total_neq0/=.
@@ -149,24 +157,28 @@ apply/mulr_ge0/FDist.ge0.
 by case: c => c' /= /forallP.
 Qed.
 
-Lemma f0 a : (0 <= f a)%mcR.
+Let f0 a : (0 <= f a)%mcR.
 Proof.
 rewrite ffunE /f coqRE divr_ge0//; last first.
-  rewrite ltW//. exact  total_gt0.
-rewrite coqRE mulr_ge0 => //.
-case: c => c' /= /forallP. exact.
+  exact/ltW/total_gt0.
+rewrite coqRE mulr_ge0 //.
+by case: c => ? /= /forallP; exact.
 Qed.
 
-Lemma f1 : \sum_(a in A) f a = 1.
+Let f1 : \sum_(a in A) f a = 1.
 Proof.
 rewrite /f.
 under eq_bigr do rewrite ffunE divRE.
 by rewrite -big_distrl /= mulRV.
 Qed.
+
 Definition d : {fdist A} := locked (FDist.make f0 f1).
+
 Lemma dE a : d a = c a * d0 a / total.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
+
 End def.
+
 Section prop.
 Variables (A : finType) (d0 : {fdist A}) (p : prob R)  (c : nneg_finfun A).
 (*
@@ -249,18 +261,20 @@ Variables (A : finType) (d0 : {fdist A}) (p : prob R)  (c : nneg_finfun A).
 End prop.
 End Split.
 
-Section bounding_empirical_mean. (* part 1 of lemma 1.4, pg 5 *)
+(** part 1 of lemma 1.4, pg 5 *)
+Section bounding_empirical_mean.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
+Variable good : {set U}.
+Variable eps : R.
+
 Hypothesis weight_C : is_01 C.
 Hypothesis PC_neq0 : Weighted.total P C != 0.
 
 Let P' := Weighted.d PC_neq0.
 Let P'' := Split.d P weight_C.
 
-Variable good : {set U}.
 Definition bad := ~: good.
 
-Variable eps : R.
 Definition eps_max := 1/16.
 
 Hypothesis pr_bad : Pr P bad = eps.
@@ -853,7 +867,7 @@ Definition Cpos_ffun1 := @mkNNFinfun A ffun1 ffun1_subproof.
 Hypothesis PC_neq0 : Weighted.total P Cpos_ffun1  != 0.
 
 Lemma base_case: Pr P (bad good) = eps ->
-  invariant P Cpos_ffun1 good eps /\ invariant1 PC_neq0 good eps /\ is_01 Cpos_ffun1.
+  invariant P Cpos_ffun1 good eps /\ invariant1 good eps PC_neq0 /\ is_01 Cpos_ffun1.
 Proof.
 move => Hbad_ratio.
 rewrite /invariant.
@@ -883,12 +897,15 @@ Section filter1d.
 Variables (U : finType) (P : {fdist U}).
 Variable X : {RV P -> R}.
 Variable good : {set U}.
+Variable eps : R.
 
 (* TODO: split file here? *)
 Require Import Program.Wf.
 
 Local Obligation Tactic := idtac.
-Program Fixpoint filter1d (C : nneg_finfun U ) (HC : Weighted.total P C != 0)
+Program Fixpoint filter1d (C : nneg_finfun U )
+  (C01 : is_01 C) (Prbad : Pr P (bad good) = eps) (epsmax : eps <= 1/16)
+ (HC : Weighted.total P C != 0)
     {measure #| 0.-support (tau X HC)| } :=
   match Bool.bool_dec (Weighted.total P C != 0) true with
   | right _ =>  None
@@ -897,13 +914,13 @@ Program Fixpoint filter1d (C : nneg_finfun U ) (HC : Weighted.total P C != 0)
   | 0      => None
   | S gas' => if Rleb (var_hat X H) (var X good)
               then Some (mu_hat X H)
-              else filter1d (update_valid_weight X HC)
+              else filter1d C01 Prbad epsmax (update_valid_weight X C01 HC Prbad epsmax)
   end
 end.
 Next Obligation.
-move=> /= C HC _ H _ n Hn.
+(*move=> /= C HC _ H _ n Hn.
 move: (ltn0Sn n); rewrite Hn => /card_gt0P [] u; rewrite supportE.
-move: (tau_ge0 X H u)=> /[swap] /eqP /nesym /[conj] /ltR_neqAle Hu.
+move: (tau_ge0 X H u)=> /[swap] /eqP /nesym /[conj] /ltR_neqAle Hu.*)
 (*
 set stuC := 0.-support (tau (update C)).
 set stC := 0.-support (tau C).
@@ -939,4 +956,6 @@ Lemma first_note (C: {ffun U -> R}):
   invariant C -> 1 - eps <= (\sum_(i in good) C i * P i) / (\sum_(i in U) C i * P i).
 Admitted.
 *)
+Next Obligation. Admitted.
+
 End filter1d.

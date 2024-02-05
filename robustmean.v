@@ -52,6 +52,7 @@ Variables (U : finType) (P : {fdist U}).
 (*   X `-cst y = (X - cst y)%ring. *)
 (* Proof. reflexivity. Qed. *)
 Definition fdist_supp_choice : U.
+Proof.
 by move/set0Pn/xchoose:(fdist_supp_neq0 P).
 Defined.
 
