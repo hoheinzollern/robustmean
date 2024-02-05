@@ -32,7 +32,7 @@ Require Import robustmean.
 (*               remaining good points                                        *)
 (*  invariant == the amount of mass removed from the good points is smaller   *)
 (*               than that removed from the bad points.                       *)
-(*   weight C := forall i, 0 <= C i <= 1                                      *)
+(*    is_01 C := forall i, 0 <= C i <= 1                                      *)
 (* invariant1 == consequence of invariant (p.62,l.-1)                         *)
 (*   filter1d == robust mean estimation by comparing mean and variance        *)
 (*                                                                            *)
@@ -98,6 +98,42 @@ Qed.
 End nneg_finfun.
 End move_to_infotheo.
 
+Section move_to_mathcomp.
+Lemma setT_bool : [set: bool] = [set true; false].
+Proof.
+apply/eqP; rewrite eqEsubset; apply/andP; split => //.
+by apply/subsetP => x; rewrite !inE; case: x.
+Qed.
+
+Lemma pmax_eq0 [I : eqType] (r : seq I) [P : pred I] [F : I -> R] :
+  (forall i : I, P i -> (0 <= F i)%mcR) ->
+  ((\rmax_(i <- r | P i) F i)%mcR == 0%mcR) = all (fun i : I => P i ==> (F i == 0%mcR)) r.
+Proof.
+elim: r => /= [|h t ih PF0].
+  by rewrite big_nil eqxx.
+rewrite big_cons.
+case: ifP => Ph.
+  rewrite implyTb; apply/idP/andP.
+    have [Fh|Fh] := leP (F h) (\rmax_(j <- t | P j) F j).
+      rewrite Rmax_right//; last exact/RleP.
+      move=> tPF; rewrite -ih//; split => //.
+      by rewrite eq_le PF0// andbT -(eqP tPF).
+    rewrite Rmax_left//; last exact/ltRW/RltP.
+    move=> Fh0; rewrite Fh0; split => //.
+    rewrite -ih// eq_le; apply/andP; split.
+      by rewrite -(eqP Fh0); exact/RleP/ltRW/RltP.
+    apply/RleP; rewrite -big_filter; apply/bigmaxR_ge0 => r.
+    by rewrite mem_filter => /andP[/PF0 /RleP].
+  move=> [/eqP Fh0 /allP tPF].
+ rewrite Fh0; apply/eqP/Rmax_left; apply/leR_eqVlt; left.
+ by apply/eqP; rewrite ih//; apply/allP.
+by rewrite implyFb /= ih.
+Qed.
+End move_to_mathcomp.
+
+Definition is_01 (U : finType) (C : {ffun U -> R}) :=
+  (forall i, 0 <= C i <= 1).
+
 Module Weighted.
 Section def.
 Variables (A : finType) (p : prob R) (d0 : {fdist A}) (c : nneg_finfun A).
@@ -145,18 +181,11 @@ Proof. by apply/fdist_ext => ?; rewrite dE -big_distrl /= FDist.f1 mul1R. Qed.
 End prop.
 End Weighted.
 
-(* TODO: move, inspired by mathcomp analysis *)
-Lemma setT_bool : [set: bool] = [set true; false].
-Proof.
-apply/eqP; rewrite eqEsubset; apply/andP; split => //.
-by apply/subsetP => x; rewrite !inE; case: x.
-Qed.
-
 Module Split.
 Section def.
 Variables (A : finType) (d0 : {fdist A}) (c : nneg_finfun A).
 Definition g := fun x => if x.2 then c x.1 else (1 - c x.1).
-Hypothesis weight_C : forall i, 0 <= c i <= 1.
+Hypothesis weight_C : is_01 c.
 Definition f := [ffun x => g x * d0 x.1].
 
 Lemma g_ge0 x : (0 <= g x)%mcR.
@@ -168,22 +197,20 @@ have [_ ?] := weight_C x.1.
 by apply/RleP; apply subR_ge0.
 Qed.
 
-Lemma f0 a : (0 <= f a)%mcR.
+Let f0 a : (0 <= f a)%mcR.
 Proof.
 rewrite ffunE /f coqRE.
 rewrite mulr_ge0 => //.
 exact: g_ge0.
 Qed.
 
-Lemma f1 : \sum_a f a = 1.
+Let f1 : \sum_a f a = 1.
 Proof.
 transitivity (\sum_(x in ([set: A] `* setT)%SET) f x).
   by apply: eq_bigl => /= -[a b]; rewrite !inE.
-rewrite big_setX/=.
-rewrite exchange_big//= setT_bool.
+rewrite big_setX/= exchange_big//= setT_bool.
 rewrite big_setU1//= ?inE// big_set1//=.
-rewrite -big_split//=.
-rewrite -(Pr_setT d0).
+rewrite -big_split//= -(Pr_setT d0).
 rewrite /Pr/=.
 apply: eq_bigr => a _.
 rewrite !ffunE/g/=.
@@ -191,10 +218,10 @@ lra.
 Qed.
 
 Definition d : {fdist _} := locked (FDist.make f0 f1).
+Definition fst_RV (X : {RV d0 -> R}) : {RV d -> R} := fun x => X x.1.
+
 Lemma dE a : d a = (if a.2 then c a.1 else (1 - c a.1)) * d0 a.1.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
-
-Definition X'' (X : {RV d0 -> R}) : {RV d -> R} := fun x => X x.1.
 
 Lemma H1 good : Pr d0 good = Pr d (good `* [set: bool]).
 Proof.
@@ -206,12 +233,12 @@ by rewrite -mulRDl addRCA addR_opp subRR addR0 mul1R.
 Qed.
 
 Lemma cEx (X : {RV d0 -> R}) good :
-  `E_[X | good] = `E_[X'' X | (good `* [set: bool])].
+  `E_[X | good] = `E_[fst_RV X | (good `* [set: bool])].
 Proof.
 rewrite !cExE; congr (_ / _); last exact: H1.
 rewrite big_setX//=; apply: eq_bigr => u ugood.
 rewrite setT_bool big_setU1//= ?inE// big_set1.
-rewrite !dE/= /X''/=.
+rewrite !dE/= /fst_RV/=.
 rewrite -mulRDr -mulRDl addRCA addR_opp.
 by rewrite subRR addR0 mul1R.
 Qed.
@@ -222,48 +249,11 @@ Variables (A : finType) (d0 : {fdist A}) (p : prob R)  (c : nneg_finfun A).
 End prop.
 End Split.
 
-(*
-Variable (A : finType) (d0 : {fdist A}) (c : pos_ffun A) (ax : WeightedFDist.axiom d0 c).
-Definition wd := WeightedFDist.d ax.
-!!!!!
-*)
-
-(* TODO: move *)
-Lemma pmax_eq0 [I : eqType] (r : seq I) [P : pred I] [F : I -> R] :
-  (forall i : I, P i -> (0 <= F i)%mcR) ->
-  ((\rmax_(i <- r | P i) F i)%mcR == 0%mcR) = all (fun i : I => P i ==> (F i == 0%mcR)) r.
-Proof.
-elim: r => /= [|h t ih PF0].
-  by rewrite big_nil eqxx.
-rewrite big_cons.
-case: ifP => Ph.
-  rewrite implyTb; apply/idP/andP.
-    have [Fh|Fh] := leP (F h) (\rmax_(j <- t | P j) F j).
-      rewrite Rmax_right//; last exact/RleP.
-      move=> tPF; rewrite -ih//; split => //.
-      by rewrite eq_le PF0// andbT -(eqP tPF).
-    rewrite Rmax_left//; last exact/ltRW/RltP.
-    move=> Fh0; rewrite Fh0; split => //.
-    rewrite -ih// eq_le; apply/andP; split.
-      by rewrite -(eqP Fh0); exact/RleP/ltRW/RltP.
-    apply/RleP; rewrite -big_filter; apply/bigmaxR_ge0 => r.
-    by rewrite mem_filter => /andP[/PF0 /RleP].
-  move=> [/eqP Fh0 /allP tPF].
- rewrite Fh0; apply/eqP/Rmax_left; apply/leR_eqVlt; left.
- by apply/eqP; rewrite ih//; apply/allP.
-by rewrite implyFb /= ih.
-Qed.
-
-Section lemma_1_4.
-Variables (U : finType) (P : {fdist U}).
-Variable X : {RV P -> R}.
- 
-Definition weight (C : {ffun U -> R}) :=
-  (forall i, 0 <= C i <= 1).
-
-Variable C : nneg_finfun U.
-Hypothesis weight_C : weight C.
+Section bounding_empirical_mean. (* part 1 of lemma 1.4, pg 5 *)
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
+Hypothesis weight_C : is_01 C.
 Hypothesis PC_neq0 : Weighted.total P C != 0.
+
 Let P' := Weighted.d PC_neq0.
 Let P'' := Split.d P weight_C.
 
@@ -278,12 +268,13 @@ Hypothesis low_eps : eps <= eps_max.
 Let eps0 : 0 <= eps.
 Proof. rewrite -pr_bad. exact: Pr_ge0. Qed.
 
-Definition C0 : {ffun U -> R} := [ffun=> 1]. (*Definition C0 (i: U) := 1. *)
+Definition C0 : {ffun U -> R} := [ffun=> 1].
 Lemma C0' : (forall u, 0 <= C u) -> [forall a, 0 <= C a]%mcR.
 Proof. by move=> h; apply/forallP => u; apply/RleP. Qed.
 Definition Cpos_fun h := mkNNFinfun (C0' h).
 
 Definition X' : {RV P' -> R} := X.
+Let X'' := Split.fst_RV weight_C X.
 
 Definition mu := `E_[X | good].
 (* TODO: rename to emean for "estimated mean" *)
@@ -297,6 +288,8 @@ Definition var_hat := `V X'.
 (* was (\sum_(i in U) P i * C i * tau i) / (\sum_(i in U) P i * C i).*)
 Definition var_wave := `V_[X' | good].
 
+Definition tau := (X `-cst mu_hat)`^2.
+
 Lemma mu_hatE :
   mu_hat = (\sum_(i in U) C i * P i * X i) / \sum_(i in U) C i * P i.
 Proof.
@@ -305,8 +298,6 @@ rewrite big_distrl/=; apply: eq_bigr => u _.
 rewrite -mulRA mulRCA; congr (_ * _).
 by rewrite /P' Weighted.dE (mulRC _ (P u)) -divRE; congr (_ / _).
 Qed.
-
-Definition tau := (X `-cst mu_hat)`^2.
 
 Lemma tau_ge0 i : 0 <= tau i.
 Proof. rewrite /tau sq_RV_pow2; exact: pow2_ge_0. Qed.
@@ -417,7 +408,7 @@ Lemma lemma1_4_start :
   0 < \sum_(i in U) C i * P i ->
   invariant -> invariant1.
 Proof.
-rewrite /weight/invariant/invariant1 => HCi_gt0 hinv.
+rewrite /invariant/invariant1 => HCi_gt0 hinv.
 rewrite -!pr_good.
 apply leR_trans with (y := (Pr P good / 2 * (1 + Pr P good + (\sum_(i in bad) C i * P i))) / (\sum_(i in U) C i * P i)).
 apply leR_pmul2r with (m := (\sum_(i in U) C i * P i) * 2); first by apply mulR_gt0.
@@ -446,11 +437,10 @@ have H: forall S, \sum_(i in S) (P i + - (C i * P i)) = \sum_(i in S) (1 - C i) 
 by rewrite !H pr_good.
 Qed.
 
-Lemma sumCi_ge0 : weight C -> 0 <= \sum_(i in U) C i * P i.
+Lemma sumCi_ge0 : 0 <= \sum_(i in U) C i * P i.
 Proof.
-move=> Hweight.
 by apply/RleP; apply sumr_ge0 => i _;
-  rewrite coqRE mulr_ge0//; apply /RleP; apply Hweight.
+  rewrite coqRE mulr_ge0//; apply /RleP; apply weight_C.
 Qed.
 
 Lemma h1 h : Weighted.total P (Cpos_fun h) != 0.
@@ -479,7 +469,10 @@ rewrite -/delta distRC.
 rewrite /mu_hat.
 by apply: resilience => //; rewrite /delta; lra.
 Qed.
+End bounding_empirical_mean.
 
+
+Section bounding_empirical_variance.
 Lemma good_mass : 
   invariant ->
   1 - eps/2 <= (\sum_(i in good) C i * P i) / Pr P good.
@@ -509,8 +502,6 @@ under [X in _ <= _ / _ * X]eq_bigr => i _ do rewrite mulRC.
 by [].
 Qed.
 
-Let X'' := Split.X'' weight_C X.
-
 Lemma lemma_1_4_step2 :
   invariant ->
   Rsqr (mu - mu_wave) <= var * 2*eps / (2-eps).
@@ -524,7 +515,7 @@ have -> : mu_wave = `E_[X'' | good `* [set true]].
   rewrite /mu_wave !cExE !divRE !big_distrl/= big_setX//=.
   rewrite /Pr big_setX//=; apply: eq_bigr => u ugood.
   rewrite big_set1 /P'/P''.
-  rewrite /X' /X'' /Split.X'' /=.
+  rewrite /X' /X'' /Split.fst_RV /=.
   rewrite -!mulRA.
   congr (X u * _).
   under [in RHS]eq_bigr do rewrite big_set1 Split.dE/=.
@@ -812,7 +803,7 @@ apply eq_bigr => i HiS.
 by rewrite -mulRDr addRA subRK.
 Qed.
 
-End lemma_1_4.
+End bounding_empirical_variance.
 
 Section lemma_1_5.
 (* cleanup here *)
@@ -844,7 +835,7 @@ End lemma_1_5.
 
 Section base_case.
 (* TODO: define a proper environment *)
-Lemma base_case: Pr P bad = eps -> invariant C0 /\ invariant1 C0 /\ weight C0.
+Lemma base_case: Pr P bad = eps -> invariant C0 /\ invariant1 C0 /\ is_01 C0.
 Proof.
   move => Hbad_ratio.
   rewrite /invariant.
