@@ -24,12 +24,14 @@ Require Import robustmean.
 
 (******************************************************************************)
 (*                                                                            *)
-(*     mu_hat == empirical mean of the data, weighted mean of all the points  *)
+(*     mu_hat == empirical/estimate mean of the data,                         *)
+(*               weighted mean of all the points                              *)
 (*    var_hat == empirical variance                                           *)
+(*      tau i == (x i - mu_hat)^2                                             *)
 (*    mu_wave == mean of the at least 1 - epsilon fraction (under c) of       *)
-(*              remaining good points                                         *)
-(*  invariant == the amount of  mass removed from the good points is smaller  *)
-(*              than that removed from the bad points.                        *)
+(*               remaining good points                                        *)
+(*  invariant == the amount of mass removed from the good points is smaller   *)
+(*               than that removed from the bad points.                       *)
 (*   weight C := forall i, 0 <= C i <= 1                                      *)
 (* invariant1 == consequence of invariant (p.62,l.-1)                         *)
 (*   filter1d == robust mean estimation by comparing mean and variance        *)
@@ -226,6 +228,31 @@ Definition wd := WeightedFDist.d ax.
 !!!!!
 *)
 
+(* TODO: move *)
+Lemma pmax_eq0 [I : eqType] (r : seq I) [P : pred I] [F : I -> R] :
+  (forall i : I, P i -> (0 <= F i)%mcR) ->
+  ((\rmax_(i <- r | P i) F i)%mcR == 0%mcR) = all (fun i : I => P i ==> (F i == 0%mcR)) r.
+Proof.
+elim: r => /= [|h t ih PF0].
+  by rewrite big_nil eqxx.
+rewrite big_cons.
+case: ifP => Ph.
+  rewrite implyTb; apply/idP/andP.
+    have [Fh|Fh] := leP (F h) (\rmax_(j <- t | P j) F j).
+      rewrite Rmax_right//; last exact/RleP.
+      move=> tPF; rewrite -ih//; split => //.
+      by rewrite eq_le PF0// andbT -(eqP tPF).
+    rewrite Rmax_left//; last exact/ltRW/RltP.
+    move=> Fh0; rewrite Fh0; split => //.
+    rewrite -ih// eq_le; apply/andP; split.
+      by rewrite -(eqP Fh0); exact/RleP/ltRW/RltP.
+    apply/RleP; rewrite -big_filter; apply/bigmaxR_ge0 => r.
+    by rewrite mem_filter => /andP[/PF0 /RleP].
+  move=> [/eqP Fh0 /allP tPF].
+ rewrite Fh0; apply/eqP/Rmax_left; apply/leR_eqVlt; left.
+ by apply/eqP; rewrite ih//; apply/allP.
+by rewrite implyFb /= ih.
+Qed.
 
 Section lemma_1_4.
 Variables (U : finType) (P : {fdist U}).
@@ -259,7 +286,9 @@ Definition Cpos_fun h := mkNNFinfun (C0' h).
 Definition X' : {RV P' -> R} := X.
 
 Definition mu := `E_[X | good].
+(* TODO: rename to emean for "estimated mean" *)
 Definition mu_hat := `E X'.
+(* TODO: rename to emean_good? *)
 Definition mu_wave := `E_[X' | good].
 (* was  (\sum_(i in good) P i * C i * X i) / (\sum_(i in good) P i * C i). *)
 
@@ -278,10 +307,11 @@ by rewrite /P' Weighted.dE (mulRC _ (P u)) -divRE; congr (_ / _).
 Qed.
 
 Definition tau := (X `-cst mu_hat)`^2.
+
 Lemma tau_ge0 i : 0 <= tau i.
 Proof. rewrite /tau sq_RV_pow2; exact: pow2_ge_0. Qed.
 
-Definition tau_max := \rmax_(i in [set: U] | C i != 0) tau i.
+Definition tau_max := \rmax_(i | C i != 0) tau i.
 Lemma tau_max_ge0 : 0 <= tau_max.
 Proof. rewrite /tau_max -big_filter; apply bigmaxR_ge0=> *; exact:tau_ge0. Qed.
 
@@ -315,7 +345,7 @@ rewrite subR_ge0 leR_pdivr_mulr //.
 rewrite mul1R /tau_max.
 rewrite -big_filter.
 apply: (leR_bigmaxR _ tau).
-by rewrite mem_filter inE/= mem_index_enum andbT.
+by rewrite mem_filter Cu0 mem_index_enum.
 Qed.
 
 Definition update : nneg_finfun U := mkNNFinfun update_pos_ffun.
@@ -334,15 +364,25 @@ rewrite gt_eqF// lt_neqAle; apply/andP; split.
     rewrite mulr_ge0// mulr_ge0//.
       exact/RleP/nneg_finfun_ge0.
     rewrite subr_ge0 RdivE// ler_pdivrMr ?mul1r//.
-      rewrite /tau_max.
-      (* Unset Printing Notations. *)
-      (* rewrite big_mkcond. *)
-      (* apply: bigmax_sup. *)
-      admit.
-    rewrite lt_neqAle eq_sym taumax0/=.
+      rewrite /tau_max -big_filter; apply/RleP/leR_bigmaxR.
+      by rewrite mem_filter Cu0 mem_index_enum.
+    rewrite lt_neqAle eq_sym taumax0/=; apply/RleP.
+    by rewrite /tau_max -big_filter; apply/bigmaxR_ge0 => v _; exact: tau_ge0.
+  move: PC_neq0; rewrite /Weighted.total psumr_neq0; last first.
+    by move=> u _; rewrite mulr_ge0//; exact/RleP/nneg_finfun_ge0.
+  move=> /hasP[u uU]; rewrite inE /= => CuPu.
+  apply/hasP => /=; exists u; first by rewrite mem_index_enum.
+  rewrite lt_neqAle tmp// ffunE andbT.
+  case: ifPn => [/orP[|/eqP Cu0]|].
+  - rewrite /tau_max pmax_eq0//; last first.
+      by move=> ? ?; exact/RleP/tau_ge0.
     admit.
-  apply/hasP.
-  admit.
+  - by move: CuPu; rewrite Cu0 mul0R => /RltP/Rlt_irrefl.
+  - rewrite negb_or => /andP[tau_max0 Cu0].
+    rewrite eq_sym mulR_neq0'; apply/andP; split.
+      rewrite mulR_neq0' Cu0/= subr_eq0.
+    admit.
+    admit.
 apply: sumr_ge0.
 exact: tmp.
 Admitted.
@@ -787,7 +827,7 @@ Variable eps : R.
 Lemma lemma_1_5 :
   let C' := update in
   0 < (tau_max X (h1 _ _)) ->
-  \sum_(i in good) P i * (C i * tau i) <=
+  \sum_(i in good) P i * (C i * tau X i) <=
     (1 - eps) / 2 * (\sum_(i in bad) P i * (C i * tau i)) ->
   invariant C -> invariant C'.
 Proof.
