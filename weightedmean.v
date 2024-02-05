@@ -481,15 +481,19 @@ have -> : mu = `E_[X'' | good `* [set: bool]].
   rewrite /mu.
   exact: Split.cEx.
 have -> : mu_wave = `E_[X'' | good `* [set true]].
-  (* rewrite /mu_wave !cExE !divRE !big_distrl/= big_setX//=. *)
-  (* rewrite /Pr big_setX//=; apply: eq_bigr => u ugood. *)
-  (* rewrite big_set1 /P'/P''. *)
-  (* rewrite /X'/X'' /Split.X''/= !mulRA -mulRA; congr (_ * _). *)
-  (* rewrite -Rinv_mult; congr (/ _). *)
-  (* under [RHS]eq_bigr => i _ do rewrite big_set1 Split.dE/=. *)
-  (* rewrite /Weighted.total. *)
-  (* by rewrite mulRC. *)
-  admit.
+  rewrite /mu_wave !cExE !divRE !big_distrl/= big_setX//=.
+  rewrite /Pr big_setX//=; apply: eq_bigr => u ugood.
+  rewrite big_set1 /P'/P''.
+  rewrite /X' /X'' /Split.X'' /=.
+  rewrite -!mulRA.
+  congr (X u * _).
+  under [in RHS]eq_bigr do rewrite big_set1 Split.dE/=.
+  rewrite Split.dE/=.
+  under [in LHS]eq_bigr do rewrite Weighted.dE.
+  rewrite -big_distrl/=.
+  rewrite -divRE Rdiv_mult_distr divRE invRK.
+  rewrite mulRC !mulRA; congr (_ * / _).
+  by rewrite Weighted.dE mulRA mulRAC -divRE divRR ?mul1R.
 rewrite Rsqr_neg_minus.
 apply: (@leR_trans (`V_[ X'' | good `* [set: bool]] * 2 * (1 - (1 - eps / 2)%mcR) / (1 - eps / 2)%mcR)).
   apply: sqrt_le_0.
@@ -545,7 +549,7 @@ rewrite Rmult_div_assoc (mulRC 2) -Rmult_div_assoc divRR ?mulR1.
   rewrite (_ : 2%:R = 2)//.
   exact: Rle_refl.
 by apply/eqP; lra.
-Admitted.
+Qed.
 
 Lemma lemma_1_4_1 :
   invariant ->
