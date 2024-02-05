@@ -567,7 +567,21 @@ Lemma cresilience (delta : R) (X : {RV P -> R}) (F G : {set U}) :
 Proof.
 move => delta_gt0 delta_FG Pr_FG /[dup] /setIidPr HGnF_F FG.
 have [Pr_FG_eq|/eqP Pr_FG_neq] := eqVneq (Pr P F) (Pr P G).
-  admit.
+  have FGFG : F :|: G :\: F = G.
+    by have := setID G F; have := setIidPl FG; rewrite setIC => ->.
+  have GFP0 : \sum_(u in G :\: F) P u = 0.
+    move: Pr_FG_eq.
+    rewrite -[in X in _ = X -> _]FGFG [in X in _ = X -> _]/Pr.
+    rewrite big_union/=; last by apply/setDidPl; rewrite setDDl setUid.
+    by move=> /eqP; rewrite addRC -subr_eq => /eqP <-; rewrite /Pr subrr.
+  have {}GFP0 : forall u, u \in G :\: F -> P u = 0.
+    by move/psumr_eq0P : GFP0; exact.
+  rewrite !cExE Pr_FG_eq -Rdiv_minus_distr.
+  rewrite -[in X in `|(_ - X) / _|]FGFG.
+  rewrite big_union/=; last by apply/setDidPl; rewrite setDDl setUid.
+  rewrite subRD subRR sub0R big1 ?oppR0 ?div0R ?normR0; last first.
+    by move=> i /GFP0 ->; rewrite mulR0.
+  exact/sqrt_pos.
 have [?|/eqP PrF_neq0] := eqVneq (Pr P F) 0; first nra.
 have [?|/eqP PrG_neq0] := eqVneq (Pr P G) 0; first by have := Pr_ge0 P F; nra.
 have HPrFpos : 0 < Pr P F by have := Pr_ge0 P F; lra.
@@ -617,7 +631,7 @@ rewrite invRM; [|exact/gtR_eqF|exact/gtR_eqF].
 rewrite mulRCA (mulRA (Pr P G)) mulRV ?mul1R; last exact/gtR_eqF.
 rewrite mulRC; apply/leR_wpmul2r; first lra.
 by rewrite -div1R; apply/leR_pdivr_mulr => //; nra.
-Admitted.
+Qed.
 
 (* NB: not used, unconditional version of cresilience *)
 Lemma resilience (delta : R) (X : {RV P -> R}) F :
