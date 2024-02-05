@@ -18,7 +18,15 @@ Import Order.POrderTheory Order.Theory Num.Theory GRing.Theory.
 
 Notation R := real_realType.
 
-Definition mul_RV (U : finType) (P : {fdist U}) (X Y : {RV P -> R}) : {RV P -> R} := fun x => X x * Y x.
+(******************************************************************************)
+(*                                                                            *)
+(*      X `* Y == multiplication of random variables                          *)
+(*  `V_[X | F] == conditional variance                                        *)
+(*                                                                            *)
+(******************************************************************************)
+
+Definition mul_RV (U : finType) (P : {fdist U}) (X Y : {RV P -> R})
+  : {RV P -> R} := fun x => X x * Y x.
 Notation "X `* Y" := (mul_RV X Y) : proba_scope.
 Arguments mul_RV /.
 
