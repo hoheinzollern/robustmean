@@ -268,7 +268,6 @@ Hypothesis low_eps : eps <= eps_max.
 Let eps0 : 0 <= eps.
 Proof. rewrite -pr_bad. exact: Pr_ge0. Qed.
 
-Definition C0 : {ffun U -> R} := [ffun=> 1].
 Lemma C0' : (forall u, 0 <= C u) -> [forall a, 0 <= C a]%mcR.
 Proof. by move=> h; apply/forallP => u; apply/RleP. Qed.
 Definition Cpos_fun h := mkNNFinfun (C0' h).
@@ -469,15 +468,18 @@ rewrite -/delta distRC.
 rewrite /mu_hat.
 by apply: resilience => //; rewrite /delta; lra.
 Qed.
-End bounding_empirical_mean.
+
+(*End bounding_empirical_mean.
 
 
-Section bounding_empirical_variance.
+Section bounding_empirical_variance.*)
+
+
 Lemma good_mass : 
   invariant ->
   1 - eps/2 <= (\sum_(i in good) C i * P i) / Pr P good.
 Proof.
-rewrite /eps_max/weight => Hinv.
+rewrite /eps_max/is_01 => Hinv.
 unfold eps_max in low_eps.
 apply leR_trans with (y := 1 - (1-eps)/2/Pr P good * Pr P bad).
   by rewrite pr_bad pr_good -!mulRA mulRC (mulRC (/(_-_))) mulRA -mulRA mulVR; [rewrite mulR1 mulRC; right|apply /gtR_eqF; lra].
@@ -785,13 +787,13 @@ Qed.
 Lemma eqn1_3_4 (S: {set U}):
   let C' := update in
   0 < tau_max ->
-  \sum_(i in S) P i * (1 - C' i) =
-    (\sum_(i in S) P i * (1 - C i)) +
-    1 / tau_max * (\sum_(i in S ) P i * (C i * tau i)).
+  \sum_(i in S) (1 - C' i) * P i =
+    (\sum_(i in S) (1 - C i) * P i) +
+    1 / tau_max * (\sum_(i in S ) C i * P i * tau i).
 Proof.
 move => C' tau_max_gt0.
-have <- : \sum_(i in S) P i * (C i - C' i) =
-         1 / tau_max * (\sum_(i in S) P i * (C i * tau i)).
+have <- : \sum_(i in S) (C i - C' i) * P i=
+         1 / tau_max * (\sum_(i in S) C i * P i * tau i).
   rewrite /C' /update big_distrr.
   apply eq_bigr => i _ /=.
   rewrite /update_ffun ffunE.
@@ -800,10 +802,11 @@ have <- : \sum_(i in S) P i * (C i - C' i) =
   by field; exact/eqP/gtR_eqF.
 rewrite -big_split/=.
 apply eq_bigr => i HiS.
-by rewrite -mulRDr addRA subRK.
+by rewrite -mulRDl addRA subRK.
 Qed.
 
-End bounding_empirical_variance.
+End bounding_empirical_mean.
+(*End bounding_empirical_variance.*)
 
 Section lemma_1_5.
 (* cleanup here *)
@@ -815,46 +818,65 @@ Variable good : {set U}.
 
 Variable eps : R.
 
+Hypothesis PC_neq0 : Weighted.total P C != 0.
+
 Lemma lemma_1_5 :
-  let C' := update in
-  0 < (tau_max X (h1 _ _)) ->
-  \sum_(i in good) P i * (C i * tau X i) <=
-    (1 - eps) / 2 * (\sum_(i in bad) P i * (C i * tau i)) ->
-  invariant C -> invariant C'.
+  let C' := update C PC_neq0 in
+  0 < tau_max C PC_neq0 ->
+  \sum_(i in good) (C i * P i) * tau C PC_neq0 i <=
+    (1 - eps) / 2 * (\sum_(i in (bad good)) (C i * P i) * tau C PC_neq0 i) ->
+  invariant P C good eps -> invariant P C' good eps.
 Proof.
-rewrite /invariant => tau_max_gt0 H1 IH1.
-rewrite !eqn1_3_4 // !mulRDr.
+rewrite /invariant => tau_max_gt0' H1 IH1.
+rewrite !eqn1_3_4 //.
+rewrite !mulRDr.
 apply leR_add; first exact IH1.
-rewrite (mulRC ((1 - eps) / 2)) -mulRA.
-apply leR_pmul2l; first by rewrite /Rdiv mul1R; apply invR_gt0.
-by rewrite mulRC; exact H1.
+rewrite mulRCA.
+apply leR_pmul2l.
+  by apply/divR_gt0 => //.
+exact: H1.
 Qed.
 
 End lemma_1_5.
 
-
 Section base_case.
 (* TODO: define a proper environment *)
-Lemma base_case: Pr P bad = eps -> invariant C0 /\ invariant1 C0 /\ is_01 C0.
+Variables (A : finType) (P : {fdist A}).
+Variables (eps : R).
+Variable good : {set A}.
+
+Definition ffun1 : {ffun A -> R} := [ffun=> 1].
+Let ffun1_subproof : [forall a, 0 <= ffun1 a]%mcR.
+Proof. by apply/forallP => u; rewrite ffunE; apply/RleP. Qed.
+Definition Cpos_ffun1 := @mkNNFinfun A ffun1 ffun1_subproof.
+
+Hypothesis PC_neq0 : Weighted.total P Cpos_ffun1  != 0.
+
+Lemma base_case: Pr P (bad good) = eps ->
+  invariant P Cpos_ffun1 good eps /\ invariant1 PC_neq0 good eps /\ is_01 Cpos_ffun1.
 Proof.
-  move => Hbad_ratio.
-  rewrite /invariant.
-  apply conj.
-    under eq_bigr do rewrite ffunE subRR mulR0.
-    rewrite big1; last by [].
-    under eq_bigr do rewrite ffunE subRR mulR0.
-    rewrite big1; last by [].
-    rewrite mulR0. exact/RleP.
-  apply conj.
+move => Hbad_ratio.
+rewrite /invariant.
+split.
+  rewrite /Cpos_fun /=.
+  under eq_bigr do rewrite ffunE subRR mul0R.
+  rewrite big1; last by [].
+  under eq_bigr do rewrite ffunE subRR mul0R.
+  rewrite big1; last by [].
+  rewrite mulR0. exact/RleP.
+split.
   rewrite /invariant1.
-  have ->: (\sum_(i in good) P i * C0 i) = Pr P good
-    by under eq_bigr do rewrite /C0 ffunE mulR1.
-  have ->: (\sum_(i in U) P i * C0 i) = 1.
-    under eq_bigr do rewrite /C0 ffunE mulR1.
-    exact: FDist.f1.
-  by rewrite Pr_to_cplt Hbad_ratio divR1; exact/RleP.
-  move => i. rewrite /C0 ffunE; lra.
+  rewrite /Pr.
+  under eq_bigr do rewrite Weighted.dE.
+  rewrite /Weighted.total /Cpos_ffun1/=.
+  under eq_bigr do rewrite /ffun1 /= ffunE mul1R.
+  rewrite -big_distrl/=.
+  under [in X in _ <= _ * / X]eq_bigr do rewrite /ffun1 /= ffunE mul1R.
+  rewrite FDist.f1 invR1 mulR1.
+  by rewrite -/(Pr P good) Pr_to_cplt Hbad_ratio; exact/RleP.
+by move => i; rewrite ffunE; lra.
 Qed.
+
 End base_case.
 
 Section filter1d.
