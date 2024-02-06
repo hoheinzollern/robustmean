@@ -282,15 +282,6 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
 Definition emean := let WP := Weighted.d PC_neq0 in
                     let WX : {RV WP -> R} := X in
                     `E WX.
-
-Lemma emeanE :
-  emean = (\sum_(i in U) C i * P i * X i) / \sum_(i in U) C i * P i.
-Proof.
-rewrite /emean /Ex /ambient_dist divRE big_distrl/=; apply: eq_bigr => u _.
-rewrite -mulRA mulRCA; congr (_ * _).
-by rewrite Weighted.dE (mulRC _ (P u)) -divRE; congr (_ / _).
-Qed.
-
 End emean.
 
 Section sq_dev.
@@ -326,9 +317,6 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
 Definition evar := let WP := Weighted.d PC_neq0 in
                    let WX : {RV WP -> R} := X in
                    `V WX.
-
-Lemma evar_ge0 : 0 <= evar. Proof. exact: variance_ge0. Qed.
-
 End evar.
 
 Definition emean_cond (U : finType) (P : {fdist U}) (X : {RV P -> R})
@@ -458,13 +446,11 @@ Qed.
 
 (**md ## eqn page 63, line 3 *)
 Lemma bound_emean :
-  0 < \sum_(i in U) C i * P i
-  (* NB: this can be proved from the termination condition *) ->
   Pr WP good != 0 ->
   invariantW ->
   (mu_hat - mu_wave)² <= var_hat * 2 * eps / (1 - eps).
 Proof.
-move=> PC0 pgoodC invC.
+move=> pgoodC invC.
 unfold eps_max in low_eps.
 suff h : `| mu_hat - mu_wave | <= sqrt (var_hat * 2 * eps / (1 - eps)).
   rewrite Rsqr_abs -[X in _ <= X]Rsqr_sqrt; last first.
@@ -580,12 +566,6 @@ rewrite Rmult_div_assoc (mulRC 2) -Rmult_div_assoc divRR ?mulR1.
 by apply/eqP; lra.
 Qed.
 
-Let sumCi_ge0 : 0 <= \sum_(i in U) C i * P i.
-Proof.
-by apply/RleP; apply sumr_ge0 => i _;
-  rewrite coqRE mulr_ge0//; apply /RleP; apply C01.
-Qed.
-
 (**md ## lemma 1.4, page 5 (part 1) *)
 Lemma bound_mean_emean : invariant ->
   `|mu - mu_hat| <= sqrt (var * 2 * eps / (2 - eps)) +
@@ -601,9 +581,6 @@ apply: (@Rle_trans _ (`|mu - mu_wave| + `|mu_hat - mu_wave|)).
   apply Rplus_le_compat_l.
   by rewrite Rabs_minus_sym; exact: Rle_refl.
 have ? : 0 <= eps by rewrite -pr_bad; apply Pr_ge0.
-have ? : 0 < \sum_(i in U) C i * P i.
-  apply ltR_neqAle; split => //.
-  by apply/eqP; rewrite eq_sym; apply PC_neq0.
 apply: leR_add.
 - rewrite -(geR0_norm _ (sqrt_pos _)); apply Rsqr_le_abs_0; rewrite Rsqr_sqrt.
   + exact: bound_mean.
@@ -742,7 +719,7 @@ unfold eps_max in low_eps.
 have I1C : invariantW. (* todo: repeated, factor out *)
   by apply: lemma1_4_start.
 have Hvar_hat_2_eps: 0 <= var_hat * 2 * eps.
-  by rewrite -mulRA; apply: mulR_ge0; [exact: evar_ge0|lra].
+  by rewrite -mulRA; apply: mulR_ge0; [exact: variance_ge0|lra].
 rewrite /var_hat.
 have PrPgoodpos : 0 < Pr P good by move: pr_bad; rewrite Pr_of_cplt; lra.
 (*a6*)
