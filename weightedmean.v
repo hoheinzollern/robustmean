@@ -866,10 +866,23 @@ Qed.
 
 End filter1D_invariant_update.
 
+Section bigmaxR.
+
+Variables (A : finType) (F : A -> R).
+
+Lemma bigmaxR_ge0 P : 0 <= \rmax_(m | P m) (F m).
+Proof. 
+elim: (index_enum A); first by rewrite big_nil; right.
+move=> a l IH; rewrite big_cons; case: ifPn => //_.
+by apply Rmax_Rle; right.
+Qed.
+
+End bigmaxR.
 
 Section update_invariant.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
 Hypothesis PC_neq0 : Weighted.total P C != 0.
+Hypothesis C01 : is_01 C.
 
 (* Note: this theorem does not hold in general: it should only work
    when the empirical variance is at least 16 times the actual variance *)
@@ -881,31 +894,42 @@ Proof.
 move=> var16.
 rewrite /Weighted.total /update /update_ffun/=.
 rewrite psumr_neq0; last first.
-  move=> u _; rewrite ffunE/=; case: ifPn => _.
+  move=> u _; rewrite ffunE/=; case: ifP => [_|/negbT].
     by rewrite mul0R.
-  rewrite mulr_ge0// mulr_ge0//; first  exact/nneg_finfun_ge0.
+  rewrite negb_or => /andP[h1 h2].
+  rewrite mulr_ge0// mulr_ge0//; first exact/nneg_finfun_ge0.
   rewrite subr_ge0.
-  apply/RleP/(Rcomplements.Rdiv_le_1 _ _ _).1 => //.
-    admit.
-  admit.
+  apply/RleP/(Rcomplements.Rdiv_le_1 _ _ _).1.
+    apply ltR_neqAle; split => [h3|].
+      rewrite -h3 eq_refl in h1 => //.
+    rewrite /sq_dev_max.
+    exact: bigmaxR_ge0.
+  rewrite /sq_dev_max/sq_dev.
+  rewrite bigmaxRE.
+  apply/RleP; exact: le_bigmax_cond.
 have : Weighted.total P C != 0 by [].
 rewrite /Weighted.total /=.
-rewrite psumr_neq0; last admit.
-move=> /hasP[u _] /andP[_ CuPu0].
+rewrite psumr_neq0; last first.
+  by move=> i _; rewrite coqRE mulr_ge0//; apply /RleP; apply C01.
+move=> /hasP[u _] /andP[_ /RltP CuPu0].
 apply/hasP; exists u => //.
 rewrite ffunE.
 have : ~ sq_dev_max X PC_neq0 = 0.
   rewrite /sq_dev_max.
   apply/eqP.
-  rewrite pmax_eq0; last admit.
+  rewrite pmax_eq0; last first.
+    by move=> i _; rewrite /sq_dev; apply/RleP; apply sq_RV_ge0.
   apply/allP => /=.
   move/(_ u).
-  rewrite /sq_dev.
-  admit.
+  rewrite /sq_dev.   
+  admit.  
 move=> /eqP/negbTE ->/=.
-rewrite ifF; last first. admit.
-rewrite mulr_gt0//; last admit.
-rewrite mulr_gt0//; first admit.
+rewrite ifF; last first.
+  by apply/eqP => Cu0; move: CuPu0; rewrite Cu0 mul0R; apply ltRR.
+rewrite mulr_gt0//; last first. 
+  by apply/RltP; apply: (pmulR_rgt0' CuPu0); apply C01.
+rewrite mulr_gt0//.
+  by apply/RltP; apply: (pmulR_lgt0' CuPu0); apply/RleP; apply FDist.ge0.
 rewrite subr_gt0.
 apply/RltP.
 apply/(Rcomplements.Rdiv_lt_1 _ _ _).1 => //.
