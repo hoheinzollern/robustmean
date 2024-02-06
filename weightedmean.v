@@ -50,7 +50,7 @@ Require Import robustmean.
 (* |               |    | smaller than that removed from the bad points       *)
 (* | filter1D_invW | == | consequence of filter1D_inv                         *)
 (* |      filter1D | == | robust mean estimation by comparing mean and        *)
-(* |               | == | variance                                            *)
+(* |               |    | variance                                            *)
 (*                                                                            *)
 (******************************************************************************)
 
