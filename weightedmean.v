@@ -388,11 +388,22 @@ Let evar_wave := evar_cond X good PC_neq0.
 Let tau := sq_dev X PC_neq0.
 Let tau_max := sq_dev_max X PC_neq0.
 
+Lemma pr_good_gt0 : 0 < Pr P good.
+Proof.
+unfold eps_max in low_eps.
+have : 1 - Pr P good < 1; last lra.
+rewrite -Pr_of_cplt pr_bad; lra.
+Qed.
+Let hprgoodgt0 := pr_good_gt0.
+
+Lemma weighted_total_gt0 : 0 < Weighted.total P C.
+Proof. by apply/RltP; apply Weighted.total_gt0. Qed.
+Let hweightedtotalgt0 := weighted_total_gt0.
+
 (**md ## eqn 1.1, page 5 *)
-Lemma eqn1_1 : 0 < Pr P good ->
+Lemma eqn1_1 :
  (\sum_(i in good) C i * P i * tau i) / Pr P good <= var + (mu - mu_hat)².
 Proof.
-move=> HPgood.
 apply leR_trans with (y := `E_[tau | good]);
   last by apply/leR_eqVlt;left;apply/cVarDist.
 rewrite cExE.
@@ -409,10 +420,10 @@ Qed.
 Let invariant := filter1D_inv P C good eps.
 Let invariantW := filter1D_invW good eps PC_neq0.
 
-Lemma lemma1_4_start : 0 < \sum_(i in U) C i * P i ->
+Lemma lemma1_4_start :
   invariant -> invariantW.
 Proof.
-rewrite /invariant /invariantW /filter1D_invW => HCi_gt0 hinv.
+rewrite /invariant /invariantW /filter1D_invW => hinv.
 rewrite -!pr_good.
 apply (@leR_trans ((Pr P good / 2 *
                     (1 + Pr P good + (\sum_(i in bad) C i * P i))) /
@@ -535,7 +546,7 @@ apply: (@leR_trans (`V_[ SX | good `* [set: bool]] * 2 *
       * by rewrite -!coqRE subRB subRR add0R; exact: divR_ge0.
     + by apply: invR_ge0; rewrite -!coqRE (_ : 2%:R = 2)//; lra.
   - rewrite sqrt_Rsqr_abs; apply: (cresilience (delta := 1 - eps / 2)).
-    + by rewrite -!coqRE; interval.
+    + by rewrite -!coqRE (_ : 2%:R = 2)//; nra.
     + have := good_mass Hinv.
       rewrite -!coqRE => /leR_trans; apply.
       apply/leR_eqVlt; left.
@@ -584,8 +595,6 @@ move=> IC.
 unfold eps_max in low_eps.
 have I1C : invariantW.
   apply: lemma1_4_start => //.
-  apply/RltP; rewrite lt_neqAle eq_sym PC_neq0/=.
-  by apply sumr_ge0 => i _; rewrite coqRE mulr_ge0//; apply/RleP/(C01 _).1.
 apply: (@Rle_trans _ (`|mu - mu_wave| + `|mu_hat - mu_wave|)).
   have -> : mu - mu_hat = (mu - mu_wave) + (mu_wave - mu_hat) by lra.
   apply: (Rle_trans _ _ _ (Rabs_triang _ _)).
@@ -688,6 +697,7 @@ Admitted.
 
 End update.
 
+(** part 2 of lemma 1.4 *)
 Section bounding_empirical_variance.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (good : {set U}) (eps : R).
@@ -719,41 +729,25 @@ Let tau := sq_dev X PC_neq0.
 Let tau_max := sq_dev_max X PC_neq0.
 
 Let invariant := filter1D_inv P C good eps.
+Let invariantW := filter1D_invW good eps PC_neq0.
 
 (**md ## lemma 1.4, page 5 (part 2) *)
 (**md ## eqn A.6--A.9, page 63 *)
-Lemma eqn_a6_a9 : 16 * var <= var_hat -> invariant ->
+Lemma bound_empirical_variance_good : 16 * var <= var_hat ->
+  invariant ->
   \sum_(i in good) C i * P i * tau i <= 0.25 * (1 - eps) * var_hat.
 Proof.
 rewrite /eps_max; move => var16 IC.
 unfold eps_max in low_eps.
-have I1C : filter1D_invW good eps PC_neq0. (* todo: repeated, factor out *)
-  apply: lemma1_4_start => //.
-  apply/RltP; rewrite lt_neqAle eq_sym PC_neq0/=.
-  by apply sumr_ge0 => i _; rewrite coqRE mulr_ge0//; apply/RleP/(C01 _).1.
-have [/psumr_eq0P PiCieq0|?] := eqVneq (\sum_(i in U) C i * P i) 0.
-  apply: (@leR_trans 0).
-    right; apply/eqP; rewrite psumr_eq0.
-      apply/allP => i _; rewrite PiCieq0//; first rewrite mul0R eqxx implybT//.
-      by move=> i0 _; rewrite coqRE mulr_ge0//; apply/RleP; apply C01.
-    move=>i _. rewrite !coqRE mulr_ge0//; last by apply/RleP/sq_dev_ge0.
-    by rewrite mulr_ge0//; apply/RleP; apply C01.
-    apply: mulR_ge0.
-      by apply: mulR_ge0; [interval|lra].
-    apply: (@leR_trans (16 * var)) => //.
-    by apply: mulR_ge0; [lra| exact: cvariance_ge0].
-have sumCi_gt0 : 0 < \sum_(i in U) C i * P i.
-    apply ltR_neqAle; split.
-    - by apply/eqP; rewrite eq_sym.
-    - apply/RleP. apply sumr_ge0 => i _. rewrite RmultE mulr_ge0//.
-      by apply/RleP; apply C01.
+have I1C : invariantW. (* todo: repeated, factor out *)
+  by apply: lemma1_4_start.
 have Hvar_hat_2_eps: 0 <= var_hat * 2 * eps.
   by rewrite -mulRA; apply: mulR_ge0; [exact: evar_ge0|lra].
 rewrite /var_hat.
 have PrPgoodpos : 0 < Pr P good by move: pr_bad; rewrite Pr_of_cplt; lra.
 (*a6*)
 apply leR_trans with (y := (1 - eps) * (var + (mu - mu_hat)²)).
-  by rewrite -!(pr_good pr_bad) Rmult_comm -leR_pdivr_mulr//; exact: eqn1_1.
+  by rewrite -!(pr_good pr_bad) Rmult_comm -leR_pdivr_mulr//; apply: eqn1_1 => //; rewrite pr_bad.
 (*a6-a7*)
 apply (@leR_trans ((1 - eps) * (var + (sqrt (var * 2 * eps / (2 - eps)) +
                                        sqrt (var_hat * 2 * eps / (1 - eps)))²))).
@@ -826,16 +820,16 @@ apply: leR_wpmul2r => //; first exact: variance_ge0.
 by apply leR_wpmul2r; [lra|rewrite /eps_max; interval].
 Qed.
 
-(**md ## lemma 1.4, page 5 (part 2) *)
 (**md ## eqn A.10--A.11, page 63 *)
-Lemma eqn_a10_a11 : 16 * var <= var_hat ->
+Lemma bound_empirical_variance_bad :
+  16 * var <= var_hat ->
   0 < \sum_(i in U) C i * P i ->
   filter1D_inv P C good eps ->
   2/3 * var_hat <= \sum_(i in bad) C i * P i * tau i.
 Proof.
 rewrite /eps_max; move => var16 sumCi_pos HiC.
 unfold eps_max in low_eps.
-have PrPgoodpos : 0 < Pr P good by rewrite (pr_good pr_bad); lra.
+have ? : 0 < Pr P good; first exact: (pr_good_gt0 _ low_eps).
 
 have ->: \sum_(i in bad) C i * P i * tau i =
   var_hat * (\sum_(i in U) C i * P i) - (\sum_(i in good) C i * P i * tau i).
@@ -870,7 +864,7 @@ apply (@leR_trans (var_hat * (1 - 3 / 2 * eps) -
   + by apply mulR_ge0 => //; apply (C01 _).1.
 apply (@leR_trans ((1 - 3 / 2 * eps - 0.25 * (1 - eps)) * var_hat)); last first.
   rewrite mulRBl (mulRC var_hat).
-  apply: leR_add; last by apply Ropp_le_contravar; exact: eqn_a6_a9.
+  apply: leR_add; last by apply Ropp_le_contravar; exact: bound_empirical_variance_good.
   exact: Rle_refl.
 apply (@leR_trans ((1 - 3 / 2 * eps_max - 0.25 * (1 - eps_max)) * var_hat)); last first.
   apply leR_wpmul2r; first exact: variance_ge0.
