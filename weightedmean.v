@@ -282,6 +282,15 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
 Definition emean := let WP := Weighted.d PC_neq0 in
                     let WX : {RV WP -> R} := X in
                     `E WX.
+
+Lemma emeanE :
+  emean = (\sum_(i in U) C i * P i * X i) / \sum_(i in U) C i * P i.
+Proof.
+rewrite /emean /Ex /ambient_dist divRE big_distrl/=; apply: eq_bigr => u _.
+rewrite -mulRA mulRCA; congr (_ * _).
+by rewrite Weighted.dE (mulRC _ (P u)) -divRE; congr (_ / _).
+Qed.
+
 End emean.
 
 Section sq_dev.
@@ -699,9 +708,6 @@ Let var := var X good.
 Let mu_hat := emean X PC_neq0.
 Let var_hat := evar X PC_neq0.
 
-Let mu_wave := emean_cond X good PC_neq0.
-Let evar_wave := evar_cond X good PC_neq0.
-
 Let tau := sq_dev X PC_neq0.
 Let tau_max := sq_dev_max X PC_neq0.
 
@@ -880,11 +886,11 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (good : {set U}) (eps : R).
 Hypothesis PC_neq0 : Weighted.total P C != 0.
 
-Let tau := sq_dev C(*NB: X?*) PC_neq0.
-Let tau_max := sq_dev_max C(*NB: X?*) PC_neq0.
+Let tau := sq_dev X PC_neq0.
+Let tau_max := sq_dev_max X PC_neq0.
 
 (**md ## lemma 1.5, page 5, update preserves the invariant of filer1D *)
-Lemma filter1D_inv_update : let C' := update C PC_neq0 in
+Lemma filter1D_inv_update : let C' := update X PC_neq0 in
   0 < tau_max ->
   \sum_(i in good) (C i * P i) * tau i <=
     (1 - eps) / 2 * (\sum_(i in ~: good) (C i * P i) * tau i) ->
@@ -944,9 +950,10 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
 Require Import Program.Wf.
 
 Local Obligation Tactic := idtac.
-Program Fixpoint filter1D (C : nneg_finfun U )
-  (C01 : is_01 C) (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16)
- (HC : Weighted.total P C != 0)
+
+Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
+    (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16)
+    (HC : Weighted.total P C != 0)
     {measure #| 0.-support (sq_dev X HC)| } :=
   match Bool.bool_dec (Weighted.total P C != 0) true with
   | right _ =>  None
@@ -959,9 +966,9 @@ Program Fixpoint filter1D (C : nneg_finfun U )
   end
 end.
 Next Obligation.
-(*move=> /= C HC _ H _ n Hn.
-move: (ltn0Sn n); rewrite Hn => /card_gt0P [] u; rewrite supportE.
-move: (tau_ge0 X H u)=> /[swap] /eqP /nesym /[conj] /ltR_neqAle Hu.*)
+move=> /= C C01 Pr_bad eps16 PC_neq0 H /= PC_neq0' PC_neq0'' n n0.
+have := ltn0Sn n; rewrite n0 => /card_gt0P[u]; rewrite supportE => tau_u.
+(*move: (tau_ge0 X H u)=> /[swap] /eqP /nesym /[conj] /ltR_neqAle Hu.*)
 (*
 set stuC := 0.-support (tau (update C)).
 set stC := 0.-support (tau C).
@@ -982,21 +989,20 @@ apply/properP; split => //.
 by exists (arg_tau_max C).
 *)
 Admitted.
-Next Obligation. Admitted.
+Next Obligation.
+move=> /= C C01 Pr_bad eps16 PC_neq0 H /= PC_neq0' PC_neq0'' n n0.
+Admitted.
+Next Obligation.
+Admitted.
 
-(*
-Definition filter1D gas :=
+(* Definition filter1D gas :=
   let fix filter1D_iter gas (C : {ffun U -> R}) := match gas with
     0      => None
   | S gas' => if Rleb (var_hat C) var then Some (mu_hat C) else filter1D_iter gas' (update C)
-  end in filter1D_iter gas C0.
-*)
+  end in filter1D_iter gas C0. *)
 
-(*
-Lemma first_note (C: {ffun U -> R}):
+(* Lemma first_note (C: {ffun U -> R}):
   invariant C -> 1 - eps <= (\sum_(i in good) C i * P i) / (\sum_(i in U) C i * P i).
-Admitted.
-*)
-Next Obligation. Admitted.
+Admitted. *)
 
 End filter1D.
