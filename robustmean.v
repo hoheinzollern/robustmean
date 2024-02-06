@@ -293,8 +293,9 @@ under eq_bigr do rewrite setIT Pr_setT divR1 -pr_eqE.
 by rewrite -Ex_comp_RV; congr `E.
 Qed.
 
-Definition cVar (X : {RV P -> R}) F
-  := let miu := `E_[X | F] in `E_[(X `-cst miu) `^2 | F].
+Definition cVar (X : {RV P -> R}) F :=
+  let mu := `E_[X | F] in
+  `E_[(X `-cst mu) `^2 | F].
 Local Notation "`V_[ X | F ]" := (cVar X F).
 
 Lemma Var_cVarT (X : {RV P -> R}) : `V X = `V_[X | [set: U]].
@@ -418,7 +419,7 @@ apply ltR_neqAle; split; last by apply/Pr_incl/subsetT.
 by apply/eqP; rewrite Pr_setT -Pr_lt1.
 Qed.
 
-Lemma cvariance_nonneg (X : {RV P -> R}) F : 0 <= `V_[X | F].
+Lemma cvariance_ge0 (X : {RV P -> R}) F : 0 <= `V_[X | F].
 Proof.
 have [/RltP H|] := boolP (0 < Pr P F)%mcR; last first.
   rewrite -leNgt => /RleP.
@@ -432,9 +433,8 @@ apply: mulr_ge0 => //; apply: mulr_ge0; first by apply/RleP; exact: sq_RV_ge0.
 by rewrite /Ind; by case: ifPn.
 Qed.
 
-(* NB: not used *)
-Lemma variance_nonneg (X : {RV P -> R}) : 0 <= `V X.
-Proof. by have := cvariance_nonneg X setT; rewrite -Var_cVarT. Qed.
+Lemma variance_ge0 (X : {RV P -> R}) : 0 <= `V X.
+Proof. by have := cvariance_ge0 X setT; rewrite -Var_cVarT. Qed.
 
 Lemma Ind_one F : Pr P F <> 0 -> `E_[Ind F : {RV P -> R} | F] = 1.
 Proof.
@@ -596,9 +596,9 @@ case : (Rle_or_lt delta (1/2)) => delta_12.
 (*Pr P F <= 1/2 , A.3 implies the desired result*)
   apply: (leR_trans (cEx_cVar _ _ _)) => //.
   apply sqrt_le_1_alt.
-  rewrite !divRE -!mulRA; apply (leR_wpmul2l (cvariance_nonneg _ _)).
-  apply: (@leR_trans (1/delta)).
-    rewrite (leR_pdivl_mulr delta) //.
+  rewrite !divRE -!mulRA; apply (leR_wpmul2l (cvariance_ge0 _ _)).
+  apply: (@leR_trans (1 / delta)).
+    rewrite (leR_pdivl_mulr delta)//.
     rewrite mulRC -leR_pdivl_mulr; last exact: divR_gt0.
     rewrite div1R invRM ?gtR_eqF //; last exact: invR_gt0.
     by rewrite invRK ?gtR_eqF // mulRC.
@@ -614,7 +614,7 @@ apply: (@leR_trans
   rewrite -sqrt_Rsqr_abs; rewrite -sqrt_mult_alt; last exact: Rle_0_sqr.
   apply sqrt_le_1_alt.
   rewrite !divRE !mulRA [in X in X <= _](mulRC _  (`V_[X | G])) -!mulRA.
-  apply: leR_wpmul2l; first exact: cvariance_nonneg.
+  apply: leR_wpmul2l; first exact: cvariance_ge0.
   rewrite !mulRA mulRC !mulRA mulVR ?mul1R; last first.
     by rewrite Pr_diff HGnF_F; apply/eqP; nra.
   rewrite mulRC (mulRC (/Pr P F)) -mulRA -invRM; [|exact/gtR_eqF|exact/gtR_eqF].
@@ -630,7 +630,7 @@ apply: (@leR_trans
 apply sqrt_le_1_alt.
 rewrite divRE invRM; [|exact/gtR_eqF/mulR_gt0|exact/gtR_eqF].
 rewrite mulRA; apply/leR_pmul2r; first exact/invR_gt0.
-rewrite -!mulRA; apply: leR_wpmul2l; first exact: cvariance_nonneg.
+rewrite -!mulRA; apply: leR_wpmul2l; first exact: cvariance_ge0.
 rewrite invRM; [|exact/gtR_eqF|exact/gtR_eqF].
 rewrite mulRCA (mulRA (Pr P G)) mulRV ?mul1R; last exact/gtR_eqF.
 rewrite mulRC; apply/leR_wpmul2r; first lra.
@@ -800,14 +800,14 @@ apply: (@leR_trans (sqrt (`V_[ X | good] / eps) * eps' +
   - exact/Exbad_bound/Pr_gt0.
   - exact: Exgood_bound.
 rewrite /sigma /Rdiv !sqrt_mult //; last 8 first.
-  - by apply: cvariance_nonneg; lra.
+  - exact: cvariance_ge0.
   - lra.
-  - by apply: mulR_ge0; [apply: cvariance_nonneg; lra|lra].
+  - by apply: mulR_ge0; [exact: cvariance_ge0|lra].
   - lra.
   - apply: mulR_ge0; [|lra].
-    by apply: mulR_ge0; [apply: cvariance_nonneg; lra|lra].
+    by apply: mulR_ge0; [exact: cvariance_ge0|lra].
   - by apply/ltRW/invR_gt0; lra.
-  - by apply: cvariance_nonneg; lra.
+  - exact: cvariance_ge0.
   - by apply/ltRW/invR_gt0; lra.
 rewrite (mulRC 8) -!mulRA -mulRDr; apply: leR_wpmul2l; first exact: sqrt_pos.
 rewrite mulRA -sqrt_mult; [|lra|lra].
