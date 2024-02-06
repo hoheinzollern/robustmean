@@ -79,18 +79,20 @@ Qed.
 
 End rExtrema.
 
-Section nneg_fun. (* Reals_ext.v *)
+(*Section nneg_fun. (* Reals_ext.v *)
 
-Lemma nneg_fun_le0 (I : Type) (F : nneg_fun I) i : (F i == 0) = (F i <= 0)%mcR.
+Lemma nneg_fun_ge0 (I : Type) (f : nneg_fun I) i : (0 <= f i)%mcR.
+Proof. by case: f => /= f /(_ i)/RleP. Qed.
+
+Lemma nneg_fun_le0 (I : Type) (f : nneg_fun I) i : (f i == 0) = (f i <= 0)%mcR.
 Proof.
 apply/sameP/idP/(iffP idP); first by move/eqP->.
 by move/RleP/Rle_antisym/(_ (nneg_f_ge0 _ _)) ->.
 Qed.
 
-Variables (I : eqType) (r : seq I) (P : pred I) (F : nneg_fun I).
-Lemma nneg_fun_bigmaxR0P :
-  reflect (forall i : I, i \in r -> P i -> F i = 0)
-          (\rmax_(i <- r | P i) F i == 0).
+Lemma nneg_fun_bigmaxR0P (I : eqType) (r : seq I) (P : pred I) (f : nneg_fun I) :
+  reflect (forall i : I, i \in r -> P i -> f i = 0)
+          (\rmax_(i <- r | P i) f i == 0).
 Proof.
 apply: (iffP idP) => [/eqP H i ir Pi| H].
 - apply/eqP; rewrite nneg_fun_le0 -coqRE -H; apply/RleP.
@@ -101,10 +103,13 @@ apply: (iffP idP) => [/eqP H i ir Pi| H].
   by rewrite -big_seq big_const_seq iter_fix // maxRR.
 Qed.
 
-End nneg_fun.
+End nneg_fun.*)
 
 Section nneg_finfun. (* Reals_ext.v *)
 Local Open Scope R_scope.
+
+Lemma nneg_finfun_ge0 (I : finType) (f : nneg_finfun I) i : (0 <= f i)%mcR.
+Proof. by case: f => /= f /forallP /(_ i). Qed.
 
 Lemma nneg_finfun_le0 (I : finType) (F : nneg_finfun I) i : (F i == 0) = (F i <= 0)%mcR.
 Proof.
@@ -623,12 +628,6 @@ Definition update_ffun : {ffun U -> R} :=
   [ffun i => if (tau_max == 0) || (C i == 0) then 0 else
             C i * (1 - tau i / tau_max)].
 
-Lemma nneg_finfun_ge0 (c : nneg_finfun U) i : 0 <= c i.
-Proof.
-apply/RleP.
-case: c => c' /= /forallP. exact.
-Qed.
-
 Lemma update_pos_ffun : [forall a, 0 <= update_ffun a]%mcR.
 Proof.
 apply/forallP=> u; apply/RleP.
@@ -638,48 +637,12 @@ move/eqP; rewrite eqR_le => /boolp.not_andP []; last first.
   by move/(_ (sq_dev_max_ge0 _ _)).
 rewrite -ltRNge => tau_max_gt0.
 case: ifPn=> [|Cu0]; first by move=> _.
-apply mulR_ge0; first exact: nneg_finfun_ge0.
+apply mulR_ge0; first exact/RleP/nneg_finfun_ge0.
 rewrite subR_ge0 leR_pdivr_mulr // mul1R.
 exact: sq_dev_max_ge.
 Qed.
 
 Definition update : nneg_finfun U := mkNNFinfun update_pos_ffun.
-
-(* Note: this theorem does not hold in general: it should only work
-   when the empirical variance is at least 16 times the actual variance *)
-Lemma update_valid_weight : Weighted.total P update != 0.
-Proof.
-rewrite /Weighted.total/update/update_ffun/=.
-move=> [:tmp].
-rewrite gt_eqF// lt_neqAle; apply/andP; split.
-  rewrite eq_sym psumr_neq0; last first.
-    abstract: tmp.
-    move=> u uU; rewrite ffunE/=; case: ifPn; first by rewrite mul0R.
-    rewrite negb_or => /andP[taumax0 Cu0].
-    rewrite mulr_ge0// mulr_ge0//.
-      exact/RleP/nneg_finfun_ge0.
-    rewrite subr_ge0 RdivE// ler_pdivrMr ?mul1r//.
-      exact/RleP/sq_dev_max_ge.
-    rewrite lt_neqAle eq_sym taumax0/=; apply/RleP.
-    exact/sq_dev_max_ge0.
-  move: PC_neq0; rewrite /Weighted.total psumr_neq0; last first.
-    by move=> u _; rewrite mulr_ge0//; exact/RleP/nneg_finfun_ge0.
-  move=> /hasP[u uU]; rewrite inE /= => CuPu.
-  apply/hasP => /=; exists u; first by rewrite mem_index_enum.
-  rewrite lt_neqAle tmp// ffunE andbT.
-  case: ifPn => [/orP[|/eqP Cu0]|].
-  - rewrite /tau_max pmax_eq0//; last first.
-      by move=> ? ?; exact/RleP/sq_dev_ge0.
-    admit.
-  - by move: CuPu; rewrite Cu0 mul0R => /RltP/Rlt_irrefl.
-  - rewrite negb_or => /andP[tau_max0 Cu0].
-    rewrite eq_sym mulR_neq0'; apply/andP; split.
-      rewrite mulR_neq0' Cu0/= subr_eq0.
-    admit.
-    admit.
-apply: sumr_ge0.
-exact: tmp.
-Admitted.
 
 End update.
 
@@ -904,6 +867,53 @@ Qed.
 
 End filter1D_invariant_update.
 
+
+Section update_invariant.
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
+Hypothesis PC_neq0 : Weighted.total P C != 0.
+
+(* Note: this theorem does not hold in general: it should only work
+   when the empirical variance is at least 16 times the actual variance *)
+Lemma update_valid_weight (good : {set U}) :
+ (* NB: hypo written in a funny way to please Program Fixpoint later *)
+ Rleb (evar X PC_neq0) (16 * var X good) <> true ->
+ Weighted.total P (update X PC_neq0) != 0.
+Proof.
+move=> var16.
+rewrite /Weighted.total /update /update_ffun/=.
+rewrite psumr_neq0; last first.
+  move=> u _; rewrite ffunE/=; case: ifPn => _.
+    by rewrite mul0R.
+  rewrite mulr_ge0// mulr_ge0//; first  exact/nneg_finfun_ge0.
+  rewrite subr_ge0.
+  apply/RleP/(Rcomplements.Rdiv_le_1 _ _ _).1 => //.
+    admit.
+  admit.
+have : Weighted.total P C != 0 by [].
+rewrite /Weighted.total /=.
+rewrite psumr_neq0; last admit.
+move=> /hasP[u _] /andP[_ CuPu0].
+apply/hasP; exists u => //.
+rewrite ffunE.
+have : ~ sq_dev_max X PC_neq0 = 0.
+  rewrite /sq_dev_max.
+  apply/eqP.
+  rewrite pmax_eq0; last admit.
+  apply/allP => /=.
+  move/(_ u).
+  rewrite /sq_dev.
+  admit.
+move=> /eqP/negbTE ->/=.
+rewrite ifF; last first. admit.
+rewrite mulr_gt0//; last admit.
+rewrite mulr_gt0//; first admit.
+rewrite subr_gt0.
+apply/RltP.
+apply/(Rcomplements.Rdiv_lt_1 _ _ _).1 => //.
+Admitted.
+
+End update_invariant.
+
 Section base_case.
 (* TODO: define a proper environment *)
 Variables (A : finType) (P : {fdist A}) (eps : R) (good : {set A}).
@@ -954,17 +964,17 @@ Local Obligation Tactic := idtac.
 Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
     (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16)
     (HC : Weighted.total P C != 0)
-    {measure #| 0.-support (sq_dev X HC)| } :=
+    {measure #| 0.-support (sq_dev X HC) | } :=
   match Bool.bool_dec (Weighted.total P C != 0) true with
-  | right _ =>  None
-  | left H =>
-  match #| 0.-support (sq_dev X H) | with
-  | 0      => None
-  | S gas' => if Rleb (evar X H) (var X good)
-              then Some (emean X H)
-              else filter1D C01 Prbad epsmax (update_valid_weight X HC)
-  end
-end.
+  | right _ => None
+  | left H => match #| 0.-support (sq_dev X H) | with
+              | 0 => None
+              | _.+1 => match Bool.bool_dec (Rleb (evar X H) (16 * var X good)) true with
+                        | left _ => Some (emean X H)
+                        | right K => filter1D C01 Prbad epsmax (update_valid_weight K)
+                        end
+              end
+  end.
 Next Obligation.
 move=> /= C C01 Pr_bad eps16 PC_neq0 H /= PC_neq0' PC_neq0'' n n0.
 have := ltn0Sn n; rewrite n0 => /card_gt0P[u]; rewrite supportE => tau_u.
