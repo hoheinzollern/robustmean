@@ -422,8 +422,7 @@ Qed.
 Let invariant := filter1D_inv P C good eps.
 Let invariantW := filter1D_invW good eps PC_neq0.
 
-Lemma lemma1_4_start :
-  invariant -> invariantW.
+Lemma lemma1_4_start : invariant -> invariantW.
 Proof.
 rewrite /invariant /invariantW /filter1D_invW => hinv.
 rewrite -!pr_good.
@@ -770,7 +769,7 @@ Qed.
 Lemma bound_empirical_variance_bad :
   16 * var <= var_hat ->
   0 < \sum_(i in U) C i * P i ->
-  filter1D_inv P C good eps ->
+  invariant ->
   2/3 * var_hat <= \sum_(i in bad) C i * P i * tau i.
 Proof.
 rewrite /eps_max; move => var16 sumCi_pos HiC.
@@ -852,7 +851,7 @@ Hypothesis PC_neq0 : Weighted.total P C != 0.
 Let tau := sq_dev X PC_neq0.
 Let tau_max := sq_dev_max X PC_neq0.
 
-(**md ## lemma 1.5, page 5, update preserves the invariant of filer1D *)
+(**md ## lemma 1.5, page 5, update preserves the invariant of filter1D *)
 Lemma filter1D_inv_update : let C' := update X PC_neq0 in
   0 < tau_max ->
   \sum_(i in good) (C i * P i) * tau i <=
