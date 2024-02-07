@@ -48,7 +48,8 @@ Require Import robustmean.
 (* |     evar_cond | == |                                                     *)
 (* |  filter1D_inv | == | the amount of mass removed from the good points is  *)
 (* |               |    | smaller than that removed from the bad points       *)
-(* | filter1D_invW | == | consequence of filter1D_inv                         *)
+(* | filter1D_invW | == | the amount of mass attached to the good points is   *)
+(* |               |    | at least $1 - \varepsilon$                          *)
 (* |      filter1D | == | robust mean estimation by comparing mean and        *)
 (* |               |    | variance                                            *)
 (*                                                                            *)
@@ -921,7 +922,7 @@ have : ~ sq_dev_max X PC_neq0 = 0.
     by move=> i _; rewrite /sq_dev; apply/RleP; apply sq_RV_ge0.
   apply/allP => /=.
   move/(_ u).
-  rewrite /sq_dev.   
+  rewrite /sq_dev.
   admit.  
 move=> /eqP/negbTE ->/=.
 rewrite ifF; last first.
@@ -930,8 +931,7 @@ rewrite mulr_gt0//; last first.
   by apply/RltP; apply: (pmulR_rgt0' CuPu0); apply C01.
 rewrite mulr_gt0//.
   by apply/RltP; apply: (pmulR_lgt0' CuPu0); apply/RleP; apply FDist.ge0.
-rewrite subr_gt0.
-apply/RltP.
+rewrite subr_gt0; apply/RltP.
 apply/(Rcomplements.Rdiv_lt_1 _ _ _).1 => //.
 Admitted.
 
@@ -994,7 +994,7 @@ Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
               | 0 => None
               | _.+1 => match Bool.bool_dec (Rleb (evar X H) (16 * var X good)) true with
                         | left _ => Some (emean X H)
-                        | right K => filter1D C01 Prbad epsmax (update_valid_weight K)
+                        | right K => filter1D C01 Prbad epsmax (update_valid_weight _ K)
                         end
               end
   end.
