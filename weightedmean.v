@@ -265,7 +265,7 @@ Qed.
 End def.
 End Split.
 
-Lemma nnegP (U : finType) (C : nneg_finfun U) :
+Lemma nnegP (U : finType) (C : {ffun U -> R}) :
   (forall u : U, 0 <= C u) -> [forall a, (0 <= C a)%mcR].
 Proof. by move=> h; apply/forallP => u; apply/RleP. Qed.
 
@@ -923,6 +923,11 @@ have : ~ sq_dev_max X PC_neq0 = 0.
   apply/allP => /=.
   move/(_ u).
   rewrite /sq_dev.
+  have/[swap]/[apply]/implyP: u \in index_enum U by exact: mem_index_enum.
+  (* Notation "[revapply]" := (ltac:(move/[swap]/[apply])) : ssripat_scope.*)
+  (* have/[revapply]/implyP: u \in index_enum U by exact: mem_index_enum. *)
+  move/RltP: CuPu0; rewrite mulr_ge0_gt0 //; last exact: nneg_finfun_ge0.
+  case/andP=> /lt0r_neq0 -> _ /(_ erefl).
   admit.  
 move=> /eqP/negbTE ->/=.
 rewrite ifF; last first.
