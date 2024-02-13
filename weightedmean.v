@@ -297,6 +297,15 @@ rewrite -mulRA mulRCA; congr (_ * _).
 by rewrite Weighted.dE (mulRC _ (P u)) -divRE; congr (_ / _).
 Qed.
 
+Lemma emean0 : (forall u, X u = 0) -> emean = 0.
+Proof.
+move=> X0.
+rewrite emeanE.
+under eq_bigr do rewrite X0 mulR0.
+by rewrite big1 // divRE mul0R.
+Qed.
+
+(* Lemma emean0' : emean (const_RV P 0) PC_neq0 = 0. *)
 End emean.
 
 Section sq_dev.
@@ -306,10 +315,45 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
 Definition sq_dev := let mu_hat := emean X PC_neq0 in
                      (X `-cst mu_hat)`^2.
 
+Lemma sq_devE : sq_dev = (X `-cst (emean X PC_neq0))`^2.
+Proof. by []. Qed.
+
 Lemma sq_dev_ge0 u : 0 <= sq_dev u.
 Proof. by rewrite /sq_dev sq_RV_pow2; exact: pow2_ge_0. Qed.
 
 Definition sq_dev_max := \rmax_(i | C i != 0) sq_dev i.
+
+(*
+Definition sq_dev_max' :=
+  (\big[Order.max/R0]_(i | C i != 0) sq_dev i)%O.
+Lemma sq_dev_max'E : sq_dev_max = sq_dev_max'.
+Proof. by rewrite /sq_dev_max bigmaxRE. Qed.
+*)
+
+Lemma Weighted_support_nonempty : {i | C i != 0}.
+Proof.
+move: PC_neq0; rewrite psumr_neq0; last first.
+  by move=> *; apply: mulr_ge0 => //; exact: nneg_finfun_ge0.
+case/hasP/sig2W=> /= x ?.
+move/RltP/pmulR_lgt0'.
+have:= fdist_ge0_le1 P x.
+case/andP=> /[swap] _ /RleP /[swap] /[apply].
+move/ltR_eqF; rewrite eq_sym => ?.
+by exists x.
+Qed.
+
+Local Notation j := (sval Weighted_support_nonempty).
+
+Definition sq_dev_arg_max :=
+  [arg max_(i > j | C i != 0) sq_dev i]%O.
+
+Lemma sq_dev_max_eq_arg :
+  sq_dev_max = sq_dev (sq_dev_arg_max).
+Proof.
+rewrite /sq_dev_max bigmaxRE.
+apply: bigmax_eq_arg; first by case: Weighted_support_nonempty.
+move=> *; exact/RleP/sq_dev_ge0.
+Qed.
 
 Lemma sq_dev_max_ge0 : 0 <= sq_dev_max.
 Proof.
@@ -332,7 +376,57 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
 Definition evar := let WP := Weighted.d PC_neq0 in
                    let WX : {RV WP -> R} := X in
                    `V WX.
+
+Lemma evarE : evar = emean (sq_dev X PC_neq0) PC_neq0.
+Proof. by []. Qed.
+(*Lemma evarE' : evar = emean ((X `-cst emean X PC_neq0) `^2) PC_neq0.
+Proof. by []. Qed.*)
+
+Lemma evar0P : reflect (forall i, C i * P i * sq_dev X PC_neq0 i = 0) (evar == 0).
+Proof.
+rewrite evarE emeanE.
+apply: (iffP idP); last first.
+  move=> H; under eq_bigr do rewrite H.
+  by rewrite big1 // div0R.
+rewrite mulR_eq0' => /orP []; last first.
+  by move/invR_eq0'; have:= PC_neq0; rewrite /Weighted.total => /negPf ->.
+move/[swap] => i.
+rewrite psumr_eq0.
+  by move/allP/(_ i)/[!mem_index_enum]/(_ erefl)/implyP/[!inE]/(_ erefl)/eqP->.
+move=> x _.
+apply/RleP/mulR_ge0; last exact: sq_dev_ge0.
+apply/mulR_ge0=> //.
+exact/RleP/nneg_finfun_ge0.
+Qed.
+
+Lemma evar_ge0 : 0 <= evar.
+Proof.
+rewrite evarE emeanE; apply: mulR_ge0; last first.
+  exact/invR_ge0/RltP/Weighted.total_gt0.
+have->: 0 = \sum_(i in U) 0 by rewrite big1.
+apply: leR_sumR=> i iU.
+apply: mulR_ge0; last exact: sq_dev_ge0.
+apply: mulR_ge0 => //.
+exact/RleP/nneg_finfun_ge0.
+Qed.
+
 End evar.
+
+Section pos_evar.
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
+  (C : nneg_finfun U) (PC_neq0 : Weighted.total P C != 0)
+  (evar_gt0 : 0 < evar X PC_neq0).
+
+Lemma pos_evar_index :
+  exists i, 0 < C i * P i * sq_dev X PC_neq0 i.
+Proof.
+move: evar_gt0; rewrite ltR_neqAle => -[] /nesym /eqP /[swap] _.
+case/evar0P/boolp.existsNP=> x /eqP ?; exists x.
+rewrite ltR_neqAle; split; first exact/nesym/eqP.
+apply: mulR_ge0; last exact/sq_dev_ge0.
+apply: mulR_ge0=> //; exact/RleP/nneg_finfun_ge0.
+Qed.
+End pos_evar.
 
 Definition emean_cond (U : finType) (P : {fdist U}) (X : {RV P -> R})
     (C : nneg_finfun U) (A : {set U}) (PC_neq0 : Weighted.total P C != 0) :=
@@ -357,6 +451,7 @@ Definition filter1D_invW (U : finType) (P : {fdist U}) (C : nneg_finfun U)
     (good : {set U}) (eps : R) (PC_neq0 : Weighted.total P C != 0) :=
   let WP := Weighted.d PC_neq0 in
   1 - eps <= Pr WP good.
+
 
 Section bounding_empirical_mean.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
@@ -892,7 +987,7 @@ Lemma update_valid_weight (good : {set U}) :
  Rleb (evar X PC_neq0) (16 * var X good) <> true ->
  Weighted.total P (update X PC_neq0) != 0.
 Proof.
-move=> var16.
+move/negP/RleP; rewrite -ltRNge=> var16.
 rewrite /Weighted.total /update /update_ffun/=.
 rewrite psumr_neq0; last first.
   move=> u _; rewrite ffunE/=; case: ifP => [_|/negbT].
@@ -908,11 +1003,13 @@ rewrite psumr_neq0; last first.
   rewrite /sq_dev_max/sq_dev.
   rewrite bigmaxRE.
   apply/RleP; exact: le_bigmax_cond.
-have : Weighted.total P C != 0 by [].
-rewrite /Weighted.total /=.
-rewrite psumr_neq0; last first.
-  by move=> i _; rewrite coqRE mulr_ge0//; apply /RleP; apply C01.
-move=> /hasP[u _] /andP[_ /RltP CuPu0].
+
+have:= cvariance_ge0 X good.
+have/mulR_ge0/[apply]/(fun x => leR_ltR_trans x var16): 0 <= 16
+  by lra.
+case/pos_evar_index=> u CPsqu_gt0.
+have:= CPsqu_gt0=> /pmulR_lgt0'/(_ (sq_dev_ge0 _ _ _)) CuPu0.
+
 apply/hasP; exists u => //.
 rewrite ffunE.
 have : ~ sq_dev_max X PC_neq0 = 0.
@@ -920,16 +1017,12 @@ have : ~ sq_dev_max X PC_neq0 = 0.
   apply/eqP.
   rewrite pmax_eq0; last first.
     by move=> i _; rewrite /sq_dev; apply/RleP; apply sq_RV_ge0.
-  apply/allP => /=.
-  move/(_ u).
-  rewrite /sq_dev.
-  have/[swap]/[apply]/implyP: u \in index_enum U by exact: mem_index_enum.
-  (* Notation "[revapply]" := (ltac:(move/[swap]/[apply])) : ssripat_scope.*)
-  (* have/[revapply]/implyP: u \in index_enum U by exact: mem_index_enum. *)
-  move/RltP: CuPu0; rewrite mulr_ge0_gt0 //; last exact: nneg_finfun_ge0.
-  case/andP=> /lt0r_neq0 -> _ /(_ erefl).
-  admit.  
-move=> /eqP/negbTE ->/=.
+  apply/allPn; exists u => //; apply/negP => /implyP.
+  move/RltP: (CuPu0); rewrite mulr_ge0_gt0 //; last exact: nneg_finfun_ge0.
+  case/andP=> /lt0r_neq0 -> _ /(_ erefl) /eqP; apply/eqP.
+  apply/eqP; move: CPsqu_gt0=> /[swap] ->.
+  rewrite mulR0; exact: ltRR.
+move=> /[dup] sq_neq0 /eqP /negbTE -> /=.
 rewrite ifF; last first.
   by apply/eqP => Cu0; move: CuPu0; rewrite Cu0 mul0R; apply ltRR.
 rewrite mulr_gt0//; last first. 
@@ -1031,6 +1124,7 @@ Next Obligation.
 move=> /= C C01 Pr_bad eps16 PC_neq0 H /= PC_neq0' PC_neq0'' n n0.
 Admitted.
 Next Obligation.
+move=> /= *.
 Admitted.
 
 (* Definition filter1D gas :=
