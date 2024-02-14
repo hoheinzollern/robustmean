@@ -1000,12 +1000,20 @@ Let ffun1_subproof : [forall a, 0 <= ffun1 a]%mcR.
 Proof. by apply/forallP => u; rewrite ffunE; apply/RleP. Qed.
 Definition Cpos_ffun1 := @mkNNFinfun A ffun1 ffun1_subproof.
 
-Hypothesis PC_neq0 : Weighted.total P Cpos_ffun1  != 0.
+Lemma PC1_neq0 : Weighted.total P Cpos_ffun1  != 0.
+Proof.
+rewrite/Weighted.total.
+under eq_bigr => i _ do rewrite /Cpos_ffun1/=/ffun1 ffunE mul1R.
+rewrite FDist.f1.
+apply oner_neq0.
+Qed.
+
+Lemma C1_is01 : is_01 Cpos_ffun1.
+Proof. by move => i; rewrite ffunE; lra. Qed.
 
 Lemma base_case: Pr P (~: good) = eps ->
-  [/\ filter1D_inv P Cpos_ffun1 good eps,
-      filter1D_invW good eps PC_neq0 &
-      is_01 Cpos_ffun1].
+  filter1D_inv P Cpos_ffun1 good eps /\
+    filter1D_invW good eps PC1_neq0.
 Proof.
 move=> Hbad_ratio; rewrite /filter1D_inv; split.
 - rewrite /Cpos_fun /=.
@@ -1023,15 +1031,17 @@ move=> Hbad_ratio; rewrite /filter1D_inv; split.
   under [in X in _ <= _ * / X]eq_bigr do rewrite /ffun1 /= ffunE mul1R.
   rewrite FDist.f1 invR1 mulR1.
   by rewrite -/(Pr P good) Pr_to_cplt Hbad_ratio; exact/RleP.
-- by move => i; rewrite ffunE; lra.
 Qed.
 
 End base_case.
 
 (**md ## Algorithm 2, page 4 *)
 Section filter1D.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
-  (good : {set U}) (eps : R).
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (target_var : R)
+  (*(good : {set U}) (eps : R)*).
+Hypothesis (pos_var : 0 <= target_var).
+
+(* Hypotheses (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16). *)
 
 (* TODO: split file here? *)
 Require Import Program.Wf.
@@ -1082,11 +1092,10 @@ Proof.
 move=> Qu.
 Admitted.
 
-Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
-    (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16)
+Program Fixpoint filter1D_rec (C : nneg_finfun U) (C01 : is_01 C)
     (HC : Weighted.total P C != 0)
     {measure #| 0.-support C | } :=
-  match Bool.bool_dec (Rleb (evar X HC) (16 * var X good)) true with
+  match Bool.bool_dec (Rleb (evar X HC) (16 * target_var (* var X good *))) true with
   | left _ => Some (emean X HC)
   | right K =>
       match #| 0.-support C | with
@@ -1094,12 +1103,12 @@ Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
       | _.+1 =>
           match Bool.bool_dec (Weighted.total P (update X HC) != 0) true with
           | right _ => None
-          | left H => filter1D (C01_update HC C01) Prbad epsmax H
+          | left H => filter1D_rec (C01_update HC C01) H
           end
       end
   end.
 Next Obligation.
-rewrite/Weighted.total=> C C01 Prbadeps e116 HCneq0 _ /= evar16 _ _ _ _ _.
+rewrite/Weighted.total=> C C01 HCneq0 _ /= evar16 _ _ _ _ _.
 apply/ssrnat.ltP.
 apply: proper_card.
 apply/properP; split.
@@ -1122,7 +1131,8 @@ have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0.
   rewrite /sq_dev_max.
   move: evar16; move/Bool.not_true_iff_false; move/RlebP; move/Rnot_le_lt.
   rewrite/evar/Var/sq_dev/var/emean/Ex => h1.
-  have h2 : 0 <= 16 * `V_[ X | good] by apply mulR_ge0; [lra|exact: cvariance_ge0].
+  (* have h2 : 0 <= 16 * `V_[ X | good] by apply mulR_ge0; [lra|exact: cvariance_ge0]. *)
+  have h2 : 0 <= 16 * target_var by apply mulR_ge0; [lra|].
   have := (leR_ltR_trans h2 h1).
   move/RltP.
   move/fsumr_gt0 => [i].
@@ -1161,5 +1171,7 @@ rewrite /= /MR /=.
 apply: well_founded_lt_compat => /= x y.
 exact.
 Qed.
+
+Definition filter1D := @filter1D_rec (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _).
 
 End filter1D.
