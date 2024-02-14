@@ -973,6 +973,15 @@ move=> a l IH; rewrite big_cons; case: ifPn => //_.
 by apply Rmax_Rle; right.
 Qed.
 
+Lemma bigmaxR_gt0 (P : A -> bool) : (exists i, i \in A /\ P i /\ 0 < F i) -> 0 < \rmax_(m | P m) (F m).
+Proof.
+move=> [x[xA [Px Fxgt0]]].
+elim: (index_enum A).
+admit.
+move=> a l h; rewrite big_cons; case: ifPn => //_.
+apply: ltR_leR_trans; [exact: h|exact: leR_maxr].
+Admitted.
+
 End bigmaxR.
 
 Section update_invariant.
@@ -1050,6 +1059,29 @@ apply/RleP/mulr_ile1.
   by apply/divR_ge0 => //; exact: sq_dev_ge0.
 Qed.
 
+
+Lemma fsumr_gt0 (F : U -> R) :
+  (0 < \sum_(i in U) F i)%mcR ->
+  exists i : U, (0 < F i).
+Proof.
+rewrite big_seq.
+elim: (index_enum U); first by rewrite big_nil lt_irreflexive.
+move=> a l IH.
+have h : forall (x y : R), (0 < x + y -> (0 < x) \/ (0 < y)).
+  by move=> x y; lra.
+rewrite -big_seq big_cons.
+move/RltP; rewrite -!coqRE.
+move/h => [Fa0|]; first by exists a.
+rewrite coqRE => /RltP.
+rewrite big_seq.
+by move/IH.
+Qed.
+
+Lemma argmax_cond (Q : U -> bool) (F : U -> R) u : Q u -> Q [arg max_(i > u | Q i) F i]%O.
+Proof.
+move=> Qu.
+Admitted.
+
 Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
     (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16)
     (HC : Weighted.total P C != 0)
@@ -1067,7 +1099,7 @@ Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
       end
   end.
 Next Obligation.
-rewrite/Weighted.total=> C C01 Prbadeps e116 HCneq0 _ /= _ _ _ _ _ _.
+rewrite/Weighted.total=> C C01 Prbadeps e116 HCneq0 _ /= evar16 _ _ _ _ _.
 apply/ssrnat.ltP.
 apply: proper_card.
 apply/properP; split.
@@ -1079,7 +1111,51 @@ have HCge0 : (\sum_(a in U) C a * P a >= 0)%mcR.
   by apply sumr_ge0 => i _; rewrite mulr_ge0//; apply/RleP; exact (C01 i).1.
 have HCgt0 : (0 < \sum_(a in U) C a * P a)%mcR.
   by rewrite lt_neqAle eq_sym HCneq0 HCge0.
-Admitted.
+have := HCgt0.
+move/fsumr_gt0 => [u /RltP].
+rewrite mulr_ge0_gt0//; last by apply/RleP; exact: (C01 u).1.
+move=> /andP[Cu0 Pu0].
+have Cmax_neq0 : C [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O != 0.
+  apply: (@argmax_cond (fun i => C i != 0)).
+  by rewrite gt_eqF.
+have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0.
+  rewrite /sq_dev_max.
+  move: evar16; move/Bool.not_true_iff_false; move/RlebP; move/Rnot_le_lt.
+  rewrite/evar/Var/sq_dev/var/emean/Ex => h1.
+  have h2 : 0 <= 16 * `V_[ X | good] by apply mulR_ge0; [lra|exact: cvariance_ge0].
+  have := (leR_ltR_trans h2 h1).
+  move/RltP.
+  move/fsumr_gt0 => [i].
+  rewrite Weighted.dE => /[dup].
+  move/pmulR_lgt0' => h.
+  have /[apply] := pmulR_rgt0' _ (sq_RV_ge0 (X `-cst \sum_(u0 in U) X u0 * Weighted.d HCneq0 u0) i).
+  rewrite /Weighted.total.
+  move: HCgt0 => /RltP h5.
+  have /[apply] := pmulR_lgt0' _ (invR_ge0 _ (h5)).
+  have /RleP Pige0 := (FDist.ge0 P i).
+  have /[apply] Cigt0 := pmulR_lgt0' _ Pige0.
+  rewrite gt_eqF//.
+  apply/RltP.
+  apply: bigmaxR_gt0.
+  exists i; split => //; split.
+    rewrite gt_eqF//.
+    exact/RltP.
+  apply: h.
+  repeat apply mulR_ge0 => //.
+    apply (C01 _).1.
+  apply invR_ge0.
+  rewrite /Weighted.total.
+  by apply weighted_total_gt0.
+eexists ([arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O).
+  by rewrite supportE.
+rewrite /update_ffun supportE ffunE Bool.negb_involutive ifF.
+  rewrite !coqRE mulf_eq0 subr_eq0 -invr1 -(mul1r (1^-1))%mcR.
+  rewrite eqr_div ?oner_eq0// ?mulr1 ?mul1r//.
+  rewrite /sq_dev_max bigmaxRE.
+  rewrite (@bigmax_eq_arg _ _ _ _ u) ?eq_refl ?orbT ?gt_eqF//.
+  by move=> i _; apply /RleP; apply sq_dev_ge0.
+apply Bool.orb_false_intro; apply: negbTE => //.
+Qed.
 Next Obligation.
 rewrite /= /MR /=.
 apply: well_founded_lt_compat => /= x y.
