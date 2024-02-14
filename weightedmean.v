@@ -980,62 +980,6 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
 Hypothesis PC_neq0 : Weighted.total P C != 0.
 Hypothesis C01 : is_01 C.
 
-(* Note: this theorem does not hold in general: it should only work
-   when the empirical variance is at least 16 times the actual variance *)
-Lemma update_valid_weight (good : {set U}) :
- (* NB: hypo written in a funny way to please Program Fixpoint later *)
- Rleb (evar X PC_neq0) (16 * var X good) <> true ->
- Weighted.total P (update X PC_neq0) != 0.
-Proof.
-move/negP/RleP; rewrite -ltRNge=> var16.
-rewrite /Weighted.total /update /update_ffun/=.
-rewrite psumr_neq0; last first.
-  move=> u _; rewrite ffunE/=; case: ifP => [_|/negbT].
-    by rewrite mul0R.
-  rewrite negb_or => /andP[h1 h2].
-  rewrite mulr_ge0// mulr_ge0//; first exact/nneg_finfun_ge0.
-  rewrite subr_ge0.
-  apply/RleP/(Rcomplements.Rdiv_le_1 _ _ _).1.
-    apply ltR_neqAle; split => [h3|].
-      rewrite -h3 eq_refl in h1 => //.
-    rewrite /sq_dev_max.
-    exact: bigmaxR_ge0.
-  rewrite /sq_dev_max/sq_dev.
-  rewrite bigmaxRE.
-  apply/RleP; exact: le_bigmax_cond.
-
-have:= cvariance_ge0 X good.
-have/mulR_ge0/[apply]/(fun x => leR_ltR_trans x var16): 0 <= 16
-  by lra.
-case/pos_evar_index=> u CPsqu_gt0.
-have:= CPsqu_gt0=> /pmulR_lgt0'/(_ (sq_dev_ge0 _ _ _)) CuPu0.
-
-apply/hasP; exists u => //.
-rewrite ffunE.
-have : ~ sq_dev_max X PC_neq0 = 0.
-  rewrite /sq_dev_max.
-  apply/eqP.
-  rewrite pmax_eq0; last first.
-    by move=> i _; rewrite /sq_dev; apply/RleP; apply sq_RV_ge0.
-  apply/allPn; exists u => //; apply/negP => /implyP.
-  move/RltP: (CuPu0); rewrite mulr_ge0_gt0 //; last exact: nneg_finfun_ge0.
-  case/andP=> /lt0r_neq0 -> _ /(_ erefl) /eqP; apply/eqP.
-  apply/eqP; move: CPsqu_gt0=> /[swap] ->.
-  rewrite mulR0; exact: ltRR.
-move=> /[dup] sq_neq0 /eqP /negbTE -> /=.
-rewrite ifF; last first.
-  by apply/eqP => Cu0; move: CuPu0; rewrite Cu0 mul0R; apply ltRR.
-rewrite mulr_gt0//; last first. 
-  by apply/RltP; apply: (pmulR_rgt0' CuPu0); apply C01.
-rewrite mulr_gt0//.
-  by apply/RltP; apply: (pmulR_lgt0' CuPu0); apply/RleP; apply FDist.ge0.
-rewrite subr_gt0; apply/RltP.
-apply/(Rcomplements.Rdiv_lt_1 _ _ _).1 => //.
-  by apply/ltR_neqAle; split; [exact/nesym|exact: sq_dev_max_ge0].
-rewrite /sq_dev_max.
-
-Admitted.
-
 End update_invariant.
 
 Section base_case.
@@ -1110,18 +1054,31 @@ Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
     (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16)
     (HC : Weighted.total P C != 0)
     {measure #| 0.-support C | } :=
-  match #| 0.-support C | with
-  | 0 => None
-  | _.+1 => match Bool.bool_dec (Rleb (evar X HC) (16 * var X good)) true with
-            | left _ => Some (emean X HC)
-            | right K => match Bool.bool_dec (Weighted.total P (update X HC) != 0) true with
-                         | right _ => None
-                         | left H => filter1D (C01_update HC C01) Prbad epsmax H
-                         end
-            end
+  match Bool.bool_dec (Rleb (evar X HC) (16 * var X good)) true with
+  | left _ => Some (emean X HC)
+  | right K =>
+      match #| 0.-support C | with
+      | 0 => None
+      | _.+1 =>
+          match Bool.bool_dec (Weighted.total P (update X HC) != 0) true with
+          | right _ => None
+          | left H => filter1D (C01_update HC C01) Prbad epsmax H
+          end
+      end
   end.
 Next Obligation.
-move=> C C01 Prbadeps e116 HC _ /= _ _ _ _ _ _.
+rewrite/Weighted.total=> C C01 Prbadeps e116 HCneq0 _ /= _ _ _ _ _ _.
+apply/ssrnat.ltP.
+apply: proper_card.
+apply/properP; split.
+  apply/subsetP => i; rewrite !supportE /update_ffun ffunE.
+  case: ifPn; first by rewrite eq_refl.
+  by rewrite negb_or => /andP[].
+(* here we should find the index of (sq_dev_max X HC). *)
+have HCge0 : (\sum_(a in U) C a * P a >= 0)%mcR.
+  by apply sumr_ge0 => i _; rewrite mulr_ge0//; apply/RleP; exact (C01 i).1.
+have HCgt0 : (0 < \sum_(a in U) C a * P a)%mcR.
+  by rewrite lt_neqAle eq_sym HCneq0 HCge0.
 Admitted.
 Next Obligation.
 rewrite /= /MR /=.
