@@ -1031,6 +1031,9 @@ rewrite mulr_gt0//.
   by apply/RltP; apply: (pmulR_lgt0' CuPu0); apply/RleP; apply FDist.ge0.
 rewrite subr_gt0; apply/RltP.
 apply/(Rcomplements.Rdiv_lt_1 _ _ _).1 => //.
+  by apply/ltR_neqAle; split; [exact/nesym|exact: sq_dev_max_ge0].
+rewrite /sq_dev_max.
+
 Admitted.
 
 End update_invariant.
@@ -1082,6 +1085,51 @@ Require Import Program.Wf.
 
 Local Obligation Tactic := idtac.
 
+Lemma C01_update (C : nneg_finfun U) (PC_neq0 : Weighted.total P C != 0) :
+  is_01 C -> is_01 (update X PC_neq0).
+Proof.
+move=> C01 u; rewrite /update/=; split.
+  apply/RleP.
+  have /forallP := update_pos_ffun X PC_neq0.
+  exact.
+rewrite /update_ffun ffunE; case: ifPn => //.
+rewrite negb_or => /andP[sq_dev_neq0 Cu_neq0].
+move=> [:sq_gt0].
+apply/RleP/mulr_ile1.
+- exact/RleP/(C01 u).1.
+- apply/RleP; rewrite subR_ge0 leR_pdivr_mulr// ?mul1R//; last first.
+    abstract: sq_gt0.
+    by apply/ltR_neqAle; split; [exact/nesym/eqP|exact/sq_dev_max_ge0].
+  exact: sq_dev_max_ge.
+- exact/RleP/(C01 u).2.
+- apply/RleP; rewrite leR_subl_addr addRC -leR_subl_addr subRR.
+  by apply/divR_ge0 => //; exact: sq_dev_ge0.
+Qed.
+
+Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
+    (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16)
+    (HC : Weighted.total P C != 0)
+    {measure #| 0.-support C | } :=
+  match #| 0.-support C | with
+  | 0 => None
+  | _.+1 => match Bool.bool_dec (Rleb (evar X HC) (16 * var X good)) true with
+            | left _ => Some (emean X HC)
+            | right K => match Bool.bool_dec (Weighted.total P (update X HC) != 0) true with
+                         | right _ => None
+                         | left H => filter1D (C01_update HC C01) Prbad epsmax H
+                         end
+            end
+  end.
+Next Obligation.
+move=> C C01 Prbadeps e116 HC _ /= _ _ _ _ _ _.
+Admitted.
+Next Obligation.
+rewrite /= /MR /=.
+apply: well_founded_lt_compat => /= x y.
+exact.
+Qed.
+
+(*
 Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
     (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16)
     (HC : Weighted.total P C != 0)
@@ -1092,7 +1140,8 @@ Program Fixpoint filter1D (C : nneg_finfun U) (C01 : is_01 C)
               | 0 => None
               | _.+1 => match Bool.bool_dec (Rleb (evar X H) (16 * var X good)) true with
                         | left _ => Some (emean X H)
-                        | right K => filter1D C01 Prbad epsmax (update_valid_weight _ K)
+                        | right K => filter1D (C01_update H C01) Prbad epsmax
+                                     (update_valid_weight _ K)
                         end
               end
   end.
@@ -1136,5 +1185,6 @@ Admitted.
 (* Lemma first_note (C: {ffun U -> R}):
   invariant C -> 1 - eps <= (\sum_(i in good) C i * P i) / (\sum_(i in U) C i * P i).
 Admitted. *)
+*)
 
 End filter1D.
