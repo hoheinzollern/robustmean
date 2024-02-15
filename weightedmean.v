@@ -1028,41 +1028,31 @@ rewrite/Weighted.total=> C C01 HCneq0 _ /= evar16 _ _ _.
 apply/ssrnat.ltP/proper_card/properP; split.
   apply/subsetP => u; rewrite !supportE /update_ffun ffunE.
   by case: ifPn; [rewrite eqxx|rewrite negb_or => /andP[]].
-have HCge0 : (\sum_(a in U) C a * P a >= 0)%mcR.
-  by apply sumr_ge0 => i _; rewrite mulr_ge0//; apply/RleP; exact (C01 i).1.
-have h5 : (0 < \sum_(a in U) C a * P a)%mcR.
-  by rewrite lt_neqAle eq_sym HCneq0 HCge0.
-move: (h5) => /fsumr_gt0[u _ /RltP].
-rewrite mulr_ge0_gt0//; last by apply/RleP; exact: (C01 u).1.
-move=> /andP[Cu0 Pu0].
+have /RltP HCgt0 := weighted_total_gt0 HCneq0.
+have HCge0 := ltW HCgt0.
+move: (HCgt0) => /fsumr_gt0[u _ /RltP].
+rewrite mulr_ge0_gt0// => [/andP[Cu0 Pu0]|]; last by apply/RleP; exact: (C01 u).1.
 have Cmax_neq0 : C [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O != 0.
   by case: arg_maxP => //; rewrite gt_eqF.
 have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0.
   rewrite /sq_dev_max.
   move: evar16 => /negP/RlebP/RleP; rewrite -ltNge => /RltP.
-  rewrite /evar /Var /sq_dev /var /emean /Ex => h1.
+  rewrite /evar /Var /sq_dev /var /emean /Ex => evar16.
   have : 0 <= 16 * target_var by apply mulR_ge0; [lra|].
-  move=> /leR_ltR_trans => /(_ _ h1) /RltP.
-  move=> /fsumr_gt0[i _].
-  rewrite Weighted.dE => /[dup].
-  move/pmulR_lgt0' => h.
+  move=> /leR_ltR_trans => /(_ _ evar16) /RltP => /fsumr_gt0[i _].
+  rewrite Weighted.dE => /[dup] => /pmulR_lgt0' => sq_dev_gt0.
   have /[apply] := pmulR_rgt0' _ (sq_RV_ge0 (X `-cst \sum_(v in U) X v * Weighted.d HCneq0 v) i).
-  rewrite /Weighted.total.
-  move/RltP in h5.
-  have /[apply] := pmulR_lgt0' _ (invR_ge0 _ h5).
-  have /RleP Pige0 := FDist.ge0 P i.
-  have /[apply] Cigt0 := pmulR_lgt0' _ Pige0.
-  rewrite gt_eqF//.
-  apply/RltP/bigmaxR_gt0; exists i; split => //.
+  have /[apply] := pmulR_lgt0' _ (invR_ge0 _ (RltP _ _ HCgt0)).
+  have /[apply] Cigt0 := pmulR_lgt0' _ (RleP _ _ (FDist.ge0 P i)).
+  rewrite gt_eqF//; apply/RltP/bigmaxR_gt0; exists i; split => //.
     by rewrite gt_eqF//; exact/RltP.
-  apply/h/mulR_ge0; first by apply/mulR_ge0 => //; apply (C01 _).1.
+  apply/sq_dev_gt0/mulR_ge0; first by apply/mulR_ge0 => //; apply (C01 _).1.
   exact/invR_ge0/weighted_total_gt0.
 exists [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O.
   by rewrite supportE.
 rewrite /update_ffun supportE ffunE negbK ifF.
   rewrite !coqRE mulf_eq0 subr_eq0 -invr1 -(mul1r (1^-1))%mcR.
-  rewrite eqr_div ?oner_eq0// ?mulr1 ?mul1r//.
-  rewrite /sq_dev_max bigmaxRE.
+  rewrite eqr_div ?oner_eq0// ?mulr1 ?mul1r// /sq_dev_max bigmaxRE.
   rewrite (@bigmax_eq_arg _ _ _ _ u) ?eq_refl ?orbT ?gt_eqF//.
   by move=> i _; exact/RleP/sq_dev_ge0.
 by rewrite (negbTE sq_dev_max_neq0)/=; exact/negbTE.
