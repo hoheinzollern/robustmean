@@ -984,11 +984,8 @@ End base_case.
 
 (**md ## Algorithm 2, page 4 *)
 Section filter1D.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (target_var : R)
-  (*(good : {set U}) (eps : R)*).
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (target_var : R).
 Hypothesis (pos_var : 0 <= target_var).
-
-(* Hypotheses (Prbad : Pr P (~: good) = eps) (epsmax : eps <= 1/16). *)
 
 (* TODO: split file here? *)
 Require Import Program.Wf.
@@ -1018,24 +1015,19 @@ Qed.
 
 Program Fixpoint filter1D_rec (C : nneg_finfun U) (C01 : is_01 C)
     (HC : Weighted.total P C != 0) {measure #| 0.-support C | } :=
-  match Bool.bool_dec (Rleb (evar X HC) (16 * target_var (* var X good *))) true with
+  match Bool.bool_dec (Rleb (evar X HC) (16 * target_var)) true with
   | left _ => Some (emean X HC)
   | right K =>
-      match #| 0.-support C | with
-      | 0 => None
-      | _.+1 =>
-          match Bool.bool_dec (Weighted.total P (update X HC) != 0) true with
-          | right _ => None
-          | left H => filter1D_rec (C01_update HC C01) H
-          end
+      match Bool.bool_dec (Weighted.total P (update X HC) != 0) true with
+      | right _ => None
+      | left H => filter1D_rec (C01_update HC C01) H
       end
   end.
 Next Obligation.
-rewrite/Weighted.total=> C C01 HCneq0 _ /= evar16 _ _ _ _ _.
+rewrite/Weighted.total=> C C01 HCneq0 _ /= evar16 _ _ _.
 apply/ssrnat.ltP/proper_card/properP; split.
   apply/subsetP => u; rewrite !supportE /update_ffun ffunE.
   by case: ifPn; [rewrite eqxx|rewrite negb_or => /andP[]].
-(* here we should find the index of (sq_dev_max X HC). *)
 have HCge0 : (\sum_(a in U) C a * P a >= 0)%mcR.
   by apply sumr_ge0 => i _; rewrite mulr_ge0//; apply/RleP; exact (C01 i).1.
 have h5 : (0 < \sum_(a in U) C a * P a)%mcR.
@@ -1049,7 +1041,6 @@ have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0.
   rewrite /sq_dev_max.
   move: evar16 => /negP/RlebP/RleP; rewrite -ltNge => /RltP.
   rewrite /evar /Var /sq_dev /var /emean /Ex => h1.
-  (* have h2 : 0 <= 16 * `V_[ X | good] by apply mulR_ge0; [lra|exact: cvariance_ge0]. *)
   have : 0 <= 16 * target_var by apply mulR_ge0; [lra|].
   move=> /leR_ltR_trans => /(_ _ h1) /RltP.
   move=> /fsumr_gt0[i _].
