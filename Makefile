@@ -15,5 +15,5 @@ _CoqProject Makefile: ;
 .PHONY: all clean
 
 doc:
-	../coq2html/coq2html -title "Robust Mean" -d html/ -Q . robustmean -coqlib https://coq.inria.fr/doc/V8.18.0/stdlib/ -external https://math-comp.github.io/htmldoc/ mathcomp.ssreflect -external https://math-comp.github.io/htmldoc/ mathcomp.algebra ./*.v ./*.glob
+	../coq2html/coq2html -d html/ -Q . robustmean -coqlib https://coq.inria.fr/doc/V8.18.0/stdlib/ -external https://math-comp.github.io/htmldoc/ mathcomp.ssreflect -external https://math-comp.github.io/htmldoc/ mathcomp.algebra ./*.v ./*.glob
 
