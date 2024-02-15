@@ -5,6 +5,7 @@
 -arg -w -arg -notation-incompatible-format
 
 robustmean.v
+util.v
 weightedmean.v
 # extraction_trimmedmean.v
 

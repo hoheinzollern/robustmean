@@ -19,7 +19,7 @@ Import Order.POrderTheory Order.Theory Num.Theory GRing.Theory.
 Notation R := real_realType.
 
 Require Import Interval.Tactic.
-Require Import robustmean.
+Require Import robustmean util.
 
 (**md**************************************************************************)
 (* # lemmas 1.4, 1.5, etc.                                                    *)
@@ -54,106 +54,6 @@ Require Import robustmean.
 (* |               |    | variance                                            *)
 (*                                                                            *)
 (******************************************************************************)
-
-Section move_to_mathcomp.
-
-Lemma setT_bool : [set: bool] = [set true; false].
-Proof.
-apply/eqP; rewrite eqEsubset; apply/andP; split => //.
-by apply/subsetP => x; rewrite !inE; case: x.
-Qed.
-
-Lemma fsumr_gt0 (U : eqType) (F : U -> R) (s : seq U) :
-  (0 < \sum_(i <- s) F i)%mcR -> exists2 i, i \in s & 0 < F i.
-Proof.
-elim: s => [|h t ih]; first by rewrite big_nil ltxx.
-rewrite big_cons.
-have H : forall x y : R, 0 < x + y -> 0 < x \/ 0 < y by move=> x y; lra.
-move/RltP/H => [Fh0|]; first by exists h => //; rewrite mem_head.
-by move/RltP/ih => [u ut Fu0]; exists u => //; rewrite inE ut orbT.
-Qed.
-
-End move_to_mathcomp.
-
-Section move_to_infotheo.
-
-Section nneg_finfun. (* Reals_ext.v *)
-Local Open Scope R_scope.
-
-Lemma nneg_finfun_ge0 (I : finType) (f : nneg_finfun I) i : (0 <= f i)%mcR.
-Proof. by case: f => /= f /forallP /(_ i). Qed.
-
-Lemma nneg_finfun_le0 (I : finType) (F : nneg_finfun I) i :
-  (F i == 0) = (F i <= 0)%mcR.
-Proof.
-apply/idP/idP => [/eqP -> //|].
-case: F => F /= /forallP /(_ i).
-by rewrite eq_le coqRE => -> ->.
-Qed.
-
-Fail Check F : pos_fun _. (* Why no coercion pos_ffun >-> pos_fun? *)
-
-Lemma pos_ffun_bigmaxR0P (I : finType) (r : seq I) (P : pred I) (F : nneg_finfun I) :
-  reflect (forall i : I, i \in r -> P i -> F i = 0)
-          (\rmax_(i <- r | P i) F i == 0).
-Proof.
-apply: (iffP idP) => [/eqP H i ir Pi|H].
-- apply/eqP; rewrite nneg_finfun_le0 -coqRE -H.
-  rewrite -big_filter; apply/RleP; apply: leR_bigmaxR.
-  by rewrite mem_filter ir Pi.
-- rewrite -big_filter big_seq.
-  under eq_bigr=> i do rewrite mem_filter=> /andP [] /[swap] /(H i) /[apply] ->.
-  by rewrite -big_seq big_const_seq iter_fix // maxRR.
-Qed.
-
-End nneg_finfun.
-
-Lemma pmax_eq0 [I : eqType] (r : seq I) [P : pred I] [F : I -> R] :
-  (forall i, P i -> (0 <= F i)%mcR) ->
-  ((\rmax_(i <- r | P i) F i)%mcR == 0%mcR) = all (fun i => P i ==> (F i == 0%mcR)) r.
-Proof.
-elim: r => /= [|h t ih PF0].
-  by rewrite big_nil eqxx.
-rewrite big_cons.
-case: ifP => Ph.
-  rewrite implyTb; apply/idP/andP.
-    have [Fh|Fh] := leP (F h) (\rmax_(j <- t | P j) F j).
-      rewrite Rmax_right//; last exact/RleP.
-      move=> tPF; rewrite -ih//; split => //.
-      by rewrite eq_le PF0// andbT -(eqP tPF).
-    rewrite Rmax_left//; last exact/ltRW/RltP.
-    move=> Fh0; rewrite Fh0; split => //.
-    rewrite -ih// eq_le; apply/andP; split.
-      by rewrite -(eqP Fh0); exact/RleP/ltRW/RltP.
-    apply/RleP; rewrite -big_filter; apply/bigmaxR_ge0 => r.
-    by rewrite mem_filter => /andP[/PF0 /RleP].
-  move=> [/eqP Fh0 /allP tPF].
- rewrite Fh0; apply/eqP/Rmax_left; apply/leR_eqVlt; left.
- by apply/eqP; rewrite ih//; apply/allP.
-by rewrite implyFb /= ih.
-Qed.
-
-Section bigmaxR.
-Variables (A : eqType) (F : A -> R) (s : seq A).
-
-Lemma leR_bigmaxR_P (P : pred A) : forall m, m \in s -> P m ->
-  F m <= \rmax_(m <- s | P m) (F m).
-Proof.
-elim: s => // hd tl IH m; rewrite in_cons; case/orP.
-- move/eqP => -> Pm; rewrite big_cons Pm; exact/leR_maxl.
-- move/IH => H Pm; rewrite big_cons; case: ifPn => Phd; last exact: H.
-  exact/(leR_trans (H Pm))/leR_maxr.
-Qed.
-
-Lemma bigmaxR_gt0 (P : pred A) :
-  (exists i, [/\ i \in s, P i & 0 < F i]) -> 0 < \rmax_(m <- s | P m) (F m).
-Proof.
-by move=> [a [? ? Fa0]]; exact/(Rlt_le_trans _ _ _ Fa0)/leR_bigmaxR_P.
-Qed.
-
-End bigmaxR.
-
-End move_to_infotheo.
 
 Definition is_01 (U : finType) (C : {ffun U -> R}) :=
   forall i, 0 <= C i <= 1.
@@ -470,8 +370,8 @@ Proof. by apply/RltP; apply Weighted.total_gt0. Qed.
 Let hweightedtotalgt0 := weighted_total_gt0.
 
 (**md ## eqn 1.1, page 5 *)
-Lemma eqn1_1 :
- (\sum_(i in good) C i * P i * tau i) / Pr P good <= var + (mu - mu_hat)².
+Lemma weight_contrib :
+  (\sum_(i in good) C i * P i * tau i) / Pr P good <= var + (mu - mu_hat)².
 Proof.
 apply (@leR_trans (`E_[tau | good]));
   last by apply/leR_eqVlt;left;apply/cVarDist.
@@ -489,7 +389,7 @@ Qed.
 Let invariant := filter1D_inv P C good eps.
 Let invariantW := filter1D_invW good eps PC_neq0.
 
-Lemma lemma1_4_start : invariant -> invariantW.
+Lemma invariant_impl : invariant -> invariantW.
 Proof.
 rewrite /invariant /invariantW /filter1D_invW => hinv.
 rewrite -!pr_good.
@@ -652,7 +552,7 @@ Proof.
 move=> IC.
 unfold eps_max in low_eps.
 have I1C : invariantW.
-  apply: lemma1_4_start => //.
+  apply: invariant_impl => //.
 apply: (@Rle_trans _ (`|mu - mu_wave| + `|mu_hat - mu_wave|)).
   have -> : mu - mu_hat = (mu - mu_wave) + (mu_wave - mu_hat) by lra.
   apply: (Rle_trans _ _ _ (Rabs_triang _ _)).
@@ -750,14 +650,14 @@ Proof.
 rewrite /eps_max; move => var16 IC.
 unfold eps_max in low_eps.
 have I1C : invariantW. (* todo: repeated, factor out *)
-  by apply: lemma1_4_start.
+  by apply: invariant_impl.
 have Hvar_hat_2_eps: 0 <= var_hat * 2 * eps.
   by rewrite -mulRA; apply: mulR_ge0; [exact: variance_ge0|lra].
 rewrite /var_hat.
 have PrPgoodpos : 0 < Pr P good by move: pr_bad; rewrite Pr_of_cplt; lra.
 (*a6*)
 apply (@leR_trans ((1 - eps) * (var + (mu - mu_hat)²))).
-  by rewrite -!(pr_good pr_bad) Rmult_comm -leR_pdivr_mulr//; apply: eqn1_1 => //; rewrite pr_bad.
+  by rewrite -!(pr_good pr_bad) Rmult_comm -leR_pdivr_mulr//; apply: weight_contrib => //; rewrite pr_bad.
 (*a6-a7*)
 apply (@leR_trans ((1 - eps) * (var + (sqrt (var * 2 * eps / (2 - eps)) +
                                        sqrt (var_hat * 2 * eps / (1 - eps)))²))).
@@ -884,12 +784,12 @@ Qed.
 
 (**md ## eqn 1.3--1.4, page 7 *)
 (* TODO: improve the notation for pos_ffun (and for pos_fun) *)
-Lemma eqn1_3_4 (S : {set U}) :
+Lemma update_removed_weight (S : {set U}) :
   let C' := update X PC_neq0 in
   0 < tau_max ->
   \sum_(i in S) (1 - C' i) * P i =
     (\sum_(i in S) (1 - C i) * P i) +
-    1 / tau_max * (\sum_(i in S ) C i * P i * tau i).
+    1 / tau_max * (\sum_(i in S) C i * P i * tau i).
 Proof.
 move => C' tau_max_gt0.
 have <- : \sum_(i in S) (C i - C' i) * P i=
@@ -924,7 +824,7 @@ Lemma filter1D_inv_update : let C' := update X PC_neq0 in
   filter1D_inv P C good eps -> filter1D_inv P C' good eps.
 Proof.
 rewrite /filter1D_inv => tau_max_gt0 H1 H2.
-rewrite !eqn1_3_4// !mulRDr; apply leR_add; first exact H2.
+rewrite !update_removed_weight// !mulRDr; apply leR_add; first exact H2.
 rewrite mulRCA.
 by apply leR_pmul2l; [exact/divR_gt0|exact: H1].
 Qed.
