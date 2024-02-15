@@ -15,6 +15,10 @@
 - Related publications:
   - Trimming Data Sets: a Verified Algorithm for Robust Mean Estimation [doi: 10.1145/3479394.3479412](https://doi.org/10.1145/3479394.3479412)
 
+## Documentation
+
+The repository is documented with [coq2html](https://github.com/yoshihiro503/coq2html/) and the statically generated documentation is available at [hoheinzollern.github.io/robustmean](https://hoheinzollern.github.io/robustmean/).
+
 ## Setup
 
 The best way to get started with this repository is through [opam](https://opam.ocaml.org/doc/Install.html):
