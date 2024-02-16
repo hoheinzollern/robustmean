@@ -19,6 +19,7 @@ Import Order.POrderTheory Order.Theory Num.Theory GRing.Theory.
 Notation R := real_realType.
 
 Require Import Interval.Tactic.
+Require Import Program.Wf.
 Require Import robustmean util.
 
 (**md**************************************************************************)
@@ -98,7 +99,9 @@ Module Split.
 Section def.
 Variables (A : finType) (d0 : {fdist A}) (h : nneg_finfun A).
 Hypothesis weight_C : is_01 h.
+
 Definition g := fun x => if x.2 then h x.1 else 1 - h x.1.
+
 Definition f := [ffun x => g x * d0 x.1].
 
 Lemma g_ge0 x : (0 <= g x)%mcR.
@@ -147,25 +150,15 @@ Qed.
 End def.
 End Split.
 
-Lemma nnegP (U : finType) (C : {ffun U -> R}) :
-  (forall u : U, 0 <= C u) -> [forall a, (0 <= C a)%mcR].
-Proof. by move=> h; apply/forallP => u; apply/RleP. Qed.
-
-Definition Cpos_fun (U : finType) (C : nneg_finfun U)
-    (h : forall u : U, 0 <= C u) : nneg_finfun U :=
-  mkNNFinfun (nnegP h).
-
-Definition mean (U : finType) (P : {fdist U}) (X : {RV P -> R})
-    (A : {set U}) :=
+Definition mean (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}) :=
   `E_[X | A].
 
-Definition var (U : finType) (P : {fdist U}) (X : {RV P -> R})
-    (A : {set U}) :=
+Definition var (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}) :=
   `V_[X | A].
 
 Section emean.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
-  (C : nneg_finfun U) (PC_neq0 : Weighted.total P C != 0).
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
+Hypothesis (PC_neq0 : Weighted.total P C != 0).
 
 Definition emean := let WP := Weighted.d PC_neq0 in
                     let WX : {RV WP -> R} := X in
@@ -190,8 +183,8 @@ Qed.
 End emean.
 
 Section sq_dev.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
-    (C : nneg_finfun U) (PC_neq0 : Weighted.total P C != 0).
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
+Hypothesis (PC_neq0 : Weighted.total P C != 0).
 
 Definition sq_dev := let mu_hat := emean X PC_neq0 in
                      (X `-cst mu_hat)`^2.
@@ -244,8 +237,8 @@ Qed.
 End sq_dev.
 
 Section evar.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
-  (C : nneg_finfun U) (PC_neq0 : Weighted.total P C != 0).
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
+Hypothesis (PC_neq0 : Weighted.total P C != 0).
 
 Definition evar := let WP := Weighted.d PC_neq0 in
                    let WX : {RV WP -> R} := X in
@@ -284,9 +277,8 @@ Qed.
 End evar.
 
 Section pos_evar.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
-  (C : nneg_finfun U) (PC_neq0 : Weighted.total P C != 0)
-  (evar_gt0 : 0 < evar X PC_neq0).
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
+Hypotheses (PC_neq0 : Weighted.total P C != 0) (evar_gt0 : 0 < evar X PC_neq0).
 
 Lemma pos_evar_index :
   exists i, 0 < C i * P i * sq_dev X PC_neq0 i.
@@ -327,18 +319,17 @@ Definition filter1D_invW (U : finType) (P : {fdist U}) (C : nneg_finfun U)
 Section bounding_empirical_mean.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (good : {set U}) (eps : R).
-Hypotheses (C01 : is_01 C) (PC_neq0 : Weighted.total P C != 0).
 
-Let WP := Weighted.d PC_neq0.
-Let SP := Split.d P C01.
 Let bad := ~: good.
 Let eps_max := 1/16.
 
-Hypothesis pr_bad : Pr P bad = eps.
+Hypotheses (C01 : is_01 C) (PC_neq0 : Weighted.total P C != 0)
+  (pr_bad : Pr P bad = eps) (low_eps : eps <= eps_max).
+
+Let WP := Weighted.d PC_neq0.
+Let SP := Split.d P C01.
 
 Lemma pr_good : Pr P good = 1 - eps. Proof. by rewrite Pr_to_cplt pr_bad. Qed.
-
-Hypothesis low_eps : eps <= eps_max.
 
 Let eps0 : 0 <= eps. Proof. rewrite -pr_bad. exact: Pr_ge0. Qed.
 
@@ -584,10 +575,6 @@ Let tau_max := sq_dev_max X PC_neq0.
 Definition arg_tau_max :=
   [arg max_(i > (fdist_supp_choice P) in [set: U]) tau i]%O.
 
-(*
-Definition update (C : {ffun U -> R}) : {ffun U -> R} :=
-  [ffun i => C i * (1 - tau C i / tau_max C)].
-*)
 Definition update_ffun : {ffun U -> R} :=
   [ffun i => if (tau_max == 0) || (C i == 0) then 0 else
             C i * (1 - tau i / tau_max)].
@@ -614,15 +601,15 @@ End update.
 Section bounding_empirical_variance.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (good : {set U}) (eps : R).
-Hypotheses (C01 : is_01 C) (PC_neq0 : Weighted.total P C != 0).
 
-Let WP := Weighted.d PC_neq0.
-Let SP := Split.d P C01.
 Let bad := ~: good.
 Let eps_max := 1/16.
 
-Hypothesis pr_bad : Pr P bad = eps.
-Hypothesis low_eps : eps <= eps_max.
+Hypotheses (C01 : is_01 C) (PC_neq0 : Weighted.total P C != 0)
+  (pr_bad : Pr P bad = eps) (low_eps : eps <= eps_max).
+
+Let WP := Weighted.d PC_neq0.
+Let SP := Split.d P C01.
 
 Let eps0 : 0 <= eps. Proof. rewrite -pr_bad. exact: Pr_ge0. Qed.
 
@@ -679,10 +666,10 @@ apply (@leR_trans ((1 - eps) * var_hat *
   apply Rsqr_incr_1; last 2 first.
     by apply addR_ge0; apply sqrt_pos.
     apply: addR_ge0; apply: mulR_ge0.
-    exact: sqrt_pos.
-    by apply: invR_ge0; interval.
-    exact: sqrt_pos.
-    by apply: invR_ge0; interval.
+    - exact: sqrt_pos.
+    - by apply: invR_ge0; interval.
+    - exact: sqrt_pos.
+    - by apply: invR_ge0; interval.
   apply: leR_add.
     apply: (@leR_trans (sqrt (var_hat * 2 * eps * / (4 * 4 * (2 - eps))))); last first.
       rewrite sqrt_mult; [|lra|apply: invR_ge0; lra].
@@ -808,10 +795,10 @@ Qed.
 
 End bounding_empirical_variance.
 
-Section filter1D_invariant_update.
+Section update_invariant.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (good : {set U}) (eps : R).
-Hypothesis PC_neq0 : Weighted.total P C != 0.
+Hypothesis (PC_neq0 : Weighted.total P C != 0).
 
 Let tau := sq_dev X PC_neq0.
 Let tau_max := sq_dev_max X PC_neq0.
@@ -828,13 +815,6 @@ rewrite !update_removed_weight// !mulRDr; apply leR_add; first exact H2.
 rewrite mulRCA.
 by apply leR_pmul2l; [exact/divR_gt0|exact: H1].
 Qed.
-
-End filter1D_invariant_update.
-
-Section update_invariant.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
-Hypothesis PC_neq0 : Weighted.total P C != 0.
-Hypothesis C01 : is_01 C.
 
 End update_invariant.
 
@@ -886,9 +866,6 @@ End base_case.
 Section filter1D.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (target_var : R).
 Hypothesis (pos_var : 0 <= target_var).
-
-(* TODO: split file here? *)
-Require Import Program.Wf.
 
 Local Obligation Tactic := idtac.
 

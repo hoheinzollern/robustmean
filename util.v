@@ -69,6 +69,14 @@ apply: (iffP idP) => [/eqP H i ir Pi|H].
   by rewrite -big_seq big_const_seq iter_fix // maxRR.
 Qed.
 
+Lemma nnegP (U : finType) (C : {ffun U -> R}) :
+  (forall u : U, 0 <= C u) -> [forall a, (0 <= C a)%mcR].
+Proof. by move=> h; apply/forallP => u; apply/RleP. Qed.
+
+Definition Cpos_fun (U : finType) (C : nneg_finfun U)
+    (h : forall u : U, 0 <= C u) : nneg_finfun U :=
+  mkNNFinfun (nnegP h).
+
 End nneg_finfun.
 
 Lemma pmax_eq0 [I : eqType] (r : seq I) [P : pred I] [F : I -> R] :
