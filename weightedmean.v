@@ -941,3 +941,21 @@ Qed.
 Definition filter1D := @filter1D_rec (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _).
 
 End filter1D.
+
+Section filter1D_correct.
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
+  (good : {set U}) (eps : R).
+Let eps_max := 1/16.
+Hypotheses (Pr_good: Pr P good = 1 - eps) (low_eps : eps <= eps_max).
+Let mu := mean X good.
+Let var := var X good.
+
+Lemma filter1D_correct :
+  match @filter1D _ _ X _ (@cvariance_ge0 _ _ X good) with
+  | Some mu_hat => `| mu_hat - mu | <= sqrt (var * (2 * eps) / (2 - eps)) + sqrt (16 * var * (2 * eps) / (1 - eps))
+  | None => true
+  end.
+Proof.
+Admitted.
+
+End filter1D_correct.
