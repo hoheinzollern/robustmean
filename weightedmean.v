@@ -946,6 +946,7 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
   (good : {set U}) (eps : R).
 Let eps_max := 1/16.
 Hypotheses (Pr_good: Pr P good = 1 - eps) (low_eps : eps <= eps_max).
+Let Pr_bad : Pr P (~: good) = eps. Proof. rewrite Pr_of_cplt. lra. Qed.
 Let mu := mean X good.
 Let var := var X good.
 
@@ -958,18 +959,23 @@ Lemma filter1D_correct :
   end.
 Proof.
 rewrite /filter1D.
-apply filter1D_rec_ind.
-- move=> C C01 HC evar16 _.
-  rewrite distRC.
-  apply: leR_trans.
-    apply bound_mean_emean => //.
-      by rewrite Pr_of_cplt Pr_good -addR_opp oppRB addRCA addRN addR0.
-    admit.
-  apply leR_add.
-    admit.
+unfold eps_max in low_eps.
+apply filter1D_rec_ind => //.
+move=> C C01 HC evar16 _.
+rewrite distRC.
+apply: leR_trans.
+  apply bound_mean_emean => //.
+    by rewrite Pr_of_cplt Pr_good -addR_opp oppRB addRCA addRN addR0.
   admit.
-- auto.
-- auto.
+apply leR_add.
+  by rewrite /var Pr_bad mulRA; right.
+apply sqrt_le_1_alt.
+rewrite Pr_bad mulRA.
+repeat apply leR_wpmul2r.
+- by apply invR_ge0; apply subR_gt0; lra.
+- by rewrite -Pr_bad; apply Pr_ge0.
+- lra.
+by rewrite /var/weightedmean.var; apply /RleP.
 Admitted.
 
 End filter1D_correct.
