@@ -854,6 +854,27 @@ apply: leR_trans; last first.
 by apply: leR_wpmul2r; [exact: variance_ge0|lra].
 Qed.
 
+Lemma C01_update :
+  is_01 (update X PC_neq0).
+Proof.
+move=> u; rewrite /update/=; split.
+  apply/RleP.
+  have /forallP := update_pos_ffun X PC_neq0.
+  exact.
+rewrite /update_ffun ffunE; case: ifPn => //.
+rewrite negb_or => /andP[sq_dev_neq0 Cu_neq0].
+move=> [:sq_gt0].
+apply/RleP/mulr_ile1.
+- exact/RleP/(C01 u).1.
+- apply/RleP; rewrite subR_ge0 leR_pdivr_mulr// ?mul1R//; last first.
+    abstract: sq_gt0.
+    by apply/ltR_neqAle; split; [exact/nesym/eqP|exact/sq_dev_max_ge0].
+  exact: sq_dev_max_ge.
+- exact/RleP/(C01 u).2.
+- apply/RleP; rewrite leR_subl_addr addRC -leR_subl_addr subRR.
+  by apply/divR_ge0 => //; exact: sq_dev_ge0.
+Qed.
+
 End update_invariant.
 
 Section base_case.
@@ -877,25 +898,15 @@ Lemma C1_is01 : is_01 Cpos_ffun1.
 Proof. by move => i; rewrite ffunE; lra. Qed.
 
 Lemma base_case: Pr P (~: good) = eps ->
-  filter1D_inv P Cpos_ffun1 good eps /\
-    filter1D_invW good eps PC1_neq0.
+  filter1D_inv P Cpos_ffun1 good eps.
 Proof.
-move=> Hbad_ratio; rewrite /filter1D_inv; split.
-- rewrite /Cpos_fun /=.
-  under eq_bigr do rewrite ffunE subRR mul0R.
-  rewrite big1; last by [].
-  under eq_bigr do rewrite ffunE subRR mul0R.
-  rewrite big1; last by [].
-  by rewrite mulR0; exact/RleP.
-- rewrite /filter1D_invW.
-  rewrite /Pr.
-  under eq_bigr do rewrite Weighted.dE.
-  rewrite /Weighted.total /Cpos_ffun1/=.
-  under eq_bigr do rewrite /ffun1 /= ffunE mul1R.
-  rewrite -big_distrl/=.
-  under [in X in _ <= _ * / X]eq_bigr do rewrite /ffun1 /= ffunE mul1R.
-  rewrite FDist.f1 invR1 mulR1.
-  by rewrite -/(Pr P good) Pr_to_cplt Hbad_ratio; exact/RleP.
+move=> Hbad_ratio; rewrite /filter1D_inv.
+rewrite /Cpos_fun /=.
+under eq_bigr do rewrite ffunE subRR mul0R.
+rewrite big1; last by [].
+under eq_bigr do rewrite ffunE subRR mul0R.
+rewrite big1; last by [].
+by rewrite mulR0; exact/RleP.
 Qed.
 
 End base_case.
@@ -904,43 +915,32 @@ Require Import FunInd Recdef.
 
 (**md ## Algorithm 2, page 4 *)
 Section filter1D.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (target_var : R).
-Hypothesis (pos_var : 0 <= target_var).
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
+  (good : {set U}) (eps : R).
+Let eps_max := 1/16.
+Hypotheses (Pr_good: Pr P good = 1 - eps) (low_eps : eps <= eps_max).
+Let Pr_bad : Pr P (~: good) = eps. Proof. rewrite Pr_of_cplt. lra. Qed.
+Let mu := mean X good.
+Let var := var X good.
 
 Local Obligation Tactic := idtac.
 
-Lemma C01_update (C : nneg_finfun U) (PC_neq0 : Weighted.total P C != 0) :
-  is_01 C -> is_01 (update X PC_neq0).
-Proof.
-move=> C01 u; rewrite /update/=; split.
-  apply/RleP.
-  have /forallP := update_pos_ffun X PC_neq0.
-  exact.
-rewrite /update_ffun ffunE; case: ifPn => //.
-rewrite negb_or => /andP[sq_dev_neq0 Cu_neq0].
-move=> [:sq_gt0].
-apply/RleP/mulr_ile1.
-- exact/RleP/(C01 u).1.
-- apply/RleP; rewrite subR_ge0 leR_pdivr_mulr// ?mul1R//; last first.
-    abstract: sq_gt0.
-    by apply/ltR_neqAle; split; [exact/nesym/eqP|exact/sq_dev_max_ge0].
-  exact: sq_dev_max_ge.
-- exact/RleP/(C01 u).2.
-- apply/RleP; rewrite leR_subl_addr addRC -leR_subl_addr subRR.
-  by apply/divR_ge0 => //; exact: sq_dev_ge0.
-Qed.
+Lemma tr (C : nneg_finfun U) (C01 : is_01 C) (HC : Weighted.total P C != 0) :
+  Rleb (evar X HC) (16 * var) <> true ->
+  16 * var < evar X HC.
+Proof. by move=> /negP/RlebP/RleP; rewrite -ltNge => /RltP. Qed.
 
 Function filter1D_rec (C : nneg_finfun U) (C01 : is_01 C)
-    (HC : Weighted.total P C != 0) {measure (fun C => #| 0.-support C |) C} :=
-  match Bool.bool_dec (Rleb (evar X HC) (16 * target_var)) true with
+    (HC : Weighted.total P C != 0) (I : filter1D_inv P C good eps) {measure (fun C => #| 0.-support C |) C} :=
+  match Bool.bool_dec (Rleb (evar X HC) (16 * var)) true with
   | left _ => Some (emean X HC)
   | right K =>
       match Bool.bool_dec (Weighted.total P (update X HC) != 0) true with
       | right _ => None
-      | left H => filter1D_rec (C01_update HC C01) H
+      | left H => filter1D_rec (C01_update X HC C01) H (filter1D_inv_update C01 Pr_bad low_eps (tr C01 K) I)
       end
   end.
-rewrite/Weighted.total=> C C01 HCneq0 evar16 _ _ _.
+rewrite/Weighted.total=> C C01 HCneq0 Inv evar16 _ _ _.
 apply/ssrnat.ltP/proper_card/properP; split.
   apply/subsetP => u; rewrite !supportE /update_ffun ffunE.
   by case: ifPn; [rewrite eqxx|rewrite negb_or => /andP[]].
@@ -952,9 +952,9 @@ have Cmax_neq0 : C [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O != 0.
   by case: arg_maxP => //; rewrite gt_eqF.
 have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0. (* TODO : use lemma above *)
   rewrite /sq_dev_max.
-  move: evar16 => /negP/RlebP/RleP; rewrite -ltNge => /RltP.
+  move: evar16 => /(tr C01).
   rewrite /evar /Var /sq_dev /var /emean /Ex => evar16.
-  have : 0 <= 16 * target_var by apply mulR_ge0; [lra|].
+  have : 0 <= 16 * var by apply mulR_ge0; [lra|exact: cvariance_ge0].
   move=> /leR_ltR_trans => /(_ _ evar16) /RltP => /fsumr_gt0[i _].
   rewrite Weighted.dE => /[dup] => /pmulR_lgt0' => sq_dev_gt0.
   have /[apply] := pmulR_rgt0' _ (sq_RV_ge0 (X `-cst \sum_(v in U) X v * Weighted.d HCneq0 v) i).
@@ -975,23 +975,12 @@ by rewrite (negbTE sq_dev_max_neq0)/=; exact/negbTE.
 Qed.
 
 
-Definition filter1D := @filter1D_rec (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _).
-
-End filter1D.
-
-Section filter1D_correct.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
-  (good : {set U}) (eps : R).
-Let eps_max := 1/16.
-Hypotheses (Pr_good: Pr P good = 1 - eps) (low_eps : eps <= eps_max).
-Let Pr_bad : Pr P (~: good) = eps. Proof. rewrite Pr_of_cplt. lra. Qed.
-Let mu := mean X good.
-Let var := var X good.
+Definition filter1D := @filter1D_rec (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _) (base_case Pr_bad).
 
 Functional Scheme filter1D_ind := Induction for filter1D_rec Sort Prop.
 
 Lemma filter1D_correct :
-  match filter1D X (cvariance_ge0 X good) with
+  match filter1D with
   | Some mu_hat => `| mu_hat - mu | <= sqrt (var * (2 * eps) / (2 - eps)) + sqrt (16 * var * (2 * eps) / (1 - eps))
   | None => true
   end.
@@ -999,12 +988,12 @@ Proof.
 rewrite /filter1D.
 unfold eps_max in low_eps.
 apply filter1D_rec_ind => //.
-move=> C C01 HC evar16 _.
+move=> C C01 HC Inv evar16 _.
 rewrite distRC.
 apply: leR_trans.
   apply bound_mean_emean => //.
     by rewrite Pr_of_cplt Pr_good -addR_opp oppRB addRCA addRN addR0.
-  admit.
+  by rewrite Pr_bad.
 apply leR_add.
   by rewrite /var Pr_bad mulRA; right.
 apply sqrt_le_1_alt.
@@ -1014,6 +1003,6 @@ repeat apply leR_wpmul2r.
 - by rewrite -Pr_bad; apply Pr_ge0.
 - lra.
 by rewrite /var/weightedmean.var; apply /RleP.
-Admitted.
+Qed.
 
-End filter1D_correct.
+End filter1D.
