@@ -122,6 +122,17 @@ Proof.
 by move=> [a [? ? Fa0]]; exact/(Rlt_le_trans _ _ _ Fa0)/leR_bigmaxR_P.
 Qed.
 
+Lemma bigmaxR_ge0_cond p : (forall r, r \in s -> 0 <= F r) -> 0 <= \rmax_(m <- s | p m) (F m).
+Proof.
+elim: s => [_ | hd tl IH Hr].
+- by rewrite big_nil; exact/Rle_refl.
+- rewrite big_cons; case: ifPn => _.
+    apply (@leR_trans (F hd)); last exact: leR_maxl.
+    by apply: Hr; rewrite in_cons eqxx.
+  apply: IH => r rtl.
+  by apply: Hr; rewrite in_cons rtl orbT.
+Qed.
+
 End bigmaxR.
 
 End move_to_infotheo.

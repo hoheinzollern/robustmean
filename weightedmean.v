@@ -805,20 +805,44 @@ Let tau := sq_dev X PC_neq0.
 Let tau_max := sq_dev_max X PC_neq0.
 
 Hypotheses (Pr_bad : Pr P (~: good) = eps) (low_eps : eps <= 1/16)
-  (var16 : 16 * var <= var_hat).
+  (var16 : 16 * var < var_hat).
+
+Lemma sq_dev_max_neq0 : sq_dev_max X PC_neq0 != 0.
+Proof.
+rewrite /sq_dev_max.
+have /RltP HCgt0 := weighted_total_gt0 PC_neq0.
+have HCge0 := ltW HCgt0.
+move: var16.
+rewrite /var_hat /evar /Var /sq_dev /emean /Ex => evar16.
+have : 0 <= 16 * var by apply mulR_ge0; [lra|apply cvariance_ge0].
+move=> /leR_ltR_trans => /(_ _ evar16) /RltP => /fsumr_gt0[i _].
+rewrite Weighted.dE => /[dup] => /pmulR_lgt0' => sq_dev_gt0.
+have /[apply] := pmulR_rgt0' _ (sq_RV_ge0 (X `-cst \sum_(v in U) X v * Weighted.d PC_neq0 v) i).
+have /[apply] := pmulR_lgt0' _ (invR_ge0 _ (RltP _ _ HCgt0)).
+have /[apply] Cigt0 := pmulR_lgt0' _ (RleP _ _ (FDist.ge0 P i)).
+rewrite gt_eqF//; apply/RltP/bigmaxR_gt0; exists i; split => //.
+by rewrite gt_eqF//; exact/RltP.
+apply/sq_dev_gt0/mulR_ge0; first by apply/mulR_ge0 => //; apply (C01 _).1.
+exact/invR_ge0/weighted_total_gt0.
+Qed.
 
 (**md ## lemma 1.5, page 5, update preserves the invariant of filter1D *)
 Lemma filter1D_inv_update : let C' := update X PC_neq0 in
-  0 < tau_max ->
   filter1D_inv P C good eps -> filter1D_inv P C' good eps.
 Proof.
-rewrite /filter1D_inv => tau_max_gt0 inv.
+rewrite /filter1D_inv => inv.
+have tau_max_gt0 : 0 < sq_dev_max X PC_neq0.
+  apply ltR_neqAle; split.
+    by apply/eqP; rewrite eq_sym sq_dev_max_neq0.
+  rewrite /sq_dev_max.
+  by apply: bigmaxR_ge0_cond => r _; apply sq_dev_ge0.
 suff H2 : \sum_(i in good) (C i * P i) * tau i <=
     (1 - eps) / 2 * (\sum_(i in ~: good) (C i * P i) * tau i).
   rewrite !update_removed_weight// !mulRDr; apply leR_add; first exact inv.
   by rewrite mulRCA; apply leR_pmul2l; [exact/divR_gt0|exact: H2].
+have var16' : 16 * var <= var_hat by lra.
 apply: leR_trans.
-  apply: (bound_empirical_variance_good C01 Pr_bad) => //.
+  exact: (bound_empirical_variance_good C01 Pr_bad).
 apply: (Rmult_le_reg_l (/((1-eps)/2))).
   by apply: invR_gt0; apply: divR_gt0 => //; lra.
 rewrite mulRA mulRA mulRA Rinv_l; last by apply mulR_neq0; lra.
@@ -826,7 +850,7 @@ rewrite mul1R Rinv_div.
 have -> : 2 / (1 - eps) * 0.25 * (1 - eps) = 0.5 * ((1-eps) / (1-eps)) by lra.
 rewrite divRR ?mulR1; last by rewrite gt_eqF//; apply/RltP; lra.
 apply: leR_trans; last first.
-  apply: (bound_empirical_variance_bad C01 Pr_bad low_eps var16 inv).
+  exact: (bound_empirical_variance_bad C01 Pr_bad).
 by apply: leR_wpmul2r; [exact: variance_ge0|lra].
 Qed.
 
@@ -926,7 +950,7 @@ move: (HCgt0) => /fsumr_gt0[u _ /RltP].
 rewrite mulr_ge0_gt0// => [/andP[Cu0 Pu0]|]; last by apply/RleP; exact: (C01 u).1.
 have Cmax_neq0 : C [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O != 0.
   by case: arg_maxP => //; rewrite gt_eqF.
-have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0.
+have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0. (* TODO : use lemma above *)
   rewrite /sq_dev_max.
   move: evar16 => /negP/RlebP/RleP; rewrite -ltNge => /RltP.
   rewrite /evar /Var /sq_dev /var /emean /Ex => evar16.
