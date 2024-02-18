@@ -862,6 +862,8 @@ Qed.
 
 End base_case.
 
+Require Import FunInd Recdef.
+
 (**md ## Algorithm 2, page 4 *)
 Section filter1D.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (target_var : R).
@@ -890,8 +892,8 @@ apply/RleP/mulr_ile1.
   by apply/divR_ge0 => //; exact: sq_dev_ge0.
 Qed.
 
-Program Fixpoint filter1D_rec (C : nneg_finfun U) (C01 : is_01 C)
-    (HC : Weighted.total P C != 0) {measure #| 0.-support C | } :=
+Function filter1D_rec (C : nneg_finfun U) (C01 : is_01 C)
+    (HC : Weighted.total P C != 0) {measure (fun C => #| 0.-support C |) C} :=
   match Bool.bool_dec (Rleb (evar X HC) (16 * target_var)) true with
   | left _ => Some (emean X HC)
   | right K =>
@@ -900,8 +902,7 @@ Program Fixpoint filter1D_rec (C : nneg_finfun U) (C01 : is_01 C)
       | left H => filter1D_rec (C01_update HC C01) H
       end
   end.
-Next Obligation.
-rewrite/Weighted.total=> C C01 HCneq0 _ /= evar16 _ _ _.
+rewrite/Weighted.total=> C C01 HCneq0 evar16 _ _ _.
 apply/ssrnat.ltP/proper_card/properP; split.
   apply/subsetP => u; rewrite !supportE /update_ffun ffunE.
   by case: ifPn; [rewrite eqxx|rewrite negb_or => /andP[]].
@@ -934,9 +935,7 @@ rewrite /update_ffun supportE ffunE negbK ifF.
   by move=> i _; exact/RleP/sq_dev_ge0.
 by rewrite (negbTE sq_dev_max_neq0)/=; exact/negbTE.
 Qed.
-Next Obligation.
-by apply: well_founded_lt_compat => /= x y; exact.
-Qed.
+
 
 Definition filter1D := @filter1D_rec (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _).
 
@@ -950,12 +949,27 @@ Hypotheses (Pr_good: Pr P good = 1 - eps) (low_eps : eps <= eps_max).
 Let mu := mean X good.
 Let var := var X good.
 
+Functional Scheme filter1D_ind := Induction for filter1D_rec Sort Prop.
+
 Lemma filter1D_correct :
-  match @filter1D _ _ X _ (@cvariance_ge0 _ _ X good) with
+  match filter1D X (cvariance_ge0 X good) with
   | Some mu_hat => `| mu_hat - mu | <= sqrt (var * (2 * eps) / (2 - eps)) + sqrt (16 * var * (2 * eps) / (1 - eps))
   | None => true
   end.
 Proof.
+rewrite /filter1D.
+apply filter1D_rec_ind.
+- move=> C C01 HC evar16 _.
+  rewrite distRC.
+  apply: leR_trans.
+    apply bound_mean_emean => //.
+      by rewrite Pr_of_cplt Pr_good -addR_opp oppRB addRCA addRN addR0.
+    admit.
+  apply leR_add.
+    admit.
+  admit.
+- auto.
+- auto.
 Admitted.
 
 End filter1D_correct.
