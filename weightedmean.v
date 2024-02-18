@@ -925,7 +925,7 @@ Let var := var X good.
 
 Local Obligation Tactic := idtac.
 
-Lemma tr (C : nneg_finfun U) (C01 : is_01 C) (HC : Weighted.total P C != 0) :
+Let tr (C : nneg_finfun U) (C01 : is_01 C) (HC : Weighted.total P C != 0) :
   Rleb (evar X HC) (16 * var) <> true ->
   16 * var < evar X HC.
 Proof. by move=> /negP/RlebP/RleP; rewrite -ltNge => /RltP. Qed.
@@ -950,20 +950,8 @@ move: (HCgt0) => /fsumr_gt0[u _ /RltP].
 rewrite mulr_ge0_gt0// => [/andP[Cu0 Pu0]|]; last by apply/RleP; exact: (C01 u).1.
 have Cmax_neq0 : C [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O != 0.
   by case: arg_maxP => //; rewrite gt_eqF.
-have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0. (* TODO : use lemma above *)
-  rewrite /sq_dev_max.
-  move: evar16 => /(tr C01).
-  rewrite /evar /Var /sq_dev /var /emean /Ex => evar16.
-  have : 0 <= 16 * var by apply mulR_ge0; [lra|exact: cvariance_ge0].
-  move=> /leR_ltR_trans => /(_ _ evar16) /RltP => /fsumr_gt0[i _].
-  rewrite Weighted.dE => /[dup] => /pmulR_lgt0' => sq_dev_gt0.
-  have /[apply] := pmulR_rgt0' _ (sq_RV_ge0 (X `-cst \sum_(v in U) X v * Weighted.d HCneq0 v) i).
-  have /[apply] := pmulR_lgt0' _ (invR_ge0 _ (RltP _ _ HCgt0)).
-  have /[apply] Cigt0 := pmulR_lgt0' _ (RleP _ _ (FDist.ge0 P i)).
-  rewrite gt_eqF//; apply/RltP/bigmaxR_gt0; exists i; split => //.
-    by rewrite gt_eqF//; exact/RltP.
-  apply/sq_dev_gt0/mulR_ge0; first by apply/mulR_ge0 => //; apply (C01 _).1.
-  exact/invR_ge0/weighted_total_gt0.
+have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0.
+  by apply: sq_dev_max_neq0 => //; exact: (tr C01 evar16).
 exists [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O.
   by rewrite supportE.
 rewrite /update_ffun supportE ffunE negbK ifF.
