@@ -19,7 +19,7 @@ Import Order.POrderTheory Order.Theory Num.Theory GRing.Theory.
 Notation R := real_realType.
 
 Require Import Interval.Tactic.
-Require Import Program.Wf.
+Require Import FunInd Recdef.
 Require Import robustmean util.
 
 (**md**************************************************************************)
@@ -911,8 +911,6 @@ Qed.
 
 End base_case.
 
-Require Import FunInd Recdef.
-
 (**md ## Algorithm 2, page 4 *)
 Section filter1D.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R})
@@ -922,8 +920,6 @@ Hypotheses (Pr_good: Pr P good = 1 - eps) (low_eps : eps <= eps_max).
 Let Pr_bad : Pr P (~: good) = eps. Proof. rewrite Pr_of_cplt. lra. Qed.
 Let mu := mean X good.
 Let var := var X good.
-
-Local Obligation Tactic := idtac.
 
 Let tr (C : nneg_finfun U) (C01 : is_01 C) (HC : Weighted.total P C != 0) :
   Rleb (evar X HC) (16 * var) <> true ->
@@ -940,6 +936,7 @@ Function filter1D_rec (C : nneg_finfun U) (C01 : is_01 C)
       | left H => filter1D_rec (C01_update X HC C01) H (filter1D_inv_update C01 Pr_bad low_eps (tr C01 K) I)
       end
   end.
+Proof.
 rewrite/Weighted.total=> C C01 HCneq0 Inv evar16 _ _ _.
 apply/ssrnat.ltP/proper_card/properP; split.
   apply/subsetP => u; rewrite !supportE /update_ffun ffunE.
@@ -962,7 +959,6 @@ rewrite /update_ffun supportE ffunE negbK ifF.
 by rewrite (negbTE sq_dev_max_neq0)/=; exact/negbTE.
 Qed.
 
-
 Definition filter1D := @filter1D_rec (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _) (base_case Pr_bad).
 
 Functional Scheme filter1D_ind := Induction for filter1D_rec Sort Prop.
@@ -979,9 +975,7 @@ apply filter1D_rec_ind => //.
 move=> C C01 HC Inv evar16 _.
 rewrite distRC.
 apply: leR_trans.
-  apply bound_mean_emean => //.
-    by rewrite Pr_of_cplt Pr_good -addR_opp oppRB addRCA addRN addR0.
-  by rewrite Pr_bad.
+  by apply bound_mean_emean => //; rewrite Pr_bad.
 apply leR_add.
   by rewrite /var Pr_bad mulRA; right.
 apply sqrt_le_1_alt.
