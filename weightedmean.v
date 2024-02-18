@@ -630,7 +630,8 @@ Let invariantW := filter1D_invW good eps PC_neq0.
 
 (**md ## lemma 1.4, page 5 (part 2) *)
 (**md ## eqn A.6--A.9, page 63 *)
-Lemma bound_empirical_variance_good : 16 * var <= var_hat ->
+Lemma bound_empirical_variance_good :
+  16 * var <= var_hat ->
   invariant ->
   \sum_(i in good) C i * P i * tau i <= 0.25 * (1 - eps) * var_hat.
 Proof.
@@ -720,11 +721,10 @@ Qed.
 (**md ## eqn A.10--A.11, page 63 *)
 Lemma bound_empirical_variance_bad :
   16 * var <= var_hat ->
-  0 < \sum_(i in U) C i * P i ->
   invariant ->
   2/3 * var_hat <= \sum_(i in bad) C i * P i * tau i.
 Proof.
-rewrite /eps_max; move => var16 sumCi_pos HiC.
+rewrite /eps_max; move => var16 HiC.
 unfold eps_max in low_eps.
 have ? : 0 < Pr P good; first exact: (pr_good_gt0 _ low_eps).
 
@@ -745,7 +745,7 @@ have ->: \sum_(i in bad) C i * P i * tau i =
   rewrite /tau /mu_hat /WP Weighted.dE.
   rewrite mulRC -mulRA; congr (_ * _).
   rewrite /Weighted.total -mulRA Rinv_l ?mulR1//.
-  exact: Rgt_not_eq.
+  exact/eqP.
 apply (@leR_trans (var_hat * (1 - 3 / 2 * eps) -
     \sum_(i in good) C i * P i * tau i)); last first.
   rewrite -!addR_opp; apply: Rplus_le_compat_r.
@@ -798,22 +798,36 @@ End bounding_empirical_variance.
 Section update_invariant.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (good : {set U}) (eps : R).
-Hypothesis (PC_neq0 : Weighted.total P C != 0).
-
+Hypotheses (PC_neq0 : Weighted.total P C != 0) (C01 : is_01 C).
+Let var_hat := evar X PC_neq0.
+Let var := var X good.
 Let tau := sq_dev X PC_neq0.
 Let tau_max := sq_dev_max X PC_neq0.
+
+Hypotheses (Pr_bad : Pr P (~: good) = eps) (low_eps : eps <= 1/16)
+  (var16 : 16 * var <= var_hat).
 
 (**md ## lemma 1.5, page 5, update preserves the invariant of filter1D *)
 Lemma filter1D_inv_update : let C' := update X PC_neq0 in
   0 < tau_max ->
-  \sum_(i in good) (C i * P i) * tau i <=
-    (1 - eps) / 2 * (\sum_(i in ~: good) (C i * P i) * tau i) ->
   filter1D_inv P C good eps -> filter1D_inv P C' good eps.
 Proof.
-rewrite /filter1D_inv => tau_max_gt0 H1 H2.
-rewrite !update_removed_weight// !mulRDr; apply leR_add; first exact H2.
-rewrite mulRCA.
-by apply leR_pmul2l; [exact/divR_gt0|exact: H1].
+rewrite /filter1D_inv => tau_max_gt0 inv.
+suff H2 : \sum_(i in good) (C i * P i) * tau i <=
+    (1 - eps) / 2 * (\sum_(i in ~: good) (C i * P i) * tau i).
+  rewrite !update_removed_weight// !mulRDr; apply leR_add; first exact inv.
+  by rewrite mulRCA; apply leR_pmul2l; [exact/divR_gt0|exact: H2].
+apply: leR_trans.
+  apply: (bound_empirical_variance_good C01 Pr_bad) => //.
+apply: (Rmult_le_reg_l (/((1-eps)/2))).
+  by apply: invR_gt0; apply: divR_gt0 => //; lra.
+rewrite mulRA mulRA mulRA Rinv_l; last by apply mulR_neq0; lra.
+rewrite mul1R Rinv_div.
+have -> : 2 / (1 - eps) * 0.25 * (1 - eps) = 0.5 * ((1-eps) / (1-eps)) by lra.
+rewrite divRR ?mulR1; last by rewrite gt_eqF//; apply/RltP; lra.
+apply: leR_trans; last first.
+  apply: (bound_empirical_variance_bad C01 Pr_bad low_eps var16 inv).
+by apply: leR_wpmul2r; [exact: variance_ge0|lra].
 Qed.
 
 End update_invariant.
