@@ -988,3 +988,31 @@ by rewrite /var/weightedmean.var; apply /RleP.
 Qed.
 
 End filter1D.
+
+Require Import Extraction.
+
+Extract Inductive unit => "unit" [ "()" ].
+Extract Inductive bool => "bool" [ "true" "false" ].
+Extract Inductive seq => "list" [ "[]" "(::)" ].
+Extract Inductive prod => "(*)"  [ "(,)" ].
+Extract Inductive option => "option" ["Some" "None"].
+Extract Inlined Constant R => "float".
+Extract Inlined Constant R0 => "0.".
+Extract Inlined Constant R1 => "1.".
+Extract Constant RbaseSymbolsImpl.R => "float".
+Extract Constant RbaseSymbolsImpl.R0 => "0.".
+Extract Constant RbaseSymbolsImpl.R1 => "1.".
+Extract Inductive ConstructiveCauchyReals.CReal => "float" ["assert false"].
+Extract Constant ClassicalDedekindReals.DReal => "float".
+Extract Constant ClassicalDedekindReals.DRealRepr => "(fun x -> x)".
+Extract Constant ClassicalDedekindReals.DRealAbstr => "(fun x -> x)".
+Extract Constant Rmult => "( *.)".
+Extract Constant Rplus => "(+.)".
+Extract Constant Rinv  => "fun x -> 1. /. x".
+Extract Constant Ropp  => "(~-.)".
+Extract Constant Rleb  => "(fun x y -> x <= y)".
+
+Extract Inductive nat => int [ "0" "Stdlib.Int.succ" ]
+ "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
+
+Extraction "filter1d.ml" filter1D filter1D_rec.
