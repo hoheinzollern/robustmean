@@ -966,26 +966,30 @@ Functional Scheme filter1D_ind := Induction for filter1D_rec Sort Prop.
 Lemma filter1D_correct :
   match filter1D with
   | Some mu_hat => `| mu_hat - mu | <= sqrt (var * (2 * eps) / (2 - eps)) + sqrt (16 * var * (2 * eps) / (1 - eps))
-  | None => true
+  | None => false
   end.
 Proof.
 rewrite /filter1D.
 unfold eps_max in low_eps.
 apply filter1D_rec_ind => //.
-move=> C C01 HC Inv evar16 _.
-rewrite distRC.
-apply: leR_trans.
-  by apply bound_mean_emean => //; rewrite Pr_bad.
-apply leR_add.
-  by rewrite /var Pr_bad mulRA; right.
-apply sqrt_le_1_alt.
-rewrite Pr_bad mulRA.
-repeat apply leR_wpmul2r.
-- by apply invR_ge0; apply subR_gt0; lra.
-- by rewrite -Pr_bad; apply Pr_ge0.
-- lra.
-by rewrite /var/weightedmean.var; apply /RleP.
-Qed.
+  move=> C C01 HC Inv evar16 _.
+  rewrite distRC.
+  apply: leR_trans.
+    by apply bound_mean_emean => //; rewrite Pr_bad.
+  apply leR_add.
+    by rewrite /var Pr_bad mulRA; right.
+  apply sqrt_le_1_alt.
+  rewrite Pr_bad mulRA.
+  repeat apply leR_wpmul2r.
+  - by apply invR_ge0; apply subR_gt0; lra.
+  - by rewrite -Pr_bad; apply Pr_ge0.
+  - lra.
+  by rewrite /var/weightedmean.var; apply /RleP.
+move=> C C01 HC Inv /negP/RlebP evar16 _ /negP/negPn PC_eq0 _.
+have evar_gt0 : 0 < evar X HC. admit.
+(* it's a contradiction that the variance before the update is > 0 and and that the weighted total goes to zero after the update. after the update all weights are zero means that there's only one point in the image of X for which the weights are not zero (this may correspond to multiple points in C). that means, that the empirical variance must be zero, since the square deviation from the mean for each of these points (that correspond to one another) is zero. *)
+(*   o          |           o *)
+Admitted.
 
 End filter1D.
 
@@ -1011,6 +1015,9 @@ Extract Constant Rplus => "(+.)".
 Extract Constant Rinv  => "fun x -> 1. /. x".
 Extract Constant Ropp  => "(~-.)".
 Extract Constant Rleb  => "(fun x y -> x <= y)".
+Extract Constant max => "Stdlib.max".
+Extract Constant min => "Stdlib.min".
+Extract Constant Rle_dec => "(fun x y -> x <= y)".
 
 Extract Inductive nat => int [ "0" "Stdlib.Int.succ" ]
  "(fun fO fS n -> if n=0 then fO () else fS (n-1))".
