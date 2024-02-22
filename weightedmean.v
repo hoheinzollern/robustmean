@@ -968,29 +968,42 @@ Definition filter1D := @filter1D_rec (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _)
 Functional Scheme filter1D_ind := Induction for filter1D_rec Sort Prop.
 
 Lemma filter1D_correct :
-  match filter1D with
-  | Some mu_hat => `| mu_hat - mu | <= sqrt (var * (2 * eps) / (2 - eps)) + sqrt (16 * var * (2 * eps) / (1 - eps))
-  | None => true
-  end.
+  if filter1D is Some mu_hat
+  then
+    `| mu_hat - mu | <= sqrt (var * (2 * eps) / (2 - eps)) + sqrt (16 * var * (2 * eps) / (1 - eps))
+  else
+    false.
 Proof.
 rewrite /filter1D.
 unfold eps_max in low_eps.
 apply filter1D_rec_ind => //.
-move=> C C01 HC Inv evar16 _.
-rewrite distRC.
-apply: leR_trans.
-  apply bound_mean_emean => //.
-    by rewrite Pr_of_cplt Pr_good -addR_opp oppRB addRCA addRN addR0.
-  by rewrite Pr_bad.
-apply leR_add.
-  by rewrite /var Pr_bad mulRA; right.
-apply sqrt_le_1_alt.
-rewrite Pr_bad mulRA.
-repeat apply leR_wpmul2r.
-- by apply invR_ge0; apply subR_gt0; lra.
-- by rewrite -Pr_bad; apply Pr_ge0.
-- lra.
-by rewrite /var/weightedmean.var; apply /RleP.
+- move=> C C01 HC Inv evar16 _.
+  rewrite distRC.
+  apply: leR_trans.
+    apply bound_mean_emean => //.
+      by rewrite Pr_of_cplt Pr_good -addR_opp oppRB addRCA addRN addR0.
+    by rewrite Pr_bad.
+  apply leR_add.
+    by rewrite /var Pr_bad mulRA; right.
+  apply sqrt_le_1_alt.
+  rewrite Pr_bad mulRA.
+  repeat apply leR_wpmul2r.
+  + by apply invR_ge0; apply subR_gt0; lra.
+  + by rewrite -Pr_bad; apply Pr_ge0.
+  + lra.
+  by rewrite /var/weightedmean.var; apply /RleP.
+- move=> C C01 HC Inv evar16 _ PC_eq0 _.
+  have PC0 : forall x, update X HC x * P x = 0.
+    move: PC_eq0=> /negP/negbNE; rewrite psumr_eq0; last by move=> i _; rewrite !coqRE mulr_ge0 ?nneg_finfun_ge0.
+    by move/allP=> PC0 x; apply/eqP/PC0/mem_index_enum.
+  have := filter1D_inv_update C01 Pr_bad low_eps (tr C01 evar16) Inv.
+  rewrite /filter1D_inv.
+  under eq_bigr => i ? do rewrite Rmult_plus_distr_r mulNR PC0 addR_opp subR0 mul1R.
+  under [X in _ * X]eq_bigr => i _ do rewrite Rmult_plus_distr_r mulNR PC0 addR_opp subR0 mul1R.
+  have -> : \sum_(i in good) P i = Pr P good by [].
+  have -> : \sum_(i in ~: good) P i = Pr P (~: good) by [].
+  rewrite Pr_good Pr_bad.
+  nra.
 Qed.
 
 End filter1D.
