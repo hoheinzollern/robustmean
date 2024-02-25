@@ -853,7 +853,7 @@ apply: leR_trans; last first.
 by apply: leR_wpmul2r; [exact: variance_ge0|lra].
 Qed.
 
-Lemma C01_update :
+Lemma update_01 :
   is_01 (update X PC_neq0).
 Proof.
 move=> u; rewrite /update/=; split.
@@ -964,7 +964,7 @@ Function real_filter1D_rec (var : R) (var_ge0: 0 <= var)
     match Weighted.total P C' !=? 0 with
     | right _ => None
     | left H => 
-        let C'01 := C01_update X HC C01 in
+        let C'01 := update_01 X HC C01 in
         @real_filter1D_rec var var_ge0 C' C'01 H
     end
   end.
