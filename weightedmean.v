@@ -815,16 +815,14 @@ move=> u; rewrite /update/=; split.
   exact.
 rewrite /update_ffun ffunE; case: ifPn => //.
 rewrite negb_or => /andP[sq_dev_neq0 Cu_neq0].
-move=> [:sq_gt0].
 apply/RleP/mulr_ile1.
 - exact/RleP/(C01 u).1.
-- apply/RleP; rewrite subR_ge0 leR_pdivr_mulr// ?mul1R//; last first.
-    abstract: sq_gt0.
-    by apply/ltR_neqAle; split; [exact/nesym/eqP|exact/sq_dev_max_ge0].
-  exact: sq_dev_max_ge.
+- rewrite !coqRE subr_ge0 ler_pdivr_mulr// ?mul1r//; last first.
+    by rewrite lt_neqAle eq_sym sq_dev_neq0/=;exact/RleP/sq_dev_max_ge0.
+  exact/RleP/sq_dev_max_ge.
 - exact/RleP/(C01 u).2.
-- apply/RleP; rewrite leR_subl_addr addRC -leR_subl_addr subRR.
-  by apply/divR_ge0 => //; exact: sq_dev_ge0.
+- rewrite lerBlDr addrC -lerBlDr subrr coqRE divr_ge0//; first exact/RleP/sq_dev_ge0.
+  exact/RleP/sq_dev_max_ge0.
 Qed.
 
 End update_invariant.
@@ -838,7 +836,7 @@ Let ffun1_subproof : [forall a, 0 <= ffun1 a]%mcR.
 Proof. by apply/forallP => u; rewrite ffunE; apply/RleP. Qed.
 Definition Cpos_ffun1 := @mkNNFinfun A ffun1 ffun1_subproof.
 
-Lemma PC1_neq0 : Weighted.total P Cpos_ffun1  != 0.
+Lemma PC1_neq0 : Weighted.total P Cpos_ffun1 != 0.
 Proof.
 rewrite/Weighted.total.
 under eq_bigr => i _ do rewrite /Cpos_ffun1/=/ffun1 ffunE mul1R.
@@ -946,18 +944,12 @@ apply filter1D_rec_ind => //=.
 - move=> C C01 HC evar16 _ Inv.
   apply: leR_trans; first by apply bound_mean_emean => //; rewrite pr_bad//.
   apply leR_add; first by rewrite /var pr_bad mulRA; right.
-  apply sqrt_le_1_alt.
-  rewrite pr_bad mulRA.
-  repeat apply leR_wpmul2r.
-  + by apply invR_ge0; apply subR_gt0; lra.
-  + by rewrite -pr_bad; apply Pr_ge0.
-  + lra.
-  by rewrite /var/weightedmean.var; apply /RleP.
-- move=> C C01 HC evar16 _ PC_eq0 _ Inv.
+  apply sqrt_le_1_alt; rewrite -pr_good -Pr_to_cplt -pr_bad mulRA.
+  by repeat apply leR_wpmul2r;[apply/invR_ge0;lra| |lra|apply/RleP].
+- move=> C C01 HC evar16 _ PC_eq0 _ /(filter1D_inv_update C01 pr_bad low_eps (tr evar16)).
   have PC0 : forall x, update X HC x * P x = 0.
     move: PC_eq0=> /negP/negbNE; rewrite psumr_eq0; last by move=> i _; rewrite !coqRE mulr_ge0 ?nneg_finfun_ge0.
     by move/allP=> PC0 x; apply/eqP/PC0/mem_index_enum.
-  have /= := filter1D_inv_update C01 pr_bad low_eps (tr evar16) Inv.
   rewrite /filter1D_inv.
   under eq_bigr => i ? do rewrite Rmult_plus_distr_r mulNR PC0 addR_opp subR0 mul1R.
   under [X in _ * X]eq_bigr => i _ do rewrite Rmult_plus_distr_r mulNR PC0 addR_opp subR0 mul1R.
