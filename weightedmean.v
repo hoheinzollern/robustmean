@@ -916,7 +916,7 @@ Notation "a '<=?' b" := (Bool.bool_dec (Rleb a b) true).
 Notation "a '!=?' b" := (Bool.bool_dec (a != b) true) (at level 70).
 
 (**md ## Algorithm 2, page 4 *)
-Section real_filter1D.
+Section filter1D.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}).
 
 Local Obligation Tactic := idtac.
@@ -952,7 +952,7 @@ rewrite /update_ffun supportE ffunE negbK ifF.
 by rewrite (negbTE sq_dev_max_neq0)/=; exact/negbTE.
 Qed.
 
-Function real_filter1D_rec (var : R) (var_ge0: 0 <= var)
+Function filter1D_rec (var : R) (var_ge0: 0 <= var)
   (C : nneg_finfun U) (C01 : is_01 C) (HC : Weighted.total P C != 0)
   {measure (fun C => #| 0.-support C |) C} :=
   let empirical_mean := emean X HC in
@@ -965,7 +965,7 @@ Function real_filter1D_rec (var : R) (var_ge0: 0 <= var)
     | right _ => None
     | left H => 
         let C'01 := update_01 X HC C01 in
-        @real_filter1D_rec var var_ge0 C' C'01 H
+        @filter1D_rec var var_ge0 C' C'01 H
     end
   end.
 Proof.
@@ -973,25 +973,25 @@ rewrite/Weighted.total=> var var_ge0 C C01 HC evar16 h2 h3 _.
 apply (filter1D_arg_decreasing (var_ge0)) => //.
 Qed.
 
-Definition real_filter1D var var_ge0 := (@real_filter1D_rec var var_ge0 (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _)).
+Definition filter1D var var_ge0 := (@filter1D_rec var var_ge0 (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _)).
 
-Functional Scheme real_filter1D_rec_ind := Induction for real_filter1D_rec Sort Prop.
+Functional Scheme filter1D_rec_ind := Induction for filter1D_rec Sort Prop.
 
-Lemma real_filter1D_correct good eps :
+Lemma filter1D_correct good eps :
   Pr P (~: good) = eps -> eps <= 1/16 ->
   let mu := mean X good in
   let var := var X good in
   let var_ge0 := cvariance_ge0 X good in
-  if real_filter1D var_ge0 is Some mu_hat
+  if filter1D var_ge0 is Some mu_hat
   then
     `| mu_hat - mu | <= sqrt (var * (2 * eps) / (2 - eps)) +
                        sqrt (16 * var * (2 * eps) / (1 - eps))
   else
     false.
 Proof.
-rewrite /real_filter1D => Pr_bad low_eps.
+rewrite /filter1D => Pr_bad low_eps.
 have := base_case Pr_bad.
-apply real_filter1D_rec_ind => //=.
+apply filter1D_rec_ind => //=.
 - move=> C C01 HC evar16 _ Inv.
   rewrite distRC.
   apply: leR_trans.
@@ -1023,4 +1023,4 @@ apply real_filter1D_rec_ind => //=.
   exact: tr.
 Qed.
 
-End real_filter1D.
+End filter1D.
