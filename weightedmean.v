@@ -1032,12 +1032,11 @@ Qed.
 End filter1D.
 
 Section real_filter1D.
-Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (var : R).
-Hypotheses (var_ge0: 0 <= var).
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}).
 
 Local Obligation Tactic := idtac.
 
-Function real_filter1D_rec
+Function real_filter1D_rec (var : R) (var_ge0: 0 <= var)
   (C : nneg_finfun U) (C01 : is_01 C) (HC : Weighted.total P C != 0)
   {measure (fun C => #| 0.-support C |) C} :=
   let empirical_mean := emean X HC in
@@ -1050,18 +1049,20 @@ Function real_filter1D_rec
     | right _ => None
     | left H => 
         let C'01 := C01_update X HC C01 in
-        @real_filter1D_rec C' C'01 H
+        @real_filter1D_rec var var_ge0 C' C'01 H
     end
   end.
 Proof.
-rewrite/Weighted.total=> C C01 HCneq0 evar16 h2 h3.
+rewrite/Weighted.total=> var var_ge0 C C01 HCneq0 evar16 h2 h3.
 apply: (filter1D_arg_decreasing var_ge0) => //.
 Qed.
 
-Definition real_filter1D := (@real_filter1D_rec (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _)).
+Definition real_filter1D var var_ge0 := (@real_filter1D_rec var var_ge0 (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _)).
 
 Lemma real_filter1D_coincides good eps Pr_bad low_eps :
-  real_filter1D = @filter1D U P X good eps Pr_bad low_eps.
+  let var := var X good in
+  let var_ge0 := cvariance_ge0 X good in
+  @real_filter1D var var_ge0 = @filter1D U P X good eps Pr_bad low_eps.
 Proof.
 rewrite /real_filter1D/filter1D.
 apply filter1D_rec_ind.
