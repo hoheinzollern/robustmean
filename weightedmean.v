@@ -934,16 +934,15 @@ Function filter1D_rec (var : R) (var_ge0: 0 <= var)
   | left _ => Some empirical_mean
   | right _ =>
     let C' := update X HC in
+    let C'01 := update_01 X HC C01 in
     match Weighted.total P C' !=? 0 with
     | right _ => None
-    | left H => 
-        let C'01 := update_01 X HC C01 in
-        @filter1D_rec var var_ge0 C' C'01 H
+    | left HC' =>  @filter1D_rec var var_ge0 C' C'01 HC'
     end
   end.
 Proof.
 rewrite/Weighted.total=> var var_ge0 C C01 HC evar16 h2 h3 _.
-apply (filter1D_arg_decreasing (var_ge0)) => //.
+by apply (filter1D_arg_decreasing (var_ge0)).
 Qed.
 
 Definition filter1D var var_ge0 := (@filter1D_rec var var_ge0 (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _)).
@@ -956,11 +955,9 @@ Lemma filter1D_correct good eps :
   let var := var X good in
   let var_ge0 := cvariance_ge0 X good in
   if filter1D var_ge0 is Some mu_hat
-  then
-    `| mu - mu_hat | <= sqrt (var * (2 * eps) / (2 - eps)) +
-                       sqrt (16 * var * (2 * eps) / (1 - eps))
-  else
-    false.
+  then `| mu - mu_hat | <= sqrt (var * (2 * eps) / (2 - eps)) +
+                          sqrt (16 * var * (2 * eps) / (1 - eps))
+  else false.
 Proof.
 rewrite /filter1D => pr_bad low_eps.
 have pr_good := pr_good pr_bad.
