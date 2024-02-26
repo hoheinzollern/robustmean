@@ -38,14 +38,14 @@ Require Import robustmean util.
 (* |       Split.d | == | given a distribution $d_0$ and a non-negative       *)
 (* |               |    | function $h$, returns the distribution              *)
 (* |               |    | $\begin{array}{rl} (a,b) \mapsto & h(a) * d_0(a) \textrm{ if } b \\ & (1 - h(a))*d_0(a) \textrm{ o.w.}\end{array}$ *)
-(* |      mean X A | := | `E_[X \| A]                                         *)
 (* |      sq_dev X | == | "squared deviation": $(X - mean)^2$                 *)
-(* |       var X A | := | `V_[X \| A]                                         *)
-(* |         emean | == | empirical/estimate mean of the data,                *)
-(* |               |    | weighted mean of all the points                     *)
+(* |  var_cond X A | := | `V_[X \| A]                                         *)
 (* |          evar | == | empirical variance                                  *)
 (* |    emean_cond | == | mean of the at least $1 - \varepsilon$ fraction     *)
 (* |               |    | (under c) of remaining good points                  *)
+(* |         emean | == | empirical/estimate mean of the data,                *)
+(* |               |    | weighted mean of all the points                     *)
+(* |               |    | (defined using emean_cond)                          *)
 (* |     evar_cond | == |                                                     *)
 (* |  filter1D_inv | == | the amount of mass removed from the good points is  *)
 (* |               |    | smaller than that removed from the bad points       *)
@@ -150,34 +150,62 @@ Qed.
 End def.
 End Split.
 
-Definition mean (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}) :=
-  `E_[X | A].
+Section var_cond.
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}).
 
-Definition var (U : finType) (P : {fdist U}) (X : {RV P -> R}) (A : {set U}) :=
-  `V_[X | A].
+Definition var_cond := `V_[X | A].
+
+End var_cond.
+
+Section emean_cond.
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
+  (A : {set U}) (PC_neq0 : Weighted.total P C != 0).
+
+Definition emean_cond :=
+  let WP := Weighted.d PC_neq0 in
+  let WX : {RV WP -> R} := X in
+  `E_[WX | A].
+
+Lemma emean_condE (C01 : is_01 C) : let SX := Split.fst_RV C01 X in
+  emean_cond = `E_[SX | (A `* [set true])].
+Proof.
+rewrite /emean_cond !cExE !divRE !big_distrl/= big_setX//=.
+rewrite /Pr big_setX//=; apply: eq_bigr => u ugood.
+rewrite big_set1 /SP /Split.fst_RV /= -!mulRA; congr (X u * _).
+under [in RHS]eq_bigr do rewrite big_set1 Split.dE/=.
+rewrite Split.dE/=.
+under [in LHS]eq_bigr do rewrite Weighted.dE.
+rewrite -big_distrl/= -divRE Rdiv_mult_distr divRE invRK.
+rewrite mulRC !mulRA; congr (_ * / _).
+by rewrite Weighted.dE mulRA mulRAC -divRE divRR ?mul1R.
+Qed.
+
+End emean_cond.
 
 Section emean.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
 Hypothesis (PC_neq0 : Weighted.total P C != 0).
 
-Definition emean := let WP := Weighted.d PC_neq0 in
-                    let WX : {RV WP -> R} := X in
-                    `E WX.
+Definition emean := emean_cond X setT PC_neq0.
 
+(** emean expressed using expectation *)
+Lemma emeanEx : emean = let WP := Weighted.d PC_neq0 in
+                        let WX : {RV WP -> R} := X in
+                        `E WX.
+Proof.
+rewrite /emean /emean_cond.
+rewrite cExE/= Pr_setT divR1.
+by apply: eq_bigl => u; rewrite !inE.
+Qed.
+
+(** emean expressed with big sums *)
 Lemma emeanE :
   emean = (\sum_(i in U) C i * P i * X i) / \sum_(i in U) C i * P i.
 Proof.
-rewrite /emean /Ex /ambient_dist divRE big_distrl/=; apply: eq_bigr => u _.
+rewrite emeanEx/=.
+rewrite /Ex /ambient_dist divRE big_distrl/=; apply: eq_bigr => u _.
 rewrite -mulRA mulRCA; congr (_ * _).
 by rewrite Weighted.dE (mulRC _ (P u)) -divRE; congr (_ / _).
-Qed.
-
-Lemma emean0 : (forall u, X u = 0) -> emean = 0.
-Proof.
-move=> X0.
-rewrite emeanE.
-under eq_bigr do rewrite X0 mulR0.
-by rewrite big1 // divRE mul0R.
 Qed.
 
 End emean.
@@ -245,7 +273,7 @@ Definition evar := let WP := Weighted.d PC_neq0 in
                    `V WX.
 
 Lemma evarE : evar = emean (sq_dev X PC_neq0) PC_neq0.
-Proof. by []. Qed.
+Proof. by rewrite /sq_dev !emeanEx. Qed.
 (*Lemma evarE' : evar = emean ((X `-cst emean X PC_neq0) `^2) PC_neq0.
 Proof. by []. Qed.*)
 
@@ -291,17 +319,11 @@ apply: mulR_ge0=> //; exact/RleP/nneg_finfun_ge0.
 Qed.
 End pos_evar.
 
-Definition emean_cond (U : finType) (P : {fdist U}) (X : {RV P -> R})
-    (C : nneg_finfun U) (A : {set U}) (PC_neq0 : Weighted.total P C != 0) :=
-  let WP := Weighted.d PC_neq0 in
-  let WX : {RV WP -> R} := X in
-  `E_[WX | A].
-
 Definition evar_cond (U : finType) (P : {fdist U}) (X : {RV P -> R})
     (C : nneg_finfun U) (A : {set U}) (PC_neq0 : Weighted.total P C != 0) :=
   let WP := Weighted.d PC_neq0 in
   let WX : {RV WP -> R} := X in
-  `V_[WX | A].
+  var_cond WX A.
 
 (**md ## eqn I, page 5 *)
 Definition filter1D_inv (U : finType) (P : {fdist U}) (C : nneg_finfun U)
@@ -335,8 +357,8 @@ Let eps0 : 0 <= eps. Proof. rewrite -pr_bad. exact: Pr_ge0. Qed.
 Let WX : {RV WP -> R} := X.
 Let SX := Split.fst_RV C01 X.
 
-Let mu := mean X good.
-Let var := var X good.
+Let mu := `E_[X | good].
+Let var := var_cond X good.
 
 Let mu_hat := emean X PC_neq0.
 Let var_hat := evar X PC_neq0.
@@ -414,7 +436,9 @@ suff h : `| mu_hat - mu_wave | <= sqrt (var_hat * 2 * eps / (1 - eps)).
     by rewrite -mulRA; apply: mulR_ge0; [exact: variance_ge0|lra].
   by apply/Rsqr_incr_1 => //; [exact/normR_ge0|exact: sqrt_pos].
 rewrite distRC {1}(_ : eps = 1 - (1 - eps)); last by lra.
-by set delta := 1 - eps; apply: resilience => //; rewrite /delta; lra.
+set delta := 1 - eps.
+rewrite /mu_hat emeanEx/=.
+by apply: resilience => //; rewrite /delta; lra.
 Qed.
 
 (**md ## eqn page 63, line 5 *)
@@ -457,20 +481,7 @@ Lemma bound_mean : invariant -> (mu - mu_wave)² <= var * 2 * eps / (2 - eps).
 Proof.
 move=> Hinv.
 have -> : mu = `E_[SX | good `* [set: bool]] by exact: Split.cEx.
-have -> : mu_wave = `E_[SX | good `* [set true]].
-  rewrite /mu_wave /emean_cond !cExE !divRE !big_distrl/= big_setX//=.
-  rewrite /Pr big_setX//=; apply: eq_bigr => u ugood.
-  rewrite big_set1 /WP /SP.
-  rewrite /WX /SX /Split.fst_RV /=.
-  rewrite -!mulRA.
-  congr (X u * _).
-  under [in RHS]eq_bigr do rewrite big_set1 Split.dE/=.
-  rewrite Split.dE/=.
-  under [in LHS]eq_bigr do rewrite Weighted.dE.
-  rewrite -big_distrl/=.
-  rewrite -divRE Rdiv_mult_distr divRE invRK.
-  rewrite mulRC !mulRA; congr (_ * / _).
-  by rewrite Weighted.dE mulRA mulRAC -divRE divRR ?mul1R.
+have -> : mu_wave = `E_[SX | good `* [set true]] by rewrite /mu_wave emean_condE.
 rewrite Rsqr_neg_minus.
 apply: (@leR_trans (`V_[ SX | good `* [set: bool]] * 2 *
                     (1 - (1 - eps / 2)%mcR) / (1 - eps / 2)%mcR)).
@@ -590,8 +601,8 @@ Let eps0 : 0 <= eps. Proof. rewrite -pr_bad. exact: Pr_ge0. Qed.
 Let WX : {RV WP -> R} := X.
 Let SX := Split.fst_RV C01 X.
 
-Let mu := mean X good.
-Let var := var X good.
+Let mu := `E_[X | good].
+Let var := var_cond X good.
 
 Let mu_hat := emean X PC_neq0.
 Let var_hat := evar X PC_neq0.
@@ -703,6 +714,7 @@ have ->: \sum_(i in bad) C i * P i * tau i =
   rewrite big_distrl/=.
   apply: eq_bigr => i _.
   rewrite /tau /mu_hat /WP Weighted.dE mulRC -mulRA; congr (_ * _).
+    by rewrite /sq_dev emeanEx/=.
   rewrite /Weighted.total -mulRA Rinv_l ?mulR1//.
   exact/eqP.
 apply (@leR_trans (var_hat * (1 - 3 / 2 * eps) -
@@ -753,7 +765,7 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (good : {set U}) (eps : R).
 Hypotheses (PC_neq0 : Weighted.total P C != 0) (C01 : is_01 C).
 Let var_hat := evar X PC_neq0.
-Let var := var X good.
+Let var := var_cond X good.
 Let tau := sq_dev X PC_neq0.
 Let tau_max := sq_dev_max X PC_neq0.
 
@@ -766,13 +778,15 @@ rewrite /sq_dev_max => var_hat_gt0.
 have /RltP HCgt0 := weighted_total_gt0 PC_neq0.
 have HCge0 := ltW HCgt0.
 move: var_hat_gt0.
-rewrite /var_hat /evar /Var /sq_dev /emean /Ex=> /RltP /fsumr_gt0[i _].
+rewrite /var_hat /evar /Var /sq_dev.
+move=> /RltP /fsumr_gt0[i _].
 rewrite Weighted.dE => /[dup] => /pmulR_lgt0' => sq_dev_gt0.
 have /[apply] := pmulR_rgt0' _ (sq_RV_ge0 (X `-cst \sum_(v in U) X v * Weighted.d PC_neq0 v) i).
 have /[apply] := pmulR_lgt0' _ (invR_ge0 _ (RltP _ _ HCgt0)).
 have /[apply] Cigt0 := pmulR_lgt0' _ (RleP _ _ (FDist.ge0 P i)).
 rewrite gt_eqF//; apply/RltP/bigmaxR_gt0; exists i; split => //.
 by rewrite gt_eqF//; exact/RltP.
+rewrite -/(emean _ _) emeanEx/=.
 apply/sq_dev_gt0/mulR_ge0; first by apply/mulR_ge0 => //; apply (C01 _).1.
 exact/invR_ge0/weighted_total_gt0.
 Qed.
@@ -929,8 +943,8 @@ Functional Scheme filter1D_rec_ind := Induction for filter1D_rec Sort Prop.
 
 Lemma filter1D_correct good eps :
   Pr P (~: good) = eps -> eps <= 1/16 ->
-  let mu := mean X good in
-  let var := var X good in
+  let mu := `E_[X | good] in
+  let var := var_cond X good in
   let var_ge0 := cvariance_ge0 X good in
   if filter1D var_ge0 is Some mu_hat
   then `| mu - mu_hat | <= sqrt (var * (2 * eps) / (2 - eps)) +
@@ -943,7 +957,7 @@ have := base_case pr_bad.
 apply filter1D_rec_ind => //=.
 - move=> C C01 HC evar16 _ Inv.
   apply: leR_trans; first by apply bound_mean_emean => //; rewrite pr_bad//.
-  apply leR_add; first by rewrite /var pr_bad mulRA; right.
+  apply leR_add; first by rewrite pr_bad mulRA; right.
   apply sqrt_le_1_alt; rewrite -pr_good -Pr_to_cplt -pr_bad mulRA.
   by repeat apply leR_wpmul2r;[apply/invR_ge0;lra| |lra|apply/RleP].
 - move=> C C01 HC evar16 _ PC_eq0 _ /(filter1D_inv_update C01 pr_bad low_eps (tr evar16)).
