@@ -12,22 +12,41 @@
 <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath/texmath.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/darkmode-js@1.5.7/lib/darkmode-js.min.js"></script>
 <link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script type="text/javascript" src="coq2html.js"> </script>
 </head>
 
 <body onload="init('proofscript')">
-<h1 class="title">Module robustmean.extraction_trimmedmean</h1>
-<div class="coq">
-<span class="vernacular">From</span> <span class="id">mathcomp</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id">all_ssreflect</span> <span class="id">ssralg</span> <span class="id">fingroup</span> <span class="id">perm</span> <span class="id">finalg</span> <span class="id">matrix</span>.<br/>
-<span class="vernacular">From</span> <span class="id">mathcomp</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id">all_algebra</span>. <br/>
-<span class="vernacular">From</span> <span class="id">mathcomp</span> <span class="vernacular">Require</span> <span class="id">boolp</span> <span class="id">classical_sets</span>. <br/>
-<span class="vernacular">From</span> <span class="id">mathcomp</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id">Rstruct</span> <span class="id">topology</span>. <br/>
-<span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id">Reals</span> <span class="id">Lra</span> <span class="id">ROrderedType</span>.<br/>
-<span class="vernacular">From</span> <span class="id">infotheo</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id">ssrR</span> <span class="id">Reals_ext</span> <span class="id">logb</span> <span class="id">ssr_ext</span> <span class="id">ssralg_ext</span> <span class="id">bigop_ext</span>.<br/>
-<span class="vernacular">From</span> <span class="id">infotheo</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id">Rbigop</span> <span class="id">proba</span> <span class="id">fdist</span>.<br/>
-<span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id">List</span>.<br/>
-<span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id">Sorting</span>.<br/>
-<span class="vernacular">Require</span> <span class="id">Orders</span>.<br/>
+
+  <main>
+    <div class="sidebar">
+      <h2>Files</h2>
+      <li><details id="robustmean"><summary>robustmean</summary>
+          <ul>
+          <li><a href="robustmean.extraction_trimmedmean.html">extraction_trimmedmean</a></li>
+<li><a href="robustmean.robustmean.html">robustmean</a></li>
+<li><a href="robustmean.util.html">util</a></li>
+<li><a href="robustmean.weightedmean.html">weightedmean</a></li>
+          </ul>
+          </details>
+          </li>
+    </div>
+
+  <div class="coq">
+
+    <div class="content">
+      <p><a href="./index.html">Top</a></p>
+      <h1 class="title">Module robustmean.extraction_trimmedmean</h1>
+<span class="vernacular">From</span> <span class="id">mathcomp</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id"><a href="https://math-comp.github.io/htmldoc/mathcomp.ssreflect.all_ssreflect.html">all_ssreflect</a></span> <span class="id"><a href="https://math-comp.github.io/htmldoc/mathcomp.algebra.ssralg.html">ssralg</a></span> <span class="id"><a href="NOTFOUND the module url for mathcomp.fingroup.fingroup">fingroup</a></span> <span class="id"><a href="NOTFOUND the module url for mathcomp.fingroup.perm">perm</a></span> <span class="id"><a href="https://math-comp.github.io/htmldoc/mathcomp.algebra.finalg.html">finalg</a></span> <span class="id"><a href="https://math-comp.github.io/htmldoc/mathcomp.algebra.matrix.html">matrix</a></span>.<br/>
+<span class="vernacular">From</span> <span class="id">mathcomp</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id"><a href="https://math-comp.github.io/htmldoc/mathcomp.algebra.all_algebra.html">all_algebra</a></span>. <br/>
+<span class="vernacular">From</span> <span class="id">mathcomp</span> <span class="vernacular">Require</span> <span class="id"><a href="NOTFOUND the module url for mathcomp.analysis.boolp">boolp</a></span> <span class="id"><a href="NOTFOUND the module url for mathcomp.analysis.classical_sets">classical_sets</a></span>. <br/>
+<span class="vernacular">From</span> <span class="id">mathcomp</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id"><a href="NOTFOUND the module url for mathcomp.analysis.Rstruct">Rstruct</a></span> <span class="id"><a href="NOTFOUND the module url for mathcomp.analysis.topology">topology</a></span>. <br/>
+<span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Reals.html">Reals</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.micromega.Lra.html">Lra</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.ROrderedType.html">ROrderedType</a></span>.<br/>
+<span class="vernacular">From</span> <span class="id">infotheo</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id"><a href="NOTFOUND the module url for infotheo.lib.ssrR">ssrR</a></span> <span class="id"><a href="NOTFOUND the module url for infotheo.lib.Reals_ext">Reals_ext</a></span> <span class="id"><a href="NOTFOUND the module url for infotheo.lib.logb">logb</a></span> <span class="id"><a href="NOTFOUND the module url for infotheo.lib.ssr_ext">ssr_ext</a></span> <span class="id"><a href="NOTFOUND the module url for infotheo.lib.ssralg_ext">ssralg_ext</a></span> <span class="id"><a href="NOTFOUND the module url for infotheo.lib.bigop_ext">bigop_ext</a></span>.<br/>
+<span class="vernacular">From</span> <span class="id">infotheo</span> <span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id"><a href="NOTFOUND the module url for infotheo.lib.Rbigop">Rbigop</a></span> <span class="id"><a href="NOTFOUND the module url for infotheo.probability.proba">proba</a></span> <span class="id"><a href="NOTFOUND the module url for infotheo.probability.fdist">fdist</a></span>.<br/>
+<span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Lists.List.html">List</a></span>.<br/>
+<span class="vernacular">Require</span> <span class="vernacular">Import</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Sorting.Sorting.html">Sorting</a></span>.<br/>
+<span class="vernacular">Require</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Structures.Orders.html">Orders</a></span>.<br/>
 <br/>
 <span class="gallina-kwd">Set</span> <span class="vernacular">Implicit</span> <span class="vernacular">Arguments</span>.<br/>
 <span class="vernacular">Unset</span> <span class="vernacular">Strict</span> <span class="vernacular">Implicit</span>.<br/>
@@ -37,50 +56,52 @@
 <span class="vernacular">Local</span> <span class="vernacular">Open</span> <span class="vernacular">Scope</span> <span class="id">R_scope</span>.<br/>
 <br/>
 <br/>
-<span class="vernacular">Definition</span> <span class="id">Average</span> <span class="id">l</span> <span class="id">:=</span> <span class="id">fold_left</span> <span class="id">Rplus</span> <span class="id">l</span> <span class="id">0</span> <span class="id">/</span> <span class="id">INR</span> (<span class="id">length</span> <span class="id">l</span>).<br/>
+<span class="vernacular">Definition</span> <span id="Average" class="id"><a name="Average" class="">Average</a></span> <span id="l:1" class="id"><a name="l:1" class="">l</a></span> <span class="id">:=</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Lists.List.html#fold_left">fold_left</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Rdefinitions.html#RbaseSymbolsImpl.Rplus">Rplus</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l:1">l</a></span> <span class="id">0</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Rdefinitions.html#3942bfc45fbeaeee49010b741755982b">/</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Raxioms.html#INR">INR</a></span> (<span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Datatypes.html#length">length</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l:1">l</a></span>).<br/>
 <br/>
-<span class="vernacular">Module</span> <span class="id">ROrder</span> <span class="id">&lt;:</span> <span class="id">Orders.TotalLeBool</span>.<br/>
-<span class="vernacular">Definition</span> <span class="id">t</span> <span class="id">:=</span> <span class="id">R</span>.<br/>
-<span class="vernacular">Definition</span> <span class="id">leb</span> <span class="id">:=</span> <span class="id">Rleb</span>.<br/>
-<span class="vernacular">Lemma</span> <span class="id">leb_total</span>  (<span class="id">x</span> <span class="id">y</span> <span class="id">:</span> <span class="id">t</span>) <span class="id">:</span> <span class="id">leb</span> <span class="id">x</span> <span class="id">y</span> <span class="id">=</span> <span class="id">true</span> <span class="id">\/</span> <span class="id">leb</span> <span class="id">y</span> <span class="id">x</span> <span class="id">=</span> <span class="id">true</span>.<br/>
+<span class="vernacular">Module</span> <span id="ROrder" class="id"><a name="ROrder" class="">ROrder</a></span> <span class="id">&lt;:</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Structures.Orders.html#TotalLeBool">Orders.TotalLeBool</a></span>.<br/>
+<span class="vernacular">Definition</span> <span id="ROrder.t" class="id"><a name="ROrder.t" class="">t</a></span> <span class="id">:=</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Rdefinitions.html#RbaseSymbolsImpl.R">R</a></span>.<br/>
+<span class="vernacular">Definition</span> <span id="ROrder.leb" class="id"><a name="ROrder.leb" class="">leb</a></span> <span class="id">:=</span> <span class="id"><a href="NOTFOUND the module url for mathcomp.analysis.Rstruct#Rleb">Rleb</a></span>.<br/>
+<span class="vernacular">Lemma</span> <span id="ROrder.leb_total" class="id"><a name="ROrder.leb_total" class="">leb_total</a></span>  (<span id="x:2" class="id"><a name="x:2" class="">x</a></span> <span id="y:3" class="id"><a name="y:3" class="">y</a></span> <span class="id">:</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#ROrder.t">t</a></span>) <span class="id">:</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#ROrder.leb">leb</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#x:2">x</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#y:3">y</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a">=</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Datatypes.html#true">true</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Logic.html#f031fe1957c4a4a8e217aa46af2b4e25">\/</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#ROrder.leb">leb</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#y:3">y</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#x:2">x</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Logic.html#6cd0f7b28b6092304087c7049437bb1a">=</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Datatypes.html#true">true</a></span>.<br/>
 <div><span class="toggleproof" onclick="toggleDisplay('proof1')">Proof.</span></div>
 <div class="proofscript" id="proof1">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">intros</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold</span> <span class="id">leb,</span> <span class="id">Rleb</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">destruct</span> (<span class="id">Rle_dec</span> <span class="id">x</span> <span class="id">y</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#ROrder.leb">leb,</a></span> <span class="id"><a href="NOTFOUND the module url for mathcomp.analysis.Rstruct#Rleb">Rleb</a></span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">destruct</span> (<span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.RIneq.html#Rle_dec">Rle_dec</a></span> <span class="id">x</span> <span class="id">y</span>).<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">-</span> <span class="gallina-kwd">by</span> <span class="id">[left]</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">-</span> <span class="id">destruct</span> (<span class="id">total_order_T</span> <span class="id">x</span> <span class="id">y</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">-</span> <span class="id">destruct</span> (<span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Rdefinitions.html#total_order_T">total_order_T</a></span> <span class="id">x</span> <span class="id">y</span>).<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">-</span> <span class="id">left</span>. <span class="id">destruct</span> <span class="id">n,</span> <span class="id">s;</span> <span class="id">lra</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">-</span> <span class="id">right</span>. <span class="id">destruct</span> (<span class="id">Rle_dec</span> <span class="id">y</span> <span class="id">x</span>)<span class="id">;</span> <span class="id">lra</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">-</span> <span class="id">right</span>. <span class="id">destruct</span> (<span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.RIneq.html#Rle_dec">Rle_dec</a></span> <span class="id">y</span> <span class="id">x</span>)<span class="id">;</span> <span class="id">lra</span>.<br/>
 &nbsp;&nbsp;Qed.</div>
-<span class="vernacular">End</span> <span class="id">ROrder</span>.<br/>
+<span class="vernacular">End</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#ROrder">ROrder</a></span>.<br/>
 <br/>
-<span class="vernacular">Module</span> <span class="id">RSort</span> <span class="id">:=</span> <span class="id">Sort</span> <span class="id">ROrder</span>.<br/>
+<span class="vernacular">Module</span> <span id="RSort" class="id"><a name="RSort" class="">RSort</a></span> <span class="id">:=</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Sorting.Mergesort.html#Sort">Sort</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#ROrder">ROrder</a></span>.<br/>
 <br/>
-<span class="vernacular">Definition</span> <span class="id">SortedList</span> <span class="id">l</span> <span class="id">:=</span> <span class="id">RSort.sort</span> <span class="id">l</span>.<br/>
+<span class="vernacular">Definition</span> <span id="SortedList" class="id"><a name="SortedList" class="">SortedList</a></span> <span id="l:4" class="id"><a name="l:4" class="">l</a></span> <span class="id">:=</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#sort">RSort.sort</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l:4">l</a></span>.<br/>
 <br/>
-<span class="vernacular">Fixpoint</span> <span class="id">TrimLeft</span> (<span class="id">l:</span> <span class="id">list</span> <span class="id">R</span>) <span class="id">n</span> <span class="id">:=</span> <span class="gallina-kwd">match</span> <span class="id">n</span> <span class="gallina-kwd">with</span><br/>
-&nbsp;&nbsp;<span class="id">|</span> <span class="id">0</span> <span class="id">=&gt;</span> <span class="id">l</span><br/>
-&nbsp;&nbsp;<span class="id">|</span> <span class="id">S</span> <span class="id">n'</span> <span class="id">=&gt;</span> <span class="id">TrimLeft</span> (<span class="id">tl</span> <span class="id">l</span>) <span class="id">n'</span><br/>
+<span class="vernacular">Fixpoint</span> <span id="TrimLeft" class="id"><a name="TrimLeft" class="">TrimLeft</a></span> (<span id="l:5" class="id"><a name="l:5" class="">l:</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Datatypes.html#list">list</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Rdefinitions.html#RbaseSymbolsImpl.R">R</a></span>) <span id="n:6" class="id"><a name="n:6" class="">n</a></span> <span class="id">:=</span> <span class="gallina-kwd">match</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#n:6">n</a></span> <span class="gallina-kwd">with</span><br/>
+&nbsp;&nbsp;<span class="id">|</span> <span class="id">0</span> <span class="id">=&gt;</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l:5">l</a></span><br/>
+&nbsp;&nbsp;<span class="id">|</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Datatypes.html#S">S</a></span> <span class="id">n'</span> <span class="id">=&gt;</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#TrimLeft:7">TrimLeft</a></span> (<span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Lists.List.html#tl">tl</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l:5">l</a></span>) <span class="id">n'</span><br/>
 <span class="gallina-kwd">end</span>.<br/>
 <br/>
-<span class="vernacular">Fixpoint</span> <span class="id">TrimRight</span> (<span class="id">l:</span> <span class="id">list</span> <span class="id">R</span>) <span class="id">n</span> <span class="id">:=</span> <span class="gallina-kwd">match</span> <span class="id">n</span> <span class="gallina-kwd">with</span><br/>
-&nbsp;&nbsp;<span class="id">|</span> <span class="id">0</span> <span class="id">=&gt;</span> <span class="id">l</span><br/>
-&nbsp;&nbsp;<span class="id">|</span> <span class="id">S</span> <span class="id">n'</span> <span class="id">=&gt;</span> <span class="id">TrimRight</span> (<span class="id">removelast</span> <span class="id">l</span>) <span class="id">n'</span><br/>
+<span class="vernacular">Fixpoint</span> <span id="TrimRight" class="id"><a name="TrimRight" class="">TrimRight</a></span> (<span id="l:9" class="id"><a name="l:9" class="">l:</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Datatypes.html#list">list</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Rdefinitions.html#RbaseSymbolsImpl.R">R</a></span>) <span id="n:10" class="id"><a name="n:10" class="">n</a></span> <span class="id">:=</span> <span class="gallina-kwd">match</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#n:10">n</a></span> <span class="gallina-kwd">with</span><br/>
+&nbsp;&nbsp;<span class="id">|</span> <span class="id">0</span> <span class="id">=&gt;</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l:9">l</a></span><br/>
+&nbsp;&nbsp;<span class="id">|</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Datatypes.html#S">S</a></span> <span class="id">n'</span> <span class="id">=&gt;</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#TrimRight:11">TrimRight</a></span> (<span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Lists.List.html#removelast">removelast</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l:9">l</a></span>) <span class="id">n'</span><br/>
 <span class="gallina-kwd">end</span>.<br/>
 <br/>
-<span class="vernacular">Definition</span> <span class="id">TrimmedMean</span> <span class="id">l</span> <span class="id">eps</span> <span class="id">:=</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="gallina-kwd">let</span> <span class="id">n_rm</span> <span class="id">:=</span> <span class="id">Z.to_nat</span> (<span class="id">ceil</span> (<span class="id">2</span> <span class="id">*</span> <span class="id">eps</span> <span class="id">*</span> <span class="id">INR</span>(<span class="id">length</span> <span class="id">l</span>))) <span class="gallina-kwd">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="gallina-kwd">let</span> <span class="id">l'</span> <span class="id">:=</span> <span class="id">SortedList</span> <span class="id">l</span> <span class="gallina-kwd">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="gallina-kwd">let</span> <span class="id">l''</span>  <span class="id">:=</span> <span class="id">TrimLeft</span> <span class="id">l'</span> <span class="id">n_rm</span> <span class="gallina-kwd">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="gallina-kwd">let</span> <span class="id">l'''</span> <span class="id">:=</span> <span class="id">TrimRight</span> <span class="id">l''</span> <span class="id">n_rm</span> <span class="gallina-kwd">in</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Average</span> <span class="id">l'''</span>.<br/>
+<span class="vernacular">Definition</span> <span id="TrimmedMean" class="id"><a name="TrimmedMean" class="">TrimmedMean</a></span> <span id="l:13" class="id"><a name="l:13" class="">l</a></span> <span id="eps:14" class="id"><a name="eps:14" class="">eps</a></span> <span class="id">:=</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="gallina-kwd">let</span> <span id="n_rm:15" class="id"><a name="n_rm:15" class="">n_rm</a></span> <span class="id">:=</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.ZArith.BinInt.html#Z.to_nat">Z.to_nat</a></span> (<span class="id"><a href="NOTFOUND the module url for infotheo.lib.Reals_ext#ceil">ceil</a></span> (<span class="id">2</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Rdefinitions.html#e1dae7ed53bffa765009199d058dd327">*</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#eps:14">eps</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Rdefinitions.html#e1dae7ed53bffa765009199d058dd327">*</a></span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Reals.Raxioms.html#INR">INR</a></span>(<span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.Init.Datatypes.html#length">length</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l:13">l</a></span>))) <span class="gallina-kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="gallina-kwd">let</span> <span id="l':16" class="id"><a name="l':16" class="">l'</a></span> <span class="id">:=</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#SortedList">SortedList</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l:13">l</a></span> <span class="gallina-kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="gallina-kwd">let</span> <span id="l'':17" class="id"><a name="l'':17" class="">l''</a></span>  <span class="id">:=</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#TrimLeft">TrimLeft</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l':16">l'</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#n_rm:15">n_rm</a></span> <span class="gallina-kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="gallina-kwd">let</span> <span id="l''':18" class="id"><a name="l''':18" class="">l'''</a></span> <span class="id">:=</span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#TrimRight">TrimRight</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l'':17">l''</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#n_rm:15">n_rm</a></span> <span class="gallina-kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id"><a href="robustmean.extraction_trimmedmean.html#Average">Average</a></span> <span class="id"><a href="robustmean.extraction_trimmedmean.html#l''':18">l'''</a></span>.<br/>
 <br/>
-<span class="vernacular">Require</span> <span class="id">Extraction</span>.<br/>
+<span class="vernacular">Require</span> <span class="id"><a href="https://coq.inria.fr/doc/V8.18.0/stdlib/Coq.extraction.Extraction.html">Extraction</a></span>.<br/>
 <span class="id">Extraction</span> <span class="id">Language</span> <span class="id">Haskell</span>.<br/>
 <span class="id">Extraction</span> <span class="id">&quot;trimmedmean.hs&quot;</span> <span class="id">TrimmedMean</span>.<br/>
 
-</div>
-<div class="footer"><hr/>Generated by <a href="https://github.com/yoshihiro503/coq2html/">a fork of coq2html</a></div>
+      <div class="footer"><hr/>Generated by <a href="https://github.com/yoshihiro503/coq2html/">a fork of coq2html</a></div>
+    </div>
+  </div>
+    </main>
 </body>
 </html>
