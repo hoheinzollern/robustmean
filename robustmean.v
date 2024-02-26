@@ -565,11 +565,11 @@ Section resilience.
 Variables (U : finType) (P : {fdist U}).
 
 Lemma cresilience (delta : R) (X : {RV P -> R}) (F G : {set U}) :
-  0 < delta -> delta <= Pr P F / Pr P G -> Pr P F <= Pr P G -> F \subset G ->
+  0 < delta -> delta <= Pr P F / Pr P G -> F \subset G ->
     `| `E_[ X | F ] - `E_[ X | G ] | <=
     sqrt (`V_[ X | G ] * 2 * (1 - delta) / delta).
 Proof.
-move => delta_gt0 delta_FG Pr_FG /[dup] /setIidPr HGnF_F FG.
+move => delta_gt0 delta_FG /[dup] /setIidPr HGnF_F FG.
 have [Pr_FG_eq|/eqP Pr_FG_neq] := eqVneq (Pr P F) (Pr P G).
   have FGFG : F :|: G :\: F = G.
     by have := setID G F; have := setIidPl FG; rewrite setIC => ->.
@@ -587,11 +587,13 @@ have [Pr_FG_eq|/eqP Pr_FG_neq] := eqVneq (Pr P F) (Pr P G).
     by move=> i /GFP0 ->; rewrite mulR0.
   exact/sqrt_pos.
 have [?|/eqP PrF_neq0] := eqVneq (Pr P F) 0; first nra.
-have [?|/eqP PrG_neq0] := eqVneq (Pr P G) 0; first by have := Pr_ge0 P F; nra.
+have ? := Pr_incl P FG.
+have ? := Pr_ge0 P F.
+have [?|/eqP PrG_neq0] := eqVneq (Pr P G) 0; first by nra.
 have HPrFpos : 0 < Pr P F by have := Pr_ge0 P F; lra.
 have HPrGpos : 0 < Pr P G by have := Pr_ge0 P G; lra.
 have delta_lt1 : delta < 1.
-  by apply/(leR_ltR_trans delta_FG)/ltR_pdivr_mulr; lra.
+  by apply/(leR_ltR_trans delta_FG)/ltR_pdivr_mulr => //; lra.
 case : (Rle_or_lt delta (1/2)) => delta_12.
 (*Pr P F <= 1/2 , A.3 implies the desired result*)
   apply: (leR_trans (cEx_cVar _ _ _)) => //.
@@ -645,7 +647,7 @@ Proof.
 move=> delta_gt0 delta_F.
 have := @cresilience _ X F setT delta_gt0.
 rewrite Pr_setT divR1 => /(_ delta_F); rewrite -Ex_cExT -Var_cVarT.
-by apply; [exact: Pr_1|exact/subsetT].
+by apply; exact/subsetT.
 Qed.
 
 End resilience.
@@ -711,8 +713,6 @@ have Exgood_bound : `| `E_[X | good :\: drop ] - `E_[X | good] | <=
     + apply (@ltR_pmul2r (1 - eps)); first lra.
       by rewrite mul0R; apply: mulR_gt0 => //; lra.
     + lra.
-    + suff : Pr P (good :\: drop) <= Pr P good by move/eqP in gdg; lra.
-      exact/Pr_incl/subsetDl.
     + exact: subsetDl.
 have Exbad_bound : 0 < Pr P (bad :\: drop) ->
     `| `E_[ X | bad :\: drop ] - mu | <= sqrt (sigma / eps).
