@@ -217,7 +217,7 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
 
 Definition sq_dev := (X `-cst emean X PC0)`^2.
 
-Lemma sq_devE : sq_dev = (X `-cst `E (X : {RV (Weighted.d PC0) -> R})) `^2.
+Lemma sq_devE : sq_dev = (X `-cst `E (X : {RV (Weighted.d PC0) -> R}))`^2.
 Proof. by rewrite /sq_dev emeanE. Qed.
 
 Lemma sq_dev_ge0 u : 0 <= sq_dev u.
@@ -655,7 +655,7 @@ Proof.
 move => var16 HiC.
 have ? := pr_good_gt0 pr_bad low_eps.
 
-have ->: \sum_(i in bad) C i * P i * tau i =
+have -> : \sum_(i in bad) C i * P i * tau i =
   var_hat * (\sum_(i in U) C i * P i) - (\sum_(i in good) C i * P i * tau i).
   rewrite /var_hat evarE /Var {1}/Ex.
   apply: (Rplus_eq_reg_r (\sum_(i in good) C i * P i * tau i)).
