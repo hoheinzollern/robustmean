@@ -476,7 +476,6 @@ apply: (@leR_trans (`V_[ SX | good `* [set: bool]] *
       rewrite -Split.Pr_setXT {2}/Pr big_setX/= -!coqRE => /leR_trans; apply.
       apply/leR_eqVlt; left; congr (_ / _); apply: eq_bigr => u ugood.
       by rewrite big_set1 Split.dE.
-    + by apply/RleP/ler_suml => //; elim => a b /setXP[agood _]; apply/setXP; split.
     + by apply/subsetP => x; rewrite !inE => /andP[->].
 rewrite Split.cVar !divRE -/var -(mulRA _ eps) -(mulRA _ (1 - _)).
 apply: leR_wpmul2l.
