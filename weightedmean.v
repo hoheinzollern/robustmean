@@ -476,6 +476,7 @@ apply: (@leR_trans (`V_[ SX | good `* [set: bool]] *
       rewrite -Split.Pr_setXT {2}/Pr big_setX/= -!coqRE => /leR_trans; apply.
       apply/leR_eqVlt; left; congr (_ / _); apply: eq_bigr => u ugood.
       by rewrite big_set1 Split.dE.
+    + by apply/RleP/ler_suml => //; elim => a b /setXP[agood _]; apply/setXP; split.
     + by apply/subsetP => x; rewrite !inE => /andP[->].
 rewrite Split.cVar !divRE -/var -(mulRA _ eps) -(mulRA _ (1 - _)).
 apply: leR_wpmul2l.
@@ -840,16 +841,13 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}).
 
 Local Obligation Tactic := idtac.
 
-Lemma tr x y : Rleb x y <> true -> y < x.
-Proof. by move=> /negP/RlebP/RleP; rewrite -ltNge => /RltP. Qed.
-
 Lemma filter1D_arg_decreasing (C : nneg_finfun U) (var : R) :
   0 <= var -> is_01 C ->
   forall HC : Weighted.total P C != 0,
   forall K : Rleb (evar X HC) (16 * var) <> true,
   (#|0.-support (update X HC)| < #|0.-support C|)%coq_nat.
 Proof.
-rewrite/Weighted.total=> var_ge0 C01 HCneq0 evar16.
+rewrite/Weighted.total=> var_ge0 C01 HCneq0 /negP/RlebP evar16.
 apply/ssrnat.ltP/proper_card/properP; split.
   apply/subsetP => u; rewrite !supportE /update_ffun ffunE.
   by case: ifPn; [rewrite eqxx|rewrite negb_or => /andP[]].
@@ -860,7 +858,8 @@ rewrite mulr_ge0_gt0// => [/andP[Cu0 Pu0]|]; last by apply/RleP; exact: (C01 u).
 have Cmax_neq0 : C [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O != 0.
   by case: arg_maxP => //; rewrite gt_eqF.
 have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0.
-  apply: sq_dev_max_neq0 => //; apply: (Rle_lt_trans 0); last apply (tr evar16); apply mulR_ge0; [lra|apply var_ge0].
+  by apply: sq_dev_max_neq0 => //; apply: (Rle_lt_trans _ (16 * var)) => //; lra.
+
 exists [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O.
   by rewrite supportE.
 rewrite /update_ffun supportE ffunE negbK ifF.
@@ -906,6 +905,7 @@ Lemma filter1D_correct good eps :
   else false.
 Proof.
 rewrite /filter1D => pr_bad low_eps.
+have tr x y : Rleb x y <> true -> y < x by move=> /negP/RlebP/RleP; rewrite -ltNge => /RltP.
 have pr_good := pr_good pr_bad.
 have := base_case pr_bad.
 apply filter1D_rec_ind => //=.
@@ -914,7 +914,7 @@ apply filter1D_rec_ind => //=.
   apply leR_add; first by rewrite pr_bad mulRA; right.
   apply sqrt_le_1_alt; rewrite -pr_good -Pr_to_cplt -pr_bad mulRA.
   by repeat apply leR_wpmul2r;[apply/invR_ge0;lra| |lra|apply/RleP].
-- move=> C C01 HC evar16 _ PC_eq0 _ /(filter1D_inv_update C01 pr_bad low_eps (tr evar16)).
+- move=> C C01 HC evar16 _ PC_eq0 _ /(filter1D_inv_update C01 pr_bad low_eps (tr _ _ evar16)).
   have PC0 : forall x, update X HC x * P x = 0.
     move: PC_eq0=> /negP/negbNE; rewrite psumr_eq0; last by move=> i _; rewrite !coqRE mulr_ge0 ?nneg_finfun_ge0.
     by move/allP=> PC0 x; apply/eqP/PC0/mem_index_enum.
@@ -923,7 +923,7 @@ apply filter1D_rec_ind => //=.
   under [X in _ * X]eq_bigr => i _ do rewrite Rmult_plus_distr_r mulNR PC0 addR_opp subR0 mul1R.
   by move: pr_good pr_bad; rewrite /Pr; nra.
 - move=> C C01 HC evar16 _ PC_neq0 _ IH Inv.
-  by apply/IH/filter1D_inv_update => //; apply/tr.
+  by apply/IH/filter1D_inv_update => //; exact/tr.
 Qed.
 
 End filter1D.
