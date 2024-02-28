@@ -894,6 +894,11 @@ Qed.
 
 Definition filter1D var (var_ge0 : 0 <= var) := filter1D_rec var_ge0 (@C1_is01 U) (PC1_neq0 P).
 
+End filter1D.
+
+Section filter1D_correct.
+Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}).
+
 Functional Scheme filter1D_rec_ind := Induction for filter1D_rec Sort Prop.
 
 Lemma filter1D_correct good eps :
@@ -901,7 +906,7 @@ Lemma filter1D_correct good eps :
   let mu := `E_[X | good] in
   let var := `V_[X | good] in
   let var_ge0 := cvariance_ge0 X good in
-  if filter1D var_ge0 is Some mu_hat
+  if filter1D X var_ge0 is Some mu_hat
   then `| mu - mu_hat | <= sqrt (var * (2 * eps) / (2 - eps)) +
                           sqrt (16 * var * (2 * eps) / (1 - eps))
   else false.
