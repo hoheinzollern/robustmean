@@ -304,10 +304,10 @@ End evar.
 
 Section pos_evar.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
-Hypotheses (PC_neq0 : Weighted.total P C != 0) (evar_gt0 : 0 < evar X PC_neq0).
+Hypotheses (PC0 : Weighted.total P C != 0) (evar_gt0 : 0 < evar X PC0).
 
 Lemma pos_evar_index :
-  exists i, 0 < C i * P i * sq_dev X PC_neq0 i.
+  exists i, 0 < C i * P i * sq_dev X PC0 i.
 Proof.
 move: evar_gt0; rewrite ltR_neqAle => -[] /nesym /eqP /[swap] _.
 case/evar0P/boolp.existsNP=> x /eqP ?; exists x.
@@ -326,8 +326,8 @@ Definition filter1D_inv (U : finType) (P : {fdist U}) (C : nneg_finfun U)
 
 (**md ## page 62, line -1 *)
 Definition filter1D_invW (U : finType) (P : {fdist U}) (C : nneg_finfun U)
-    (good : {set U}) (eps : R) (PC_neq0 : Weighted.total P C != 0) :=
-  let WP := Weighted.d PC_neq0 in
+    (good : {set U}) (eps : R) (PC0 : Weighted.total P C != 0) :=
+  let WP := Weighted.d PC0 in
   1 - eps <= Pr WP good.
 
 Section bounding_empirical_mean.
@@ -519,10 +519,10 @@ End bounding_empirical_mean.
 (** WIP *)
 Section update.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
-Hypotheses (PC_neq0 : Weighted.total P C != 0).
+Hypotheses (PC0 : Weighted.total P C != 0).
 
-Let tau := sq_dev X PC_neq0.
-Let tau_max := sq_dev_max X PC_neq0.
+Let tau := sq_dev X PC0.
+Let tau_max := sq_dev_max X PC0.
 
 Definition arg_tau_max :=
   [arg max_(i > (fdist_supp_choice P) in [set: U]) tau i]%O.
@@ -552,24 +552,24 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
 
 Let bad := ~: good.
 
-Hypotheses (C01 : is_01 C) (PC_neq0 : Weighted.total P C != 0)
+Hypotheses (C01 : is_01 C) (PC0 : Weighted.total P C != 0)
   (pr_bad : Pr P bad = eps) (low_eps : eps <= 1/16).
 
-Let WP := Weighted.d PC_neq0.
+Let WP := Weighted.d PC0.
 
 Let eps0 : 0 <= eps. Proof. rewrite -pr_bad. exact: Pr_ge0. Qed.
 
 Let mu := `E_[X | good].
 Let var := `V_[X | good].
 
-Let mu_hat := emean X PC_neq0.
-Let var_hat := evar X PC_neq0.
+Let mu_hat := emean X PC0.
+Let var_hat := evar X PC0.
 
-Let tau := sq_dev X PC_neq0.
-Let tau_max := sq_dev_max X PC_neq0.
+Let tau := sq_dev X PC0.
+Let tau_max := sq_dev_max X PC0.
 
 Let invariant := filter1D_inv P C good eps.
-Let invariantW := filter1D_invW good eps PC_neq0.
+Let invariantW := filter1D_invW good eps PC0.
 
 (**md ## lemma 1.4, page 5 (part 2) *)
 (**md ## eqn A.6--A.9, page 63 *)
@@ -699,7 +699,7 @@ Qed.
 (**md ## eqn 1.3--1.4, page 7 *)
 (* TODO: improve the notation for pos_ffun (and for pos_fun) *)
 Lemma update_removed_weight (S : {set U}) :
-  let C' := update X PC_neq0 in
+  let C' := update X PC0 in
   0 < tau_max ->
   \sum_(i in S) (1 - C' i) * P i =
     (\sum_(i in S) (1 - C i) * P i) +
@@ -720,26 +720,26 @@ End bounding_empirical_variance.
 Section update_invariant.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (good : {set U}) (eps : R).
-Hypotheses (PC_neq0 : Weighted.total P C != 0) (C01 : is_01 C).
-Let var_hat := evar X PC_neq0.
+Hypotheses (PC0 : Weighted.total P C != 0) (C01 : is_01 C).
+Let var_hat := evar X PC0.
 Let var := `V_[X | good].
-Let tau := sq_dev X PC_neq0.
-Let tau_max := sq_dev_max X PC_neq0.
+Let tau := sq_dev X PC0.
+Let tau_max := sq_dev_max X PC0.
 
 Hypotheses (pr_bad : Pr P (~: good) = eps) (low_eps : eps <= 1/16)
   (var16 : 16 * var < var_hat).
 
-Lemma sq_dev_max_neq0 : 0 < var_hat -> sq_dev_max X PC_neq0 != 0.
+Lemma sq_dev_max_neq0 : 0 < var_hat -> sq_dev_max X PC0 != 0.
 Proof.
 rewrite /sq_dev_max => var_hat_gt0.
-have /RltP HCgt0 := weighted_total_gt0 PC_neq0.
-have HCge0 := ltW HCgt0.
+have /RltP PCgt0 := weighted_total_gt0 PC0.
+have PCge0 := ltW PCgt0.
 move: var_hat_gt0.
 rewrite /var_hat evarE /Var.
 move=> /RltP /fsumr_gt0[i _].
 rewrite Weighted.dE => /[dup] => /pmulR_lgt0' => sq_dev_gt0.
-have /[apply] := pmulR_rgt0' _ (sq_RV_ge0 (X `-cst \sum_(v in U) X v * Weighted.d PC_neq0 v) i).
-have /[apply] := pmulR_lgt0' _ (invR_ge0 _ (RltP _ _ HCgt0)).
+have /[apply] := pmulR_rgt0' _ (sq_RV_ge0 (X `-cst \sum_(v in U) X v * Weighted.d PC0 v) i).
+have /[apply] := pmulR_lgt0' _ (invR_ge0 _ (RltP _ _ PCgt0)).
 have /[apply] Cigt0 := pmulR_lgt0' _ (RleP _ _ (FDist.ge0 P i)).
 rewrite gt_eqF//; apply/RltP/bigmaxR_gt0; exists i; split => //.
   by rewrite gt_eqF//; exact/RltP.
@@ -749,12 +749,12 @@ exact/invR_ge0/weighted_total_gt0.
 Qed.
 
 (**md ## lemma 1.5, page 5, update preserves the invariant of filter1D *)
-Lemma filter1D_inv_update : let C' := update X PC_neq0 in
+Lemma filter1D_inv_update : let C' := update X PC0 in
   filter1D_inv P C good eps -> filter1D_inv P C' good eps.
 Proof.
 rewrite /filter1D_inv => inv.
 have var_ge0 : 0 <= var by exact: cvariance_ge0.
-have tau_max_gt0 : 0 < sq_dev_max X PC_neq0.
+have tau_max_gt0 : 0 < sq_dev_max X PC0.
   apply ltR_neqAle; split.
     by apply/eqP; rewrite eq_sym sq_dev_max_neq0//; lra.
   exact: sq_dev_max_ge0.
@@ -777,11 +777,11 @@ by apply: leR_wpmul2r; [exact: evar_ge0|lra].
 Qed.
 
 Lemma update_01 :
-  is_01 (update X PC_neq0).
+  is_01 (update X PC0).
 Proof.
 move=> u; rewrite /update/=; split.
   apply/RleP.
-  have /forallP := update_pos_ffun X PC_neq0.
+  have /forallP := update_pos_ffun X PC0.
   exact.
 rewrite /update_ffun ffunE; case: ifPn => //.
 rewrite negb_or => /andP[sq_dev_neq0 Cu_neq0].
@@ -845,24 +845,24 @@ Local Obligation Tactic := idtac.
 
 Lemma filter1D_arg_decreasing (C : nneg_finfun U) (var : R) :
   0 <= var -> is_01 C ->
-  forall HC : Weighted.total P C != 0,
-  forall K : Rleb (evar X HC) (16 * var) <> true,
-  (#|0.-support (update X HC)| < #|0.-support C|)%coq_nat.
+  forall PC0 : Weighted.total P C != 0,
+  forall K : Rleb (evar X PC0) (16 * var) <> true,
+  (#|0.-support (update X PC0)| < #|0.-support C|)%coq_nat.
 Proof.
-rewrite/Weighted.total=> var_ge0 C01 HCneq0 /negP/RlebP evar16.
+rewrite/Weighted.total=> var_ge0 C01 PCneq0 /negP/RlebP evar16.
 apply/ssrnat.ltP/proper_card/properP; split.
   apply/subsetP => u; rewrite !supportE /update_ffun ffunE.
   by case: ifPn; [rewrite eqxx|rewrite negb_or => /andP[]].
-have /RltP HCgt0 := weighted_total_gt0 HCneq0.
-have HCge0 := ltW HCgt0.
-move: (HCgt0) => /fsumr_gt0[u _ /RltP].
+have /RltP PCgt0 := weighted_total_gt0 PCneq0.
+have PCge0 := ltW PCgt0.
+move: (PCgt0) => /fsumr_gt0[u _ /RltP].
 rewrite mulr_ge0_gt0// => [/andP[Cu0 Pu0]|]; last by apply/RleP; exact: (C01 u).1.
-have Cmax_neq0 : C [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O != 0.
+have Cmax_neq0 : C [arg max_(i > u | C i != 0) sq_dev X PCneq0 i]%O != 0.
   by case: arg_maxP => //; rewrite gt_eqF.
-have sq_dev_max_neq0 : sq_dev_max X HCneq0 != 0.
+have sq_dev_max_neq0 : sq_dev_max X PCneq0 != 0.
   by apply: sq_dev_max_neq0 => //; apply: (Rle_lt_trans _ (16 * var)) => //; lra.
 
-exists [arg max_(i > u | C i != 0) sq_dev X HCneq0 i]%O.
+exists [arg max_(i > u | C i != 0) sq_dev X PCneq0 i]%O.
   by rewrite supportE.
 rewrite /update_ffun supportE ffunE negbK ifF.
   rewrite !coqRE mulf_eq0 subr_eq0 -invr1 -(mul1r (1^-1))%mcR.
@@ -873,26 +873,26 @@ by rewrite (negbTE sq_dev_max_neq0)/=; exact/negbTE.
 Qed.
 
 Function filter1D_rec (var : R) (var_ge0: 0 <= var)
-  (C : nneg_finfun U) (C01 : is_01 C) (HC : Weighted.total P C != 0)
+  (C : nneg_finfun U) (C01 : is_01 C) (PC0 : Weighted.total P C != 0)
   {measure (fun C => #| 0.-support C |) C} :=
-  let empirical_mean := emean X HC in
-  let empirical_variance := evar X HC in
+  let empirical_mean := emean X PC0 in
+  let empirical_variance := evar X PC0 in
   match empirical_variance <=? 16 * var with
   | left _ => Some empirical_mean
   | right _ =>
-    let C' := update X HC in
-    let C'01 := update_01 X HC C01 in
+    let C' := update X PC0 in
+    let C'01 := update_01 X PC0 C01 in
     match Weighted.total P C' !=? 0 with
     | right _ => None
-    | left HC' =>  @filter1D_rec var var_ge0 C' C'01 HC'
+    | left PC0' =>  @filter1D_rec var var_ge0 C' C'01 PC0'
     end
   end.
 Proof.
-rewrite/Weighted.total=> var var_ge0 C C01 HC evar16 h2 h3 _.
+rewrite/Weighted.total=> var var_ge0 C C01 PC0 evar16 h2 h3 _.
 by apply (filter1D_arg_decreasing (var_ge0)).
 Qed.
 
-Definition filter1D var var_ge0 := (@filter1D_rec var var_ge0 (Cpos_ffun1 U) (@C1_is01 U) (@PC1_neq0 _ _)).
+Definition filter1D var (var_ge0 : 0 <= var) := filter1D_rec var_ge0 (@C1_is01 U) (PC1_neq0 P).
 
 Functional Scheme filter1D_rec_ind := Induction for filter1D_rec Sort Prop.
 
@@ -911,20 +911,20 @@ have tr x y : Rleb x y <> true -> y < x by move=> /negP/RlebP/RleP; rewrite -ltN
 have pr_good := pr_good pr_bad.
 have := base_case pr_bad.
 apply filter1D_rec_ind => //=.
-- move=> C C01 HC evar16 _ Inv.
+- move=> C C01 PC0 evar16 _ Inv.
   apply: leR_trans; first by apply bound_mean_emean => //; rewrite pr_bad//.
   apply leR_add; first by rewrite pr_bad mulRA; right.
   apply sqrt_le_1_alt; rewrite -pr_good -Pr_to_cplt -pr_bad mulRA.
   by repeat apply leR_wpmul2r;[apply/invR_ge0;lra| |lra|apply/RleP].
-- move=> C C01 HC evar16 _ PC_eq0 _ /(filter1D_inv_update C01 pr_bad low_eps (tr _ _ evar16)).
-  have PC0 : forall x, update X HC x * P x = 0.
+- move=> C C01 PC0 evar16 _ PC_eq0 _ /(filter1D_inv_update C01 pr_bad low_eps (tr _ _ evar16)).
+  have PC0' : forall x, update X PC0 x * P x = 0.
     move: PC_eq0=> /negP/negbNE; rewrite psumr_eq0; last by move=> i _; rewrite !coqRE mulr_ge0 ?nneg_finfun_ge0.
-    by move/allP=> PC0 x; apply/eqP/PC0/mem_index_enum.
+    by move/allP=> PC0' x; apply/eqP/PC0'/mem_index_enum.
   rewrite /filter1D_inv.
-  under eq_bigr => i ? do rewrite Rmult_plus_distr_r mulNR PC0 addR_opp subR0 mul1R.
-  under [X in _ * X]eq_bigr => i _ do rewrite Rmult_plus_distr_r mulNR PC0 addR_opp subR0 mul1R.
+  under eq_bigr => i ? do rewrite Rmult_plus_distr_r mulNR PC0' addR_opp subR0 mul1R.
+  under [X in _ * X]eq_bigr => i _ do rewrite Rmult_plus_distr_r mulNR PC0' addR_opp subR0 mul1R.
   by move: pr_good pr_bad; rewrite /Pr; nra.
-- move=> C C01 HC evar16 _ PC_neq0 _ IH Inv.
+- move=> C C01 PC_neq0 evar16 _ PC0 _ IH Inv.
   by apply/IH/filter1D_inv_update => //; exact/tr.
 Qed.
 
