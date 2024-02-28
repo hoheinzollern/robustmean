@@ -91,7 +91,7 @@ Definition d : {fdist A} := locked (FDist.make f0 f1).
 Lemma dE a : d a = g a * d0 a / total.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
 
-Lemma support_nonempty :  {i | g i != 0}.
+Lemma support_nonempty : {i | g i != 0}.
 Proof.
 move: total_neq0; rewrite psumr_neq0; last first.
   by move=> *; apply: mulr_ge0 => //; exact: nneg_finfun_ge0.
@@ -175,18 +175,22 @@ Definition emean_cond := `E_[X : {RV WP -> R} | A].
 
 Hypothesis C01 : is_01 C.
 
-Lemma emean_condE : let SX := Split.fst_RV C01 X in
-  emean_cond = `E_[SX | A `* [set true]].
+Lemma emean_condE :
+  emean_cond = (\sum_(i in A) C i * P i * X i) / (\sum_(i in A) C i * P i).
 Proof.
-rewrite /emean_cond !cExE !divRE !big_distrl/= big_setX//=.
-rewrite /Pr big_setX//=; apply: eq_bigr => u ugood.
-rewrite big_set1 /SP /Split.fst_RV /= -!mulRA; congr (X u * _).
-under [in RHS]eq_bigr do rewrite big_set1 Split.dE/=.
-rewrite Split.dE/=.
-under [in LHS]eq_bigr do rewrite Weighted.dE.
-rewrite -big_distrl/= -divRE Rdiv_mult_distr divRE invRK.
-rewrite mulRC !mulRA; congr (_ * / _).
-by rewrite Weighted.dE mulRA mulRAC -divRE divRR ?mul1R.
+rewrite /emean_cond cExE /Pr /WP.
+under eq_bigr do rewrite Weighted.dE mulRA.
+under [X in _ / X = _]eq_bigr do rewrite Weighted.dE.
+rewrite -!big_distrl/= Rdiv_mult_r_r//; last exact/invR_neq0/eqP.
+by under eq_bigr do rewrite mulRC.
+Qed.
+
+Lemma emean_cond_split : emean_cond = `E_[Split.fst_RV C01 X | A `* [set true]].
+Proof.
+rewrite emean_condE cExE big_setX/=; congr (_ / _).
+  apply: eq_bigr => u uA.
+  by rewrite big_set1 /Split.fst_RV/= Split.dE/= [RHS]mulRC.
+by rewrite /Pr big_setX/=; apply: eq_bigr => u uA; rewrite big_set1 Split.dE.
 Qed.
 
 End emean_cond.
@@ -452,17 +456,16 @@ under eq_bigr => i _ do
 by under [X in _ <= _ / _ * X]eq_bigr => i _ do rewrite mulRC.
 Qed.
 
-Let SX := Split.fst_RV C01 X.
-
 (**md ## eqn page 63, line 4 *)
 Lemma bound_mean : invariant -> (mu - mu_wave)² <= var * 2 * eps / (2 - eps).
 Proof.
 move=> Hinv.
-have -> : mu = `E_[SX | good `* [set: bool]] by rewrite -Split.cEx.
-have -> : mu_wave = `E_[SX | good `* [set true]].
-  by rewrite /mu_wave emean_condE.
+have -> : mu = `E_[Split.fst_RV C01 X | good `* [set: bool]].
+  by rewrite -Split.cEx.
+have -> : mu_wave = `E_[Split.fst_RV C01 X | good `* [set true]].
+  by rewrite /mu_wave emean_cond_split.
 rewrite Rsqr_neg_minus.
-apply: (@leR_trans (`V_[ SX | good `* [set: bool]] *
+apply: (@leR_trans (`V_[ Split.fst_RV C01 X | good `* [set: bool]] *
                     2 * (1 - (1 - eps / 2)%mcR) / (1 - eps / 2)%mcR)).
   apply: sqrt_le_0; first exact: Rle_0_sqr.
   - apply: mulR_ge0.
@@ -476,7 +479,6 @@ apply: (@leR_trans (`V_[ SX | good `* [set: bool]] *
       rewrite -Split.Pr_setXT {2}/Pr big_setX/= -!coqRE => /leR_trans; apply.
       apply/leR_eqVlt; left; congr (_ / _); apply: eq_bigr => u ugood.
       by rewrite big_set1 Split.dE.
-    + by apply/RleP/ler_suml => //; elim => a b /setXP[agood _]; apply/setXP; split.
     + by apply/subsetP => x; rewrite !inE => /andP[->].
 rewrite Split.cVar !divRE -/var -(mulRA _ eps) -(mulRA _ (1 - _)).
 apply: leR_wpmul2l.
