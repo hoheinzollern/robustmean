@@ -96,16 +96,25 @@ Proof. by rewrite -ler_sqr ?nomr_nneg // !real_normK ?num_real. Qed.
 (* TODO: use ring_scope in robustmean.v *)
 Lemma cresilience'
   (V : finType) (PP : {fdist V}) (delta : R) (XX : {RV (PP) -> (R)}) (F G : {set V}) :
-  0 < delta -> delta <= Pr PP F / Pr PP G -> Pr PP F <= Pr PP G -> F \subset G ->
+  0 < delta -> delta <= Pr PP F / Pr PP G -> F \subset G ->
   `| `E_[XX | F] - `E_[XX | G] | <= Num.sqrt (`V_[ XX | G] * 2 * (1 - delta) / delta).
 Proof.
-rewrite -!coqRE => /RltP ? /RleP ? /RleP ? ?.
-rewrite -RsqrtE'; exact/RleP/cresilience.
+rewrite -!coqRE -RsqrtE' => /RltP ? /RleP ? ?.
+exact/RleP/cresilience.
 Qed.
 
 Lemma cvariance_ge0' (U : finType) (P : {fdist U}) (X : {RV (P) -> (R)}) (F : {set U}) :
   0 <= `V_[ X | F].
 Proof. exact/RleP/cvariance_ge0. Qed.
+
+Lemma resilience'
+  (U : finType) (P : {fdist U}) (delta : R) (X : {RV (P) -> (R)}) (F : {set U}) :
+  0 < delta -> delta <= Pr P F ->
+  `| `E_[X | F] - `E X | <= Num.sqrt (`V X * 2 * (1 - delta) / delta).
+Proof.
+rewrite -!coqRE -RsqrtE' => /RltP ? /RleP ?.
+exact/RleP/resilience.
+Qed.
 
 (* analog of ssrR.(pmulR_lgt0', pmulR_rgt0') *)
 Lemma wpmulr_lgt0 (R : numDomainType) (x y : R) : 0 <= x -> 0 < y * x -> 0 < y.
@@ -567,16 +576,14 @@ move=> invC; have pgoodC:= invariantW_pr_good_neq0 invC.
 have vhe0: 0 <= var_hat * 2 * eps / (1 - eps).
   rewrite mulr_ge0 // ?invr_ge0 // ?subr_ge0 // -?mulrA ?mulr_ge0 // ?evar_ge0 //.
   by move: low_eps; lra.
-suff h : `| mu_hat - mu_wave | <= sqrt (var_hat * 2 * eps / (1 - eps)).
+suff h : `| mu_hat - mu_wave | <= Num.sqrt (var_hat * 2 * eps / (1 - eps)).
   rewrite -real_normK ?num_real // -[leRHS]sqr_sqrtr //.
-  rewrite lerXn2r // ?nnegrE ?sqrtr_ge0 // -RsqrtE'.
-  have-> //: (var_hat * 2 * eps / (1 - eps))%mcR = (var_hat * 2 * eps / (1 - eps))%coqR.
-  by rewrite !coqRE.
+  by rewrite lerXn2r // ?nnegrE ?sqrtr_ge0.
 rewrite distrC {1}(_ : eps = 1 - (1 - eps)); last by lra.
 set delta := 1 - eps.
 rewrite /mu_hat emeanE /var_hat evarE.
-apply/RleP/resilience; last exact/RleP/invC.
-by apply/RltP; rewrite coqRE /delta; move: low_eps; lra.
+apply: resilience'=> //.
+by rewrite /delta; move: low_eps; lra.
 Qed.
 
 (**md ## eqn page 63, line 5 *)
@@ -631,7 +638,6 @@ apply: (@le_trans _ _ (`V_[ Split.fst_RV C01 X | good `* [set: bool]] *
       rewrite sumRE le_eqVlt; apply/orP; left; apply/eqP.
       congr (_ / _)%coqR; apply: eq_bigr => u ugood.
       by rewrite big_set1 Split.dE.
-    + exact/RleP/Pr_incl/setXS.
     + exact/setXS.
 rewrite Split.cVar -/var -(mulrA _ eps) -(mulrA _ (1 - _)).
 apply: ler_wpM2l; first by apply mulr_ge0; [exact: cvariance_ge0'|lra].
