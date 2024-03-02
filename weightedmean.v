@@ -565,13 +565,11 @@ Lemma bound_emean : invariantW -> (mu_hat - mu_wave)^+2 <= var_hat * 2 * eps / (
 Proof.
 move=> invC; have pgoodC:= invariantW_pr_good_neq0 invC.
 have vhe0: 0 <= var_hat * 2 * eps / (1 - eps).
-  apply: mulr_ge0; last first.
-    by rewrite invr_ge0 subr_ge0; move: low_eps eps0; lra.
-  rewrite -mulrA; apply: mulr_ge0; [exact: evar_ge0|].
-  by move: eps0; lra.
+  rewrite mulr_ge0 // ?invr_ge0 // ?subr_ge0 // -?mulrA ?mulr_ge0 // ?evar_ge0 //.
+  by move: low_eps; lra.
 suff h : `| mu_hat - mu_wave | <= sqrt (var_hat * 2 * eps / (1 - eps)).
   rewrite -real_normK ?num_real // -[leRHS]sqr_sqrtr //.
-  rewrite lerXn2r // ?nnegrE ?sqrtr_ge0 // -RsqrtE //.
+  rewrite lerXn2r // ?nnegrE ?sqrtr_ge0 // -RsqrtE'.
   have-> //: (var_hat * 2 * eps / (1 - eps))%mcR = (var_hat * 2 * eps / (1 - eps))%coqR.
   by rewrite !coqRE.
 rewrite distrC {1}(_ : eps = 1 - (1 - eps)); last by lra.
