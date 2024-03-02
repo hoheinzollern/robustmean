@@ -812,14 +812,6 @@ rewrite ler_wpM2r // ler_wpM2r //.
 by apply/RleP; rewrite -!coqRE -!RsqrtE'; interval.
 Qed.
 
-(*
-Lemma eqrD2l (R : ringType) (z : R) : {mono (fun x => z + x) : x y / x == y}.
-Proof. by move=> *; rewrite addrC eq_sym -subr_eq addrAC subrr add0r eq_sym. Qed.
-
-Lemma eqrD2r (R : ringType) (z : R) : {mono (fun x => x + z) : x y / x == y}.
-Proof. move=> *; rewrite ![_ + z]addrC; exact: eqrD2l. Qed.
-*)
-
 (**md ## eqn A.10--A.11, page 63 *)
 Lemma bound_empirical_variance_bad :
   16 * var <= var_hat ->
