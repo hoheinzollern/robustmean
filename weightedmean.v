@@ -107,12 +107,12 @@ End Weighted.
 
 Module Split.
 Section def.
-Variables (T : finType) (d0 : {fdist T}) (h : nneg_finfun T).
+Variables (T : finType) (P : {fdist T}) (h : nneg_finfun T).
 Hypothesis h01 : is_01 h.
 
 Definition g := fun x => if x.2 then h x.1 else 1 - h x.1.
 
-Definition f := [ffun x => g x * d0 x.1].
+Definition f := [ffun x => g x * P x.1].
 
 Lemma g_ge0 x : (0 <= g x)%mcR.
 Proof.
@@ -129,26 +129,25 @@ transitivity (\sum_(x in ([set: T] `* setT)%SET) f x).
   by apply: eq_bigl => /= -[a b]; rewrite !inE.
 rewrite big_setX/= exchange_big//= setT_bool.
 rewrite big_setU1//= ?inE// big_set1//=.
-rewrite -big_split//= -(Pr_setT d0).
+rewrite -big_split//= -(Pr_setT P).
 by apply: eq_bigr => a _; rewrite !ffunE /g /=; lra.
 Qed.
 
 Definition d : {fdist T * bool} := locked (FDist.make f0 f1).
 
-Definition fst_RV (X : {RV d0 -> R}) : {RV d -> R} := X \o fst.
+Definition fst_RV (X : {RV P -> R}) : {RV d -> R} := X \o fst.
 
-Lemma dE a : d a = (if a.2 then h a.1 else 1 - h a.1) * d0 a.1.
+Lemma dE a : d a = (if a.2 then h a.1 else 1 - h a.1) * P a.1.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
 
-Lemma Pr_setXT A : Pr d0 A = Pr d (A `* [set: bool]).
+Lemma Pr_setXT A : Pr P A = Pr d (A `* [set: bool]).
 Proof.
 rewrite /Pr big_setX/=; apply: eq_bigr => u ugood.
 rewrite setT_bool big_setU1//= ?inE// big_set1.
 by rewrite !dE/= -mulRDl addRCA addR_opp subRR addR0 mul1R.
 Qed.
 
-Lemma cEx (X : {RV d0 -> R}) A :
-  `E_[X | A] = `E_[fst_RV X | A `* [set: bool]].
+Lemma cEx (X : {RV P -> R}) A : `E_[X | A] = `E_[fst_RV X | A `* [set: bool]].
 Proof.
 rewrite !cExE -Pr_setXT; congr (_ / _).
 rewrite big_setX//=; apply: eq_bigr => u ugood.
@@ -157,11 +156,8 @@ rewrite !dE/= /fst_RV/=.
 by rewrite -mulRDr -mulRDl addRCA addR_opp subRR addR0 mul1R.
 Qed.
 
-Lemma cVar (X : {RV d0 -> R}) A :
-  `V_[ fst_RV X | A `* [set: bool]] = `V_[X | A].
-Proof.
-by rewrite /cVar/= cEx -[in LHS]cEx.
-Qed.
+Lemma cVar (X : {RV P -> R}) A : `V_[ fst_RV X | A `* [set: bool]] = `V_[X | A].
+Proof. by rewrite /cVar/= cEx -[in LHS]cEx. Qed.
 
 End def.
 End Split.
@@ -933,4 +929,4 @@ apply filter1D_rec_ind => //=.
   by apply/IH/filter1D_inv_update => //; exact/tr.
 Qed.
 
-End filter1D.
+End filter1D_correct.
