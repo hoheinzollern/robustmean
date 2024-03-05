@@ -31,7 +31,7 @@ Require Import robustmean util.
 (*                                                                            *)
 (* |   Definitions |    | Meaning                                            |*)
 (* |---------------|----|----------------------------------------------------|*)
-(* |       is_01 C | := | forall i, 0 <= C i <= 1                             *)
+(* |        is01 C | := | forall i, 0 <= C i <= 1                             *)
 (* |    Weighted.d | == | given a distribution $d0$ and a non-negative        *)
 (* |               |    | function $g$, returns the distribution              *)
 (* |               |    | $a\mapsto \frac{g(a) * d0(a)}{\sum_b g(b) * d0(b)}$ *)
@@ -55,8 +55,7 @@ Require Import robustmean util.
 (*                                                                            *)
 (******************************************************************************)
 
-Definition is_01 (U : finType) (C : {ffun U -> R}) :=
-  forall i, 0 <= C i <= 1.
+Definition is01 (U : finType) (C : {ffun U -> R}) := forall i, 0 <= C i <= 1.
 
 Module Weighted.
 Section def.
@@ -108,7 +107,7 @@ End Weighted.
 Module Split.
 Section def.
 Variables (T : finType) (P : {fdist T}) (h : nneg_finfun T).
-Hypothesis h01 : is_01 h.
+Hypothesis h01 : is01 h.
 
 Definition g := fun x => if x.2 then h x.1 else 1 - h x.1.
 
@@ -169,7 +168,7 @@ Context {U : finType} (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
 Let WP := Weighted.d PC0.
 Definition emean_cond := `E_[X : {RV WP -> R} | A].
 
-Hypothesis C01 : is_01 C.
+Hypothesis C01 : is01 C.
 
 Lemma emean_condE :
   emean_cond = (\sum_(i in A) C i * P i * X i) / (\sum_(i in A) C i * P i).
@@ -332,7 +331,7 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
 
 Let bad := ~: good.
 
-Hypotheses (C01 : is_01 C) (PC0 : Weighted.total P C != 0)
+Hypotheses (C01 : is01 C) (PC0 : Weighted.total P C != 0)
   (pr_bad : Pr P bad = eps) (low_eps : eps <= 1 / 16).
 
 Lemma pr_good : Pr P good = 1 - eps. Proof. by rewrite Pr_to_cplt pr_bad. Qed.
@@ -429,7 +428,7 @@ Qed.
 Lemma good_mass : invariant ->
   1 - eps/2 <= (\sum_(i in good) C i * P i) / Pr P good.
 Proof.
-rewrite /is_01 => Hinv.
+rewrite /is01 => Hinv.
 apply (@leR_trans (1 - (1 - eps) / 2 / Pr P good * Pr P bad)).
   rewrite pr_bad pr_good.
   rewrite -!mulRA mulRC (mulRC (/(_ - _))) mulRA -mulRA mulVR.
@@ -548,7 +547,7 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
 
 Let bad := ~: good.
 
-Hypotheses (C01 : is_01 C) (PC0 : Weighted.total P C != 0)
+Hypotheses (C01 : is01 C) (PC0 : Weighted.total P C != 0)
   (pr_bad : Pr P bad = eps) (low_eps : eps <= 1/16).
 
 Let WP := Weighted.d PC0.
@@ -716,7 +715,7 @@ End bounding_empirical_variance.
 Section update_invariant.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (good : {set U}) (eps : R).
-Hypotheses (PC0 : Weighted.total P C != 0) (C01 : is_01 C).
+Hypotheses (PC0 : Weighted.total P C != 0) (C01 : is01 C).
 Let var_hat := evar X PC0.
 Let var := `V_[X | good].
 Let tau := sq_dev X PC0.
@@ -761,7 +760,7 @@ suff H2 : \sum_(i in good) (C i * P i) * tau i <=
 have var16' : 16 * var <= var_hat by lra.
 apply: leR_trans.
   exact: (bound_empirical_variance_good C01 pr_bad).
-apply: (Rmult_le_reg_l (/((1-eps)/2))).
+apply: (Rmult_le_reg_l (/((1 - eps) / 2))).
   by apply: invR_gt0; apply: divR_gt0 => //; lra.
 rewrite mulRA mulRA mulRA Rinv_l; last by apply mulR_neq0; lra.
 rewrite mul1R Rinv_div.
@@ -772,8 +771,7 @@ apply: leR_trans; last first.
 by apply: leR_wpmul2r; [exact: evar_ge0|lra].
 Qed.
 
-Lemma update_01 :
-  is_01 (update X PC0).
+Lemma is01_update : is01 (update X PC0).
 Proof.
 move=> u; rewrite /update/=; split.
   apply/RleP.
@@ -811,7 +809,7 @@ rewrite FDist.f1.
 apply oner_neq0.
 Qed.
 
-Lemma C1_is01 : is_01 Cpos_ffun1.
+Lemma C1_is01 : is01 Cpos_ffun1.
 Proof. by move => i; rewrite ffunE; lra. Qed.
 
 Lemma base_case: Pr P (~: good) = eps ->
@@ -840,7 +838,7 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}).
 Local Obligation Tactic := idtac.
 
 Lemma filter1D_arg_decreasing (C : nneg_finfun U) (var : R) :
-  0 <= var -> is_01 C ->
+  0 <= var -> is01 C ->
   forall PC0 : Weighted.total P C != 0,
   forall K : Rleb (evar X PC0) (16 * var) <> true,
   (#|0.-support (update X PC0)| < #|0.-support C|)%coq_nat.
@@ -868,24 +866,20 @@ rewrite /update_ffun supportE ffunE negbK ifF.
 by rewrite (negbTE sq_dev_max_neq0)/=; exact/negbTE.
 Qed.
 
-Function filter1D_rec (var : R) (var_ge0: 0 <= var)
-  (C : nneg_finfun U) (C01 : is_01 C) (PC0 : Weighted.total P C != 0)
-  {measure (fun C => #| 0.-support C |) C} :=
-  let empirical_mean := emean X PC0 in
-  let empirical_variance := evar X PC0 in
-  match empirical_variance <=? 16 * var with
-  | left _ => Some empirical_mean
-  | right _ =>
+Function filter1D_rec var (var_ge0 : 0 <= var)
+    (C : nneg_finfun U) (C01 : is01 C) (PC0 : Weighted.total P C != 0)
+    {measure (fun C => #| 0.-support C |) C} :=
+  if evar X PC0 (* empirical var. *) <=? 16 * var is left _ then
+    Some (emean X PC0) (* empirical mean *)
+  else
     let C' := update X PC0 in
-    let C'01 := update_01 X PC0 C01 in
-    match Weighted.total P C' !=? 0 with
-    | right _ => None
-    | left PC0' =>  @filter1D_rec var var_ge0 C' C'01 PC0'
-    end
-  end.
+    if Weighted.total P C' !=? 0 is left PC0' then
+      filter1D_rec var_ge0 (is01_update X PC0 C01) PC0'
+    else
+      None.
 Proof.
 rewrite/Weighted.total=> var var_ge0 C C01 PC0 evar16 h2 h3 _.
-by apply (filter1D_arg_decreasing (var_ge0)).
+exact: (filter1D_arg_decreasing var_ge0).
 Qed.
 
 Definition filter1D var (var_ge0 : 0 <= var) := filter1D_rec var_ge0 (@C1_is01 U) (PC1_neq0 P).
@@ -917,7 +911,10 @@ apply filter1D_rec_ind => //=.
   apply leR_add; first by rewrite pr_bad mulRA; right.
   apply sqrt_le_1_alt; rewrite -pr_good -Pr_to_cplt -pr_bad mulRA.
   by repeat apply leR_wpmul2r;[apply/invR_ge0;lra| |lra|apply/RleP].
-- move=> C C01 PC0 evar16 _ PC_eq0 _ /(filter1D_inv_update C01 pr_bad low_eps (tr _ _ evar16)).
+- move=> C C01 PC_neq0 [//|/=] evar16 _ _ PC0 _ IH Inv.
+  by apply/IH/filter1D_inv_update => //; exact/tr.
+- move=> C C01 PC0 [//|] evar16 _ /= _ [//|/=] PC_eq0 _ /= _.
+  move=> /(filter1D_inv_update C01 pr_bad low_eps (tr _ _ evar16)).
   have PC0' : forall x, update X PC0 x * P x = 0.
     move: PC_eq0=> /negP/negbNE; rewrite psumr_eq0; last by move=> i _; rewrite !coqRE mulr_ge0 ?nneg_finfun_ge0.
     by move/allP=> PC0' x; apply/eqP/PC0'/mem_index_enum.
@@ -925,8 +922,6 @@ apply filter1D_rec_ind => //=.
   under eq_bigr => i ? do rewrite Rmult_plus_distr_r mulNR PC0' addR_opp subR0 mul1R.
   under [X in _ * X]eq_bigr => i _ do rewrite Rmult_plus_distr_r mulNR PC0' addR_opp subR0 mul1R.
   by move: pr_good pr_bad; rewrite /Pr; nra.
-- move=> C C01 PC_neq0 evar16 _ PC0 _ IH Inv.
-  by apply/IH/filter1D_inv_update => //; exact/tr.
 Qed.
 
 End filter1D_correct.
