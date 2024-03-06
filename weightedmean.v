@@ -338,10 +338,11 @@ Local Open Scope ring_scope.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (PC0 : Weighted.total P C != 0).
 
+Let WP := Weighted.d PC0.
 Definition emean := emean_cond X setT PC0.
 
 (** emean expressed using expectation *)
-Lemma emeanE : emean = `E (X : {RV (Weighted.d PC0) -> R}).
+Lemma emeanE : emean = `E (X : {RV WP -> R}).
 Proof. by rewrite /emean /emean_cond -Ex_cExT. Qed.
 
 (** emean expressed using big sums *)
