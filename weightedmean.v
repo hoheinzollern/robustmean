@@ -240,7 +240,14 @@ by move/ltR_eqF; rewrite eq_sym => ?; exists x.
 Qed.
 
 End def.
+
+Definition resample {R : realType} (T : finType) (P Q : {fdist T})
+  (X : {RV P -> R}) : {RV Q -> R} := X.
 End Weighted.
+
+Notation wgt := Weighted.d.
+Notation "Q .-RV X" := (Weighted.resample Q X)
+  (at level 10, format "Q .-RV  X") : type_scope.
 
 Module Split.
 Section def.
