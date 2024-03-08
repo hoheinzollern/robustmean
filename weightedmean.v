@@ -278,14 +278,22 @@ rewrite big_setX /=.
 under eq_bigr=> *.
   rewrite setT_bool big_set2 // /f 2!ffunE /g /=.
   rewrite -mulrDl addrCA subrr addr0 mul1r. (* This line is convex.convmm *)
-  over.  
+  over.
 under eq_bigl do rewrite inE /=.
 by rewrite FDist.f1.
 Qed.
 
 Definition d : {fdist T * bool} := locked (FDist.make f0 f1).
 
+Check d`1 : {fdist T}.
+Check P : {fdist T}.
+Check d : {fdist T * bool}.
+
 Definition fst_RV (X : {RV P -> R}) : {RV d -> R} := X \o fst.
+
+(* TODO: urgent *)
+Definition fst_RV' (X : {RV P -> R}) : {RV (d`1) -> R} :=
+  d`1.-RV X.
 
 Lemma dE a : d a = (if a.2 then h a.1 else 1 - h a.1) * P a.1.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
