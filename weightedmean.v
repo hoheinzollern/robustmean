@@ -323,7 +323,7 @@ Let WP := Weighted.d PC0.
 Hypothesis C01 : is01 C.
 
 Lemma emean_condE :
-  `E_[X : {RV WP -> R} | A] = (\sum_(i in A) C i * P i * X i) / (\sum_(i in A) C i * P i).
+  `E_[WP.-RV X | A] = (\sum_(i in A) C i * P i * X i) / (\sum_(i in A) C i * P i).
 Proof.
 rewrite /Var cExE /Pr /WP !coqRE !sumRE.
 under eq_bigr do rewrite Weighted.dE !coqRE mulrA (mulrC (X _)).
@@ -332,7 +332,7 @@ rewrite sumRE -invfM mulrC big_distrl /=.
 by under eq_bigr do rewrite Weighted.dE -!mulrA mulVf // mulr1.
 Qed.
 
-Lemma emean_cond_split : `E_[X : {RV WP -> R} | A] = `E_[Split.fst_RV C01 X | A `* [set true]].
+Lemma emean_cond_split : `E_[WP.-RV X | A] = `E_[Split.fst_RV C01 X | A `* [set true]].
 Proof.
 rewrite emean_condE cExE big_setX /= !coqRE; congr (_ / _).
   apply: eq_bigr => u uA.
@@ -352,7 +352,7 @@ Let WP := Weighted.d PC0.
 
 (** emean expressed using big sums *)
 Lemma emean_sum :
-  `E (X : {RV WP -> R}) = (\sum_(i in U) C i * P i * X i) / \sum_(i in U) C i * P i.
+  `E (WP.-RV X) = (\sum_(i in U) C i * P i * X i) / \sum_(i in U) C i * P i.
 Proof.
 rewrite /Ex big_distrl/=.
 by under eq_bigr do rewrite Weighted.dE mulRCA mulRA.
@@ -367,9 +367,8 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (PC0 : Weighted.total P C != 0).
 
 Let WP := Weighted.d PC0.
-Let X' := X : {RV WP -> R}.
 
-Definition sq_dev := (X `-cst `E X')`^2.
+Definition sq_dev := (X `-cst `E (WP.-RV X))`^2.
 
 Lemma sq_dev_ge0 u : 0 <= sq_dev u.
 Proof. by rewrite /sq_dev sq_RV_pow2; exact/RleP/pow2_ge_0. Qed.
@@ -402,13 +401,12 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
   (PC0 : Weighted.total P C != 0).
 
 Let WP := Weighted.d PC0.
-Let X' := X : {RV WP -> R}.
 
-Lemma evarE : `V_[X' | setT] = `V X'.
+Lemma evarE : `V_[WP.-RV X | setT] = `V (WP.-RV X).
 Proof. by rewrite Var_cVarT. Qed.
 
 Lemma evar0P :
-  reflect (forall i, C i * P i * sq_dev X PC0 i = 0) (`V X' == 0).
+  reflect (forall i, C i * P i * sq_dev X PC0 i = 0) (`V (WP.-RV X) == 0).
 Proof.
 rewrite /Var emean_sum.
 apply: (iffP idP); last first.
@@ -419,7 +417,7 @@ rewrite mulf_eq0 => /orP []; last first.
 move/[swap] => i.
 rewrite psumr_eq0.
   by move/allP/(_ i)/[!mem_index_enum]/(_ erefl)/implyP/[!inE]/(_ erefl)/eqP->.
-move=> x _; apply/mulr_ge0; last by rewrite sq_RV_pow2; exact/RleP/pow2_ge_0.
+move=> x _; apply/mulr_ge0; last  exact/RleP/pow2_ge_0.
 by apply/mulr_ge0=> //; exact/nneg_finfun_ge0.
 Qed.
 
@@ -431,8 +429,7 @@ Local Open Scope ring_scope.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U).
 Hypothesis (PC0 : Weighted.total P C != 0).
 Let WP := Weighted.d PC0.
-Let X' := X : {RV WP -> R}.
-Hypothesis (evar_gt0 : 0 < `V X').
+Hypothesis (evar_gt0 : 0 < `V (WP.-RV X)).
 
 Lemma pos_evar_index :
   exists i, 0 < C i * P i * sq_dev X PC0 i.
@@ -481,7 +478,6 @@ Lemma pr_S : Pr P S = 1 - eps. Proof. by rewrite Pr_to_cplt pr_cplt_S. Qed.
 Let eps0 : 0 <= eps. Proof. by rewrite -pr_cplt_S; exact/RleP/Pr_ge0. Qed.
 
 Let WP := Weighted.d PC0.
-Let X' := X : {RV WP -> R}.
 
 Let tau := sq_dev X PC0.
 Let tau_max := sq_dev_max X PC0.
@@ -496,7 +492,7 @@ Let hweightedtotalgt0 := weighted_total_gt0.
 
 (**md ## eqn 1.1, page 5 *)
 Lemma weight_contrib :
-  (\sum_(i in S) C i * P i * tau i) / Pr P S <= `V_[X | S] + (`E_[X | S] - `E X')^+2.
+  (\sum_(i in S) C i * P i * tau i) / Pr P S <= `V_[X | S] + (`E_[X | S] - `E (WP.-RV X))^+2.
 Proof.
 apply (@le_trans _ _ (`E_[tau | S])); last first.
   rewrite le_eqVlt/tau/sq_dev; apply/orP; left; exact/eqP/cVarDist/RltP.
@@ -551,13 +547,13 @@ Qed.
 
 (**md ## eqn page 63, line 3 *)
 Lemma bound_emean : invariantW ->
-  (`E X' - `E_[X' | S])^+2 <= `V X' * 2 * eps / (1 - eps).
+  (`E (WP.-RV X) - `E_[WP.-RV X | S])^+2 <= `V (WP.-RV X) * 2 * eps / (1 - eps).
 Proof.
 move=> invC; have pSC:= invariantW_pr_S_neq0 invC.
-have vhe0: 0 <= `V X' * 2 * eps / (1 - eps).
+have vhe0: 0 <= `V (WP.-RV X) * 2 * eps / (1 - eps).
   rewrite mulr_ge0 // ?invr_ge0 // ?subr_ge0 // -?mulrA ?mulr_ge0 // ?variance_ge0' //.
   by move: low_eps; lra.
-suff h : `| `E X' - `E_[X' | S] | <= Num.sqrt (`V X' * 2 * eps / (1 - eps)).
+suff h : `| `E (WP.-RV X) - `E_[WP.-RV X | S] | <= Num.sqrt (`V (WP.-RV X) * 2 * eps / (1 - eps)).
   rewrite -real_normK ?num_real // -[leRHS]sqr_sqrtr //.
   by rewrite lerXn2r // ?nnegrE ?sqrtr_ge0.
 rewrite distrC {1}(_ : eps = 1 - (1 - eps)); last by lra.
@@ -594,12 +590,12 @@ Qed.
 
 (**md ## eqn page 63, line 4 *)
 Lemma bound_mean : invariant ->
-  (`E_[X | S] - `E_[X' | S])^+2 <= `V_[X | S] * 2 * eps / (2 - eps).
+  (`E_[X | S] - `E_[WP.-RV X | S])^+2 <= `V_[X | S] * 2 * eps / (2 - eps).
 Proof.
 move=> Hinv.
 have -> : `E_[X | S] = `E_[Split.fst_RV C01 X | S `* [set: bool]].
   by rewrite -Split.cEx.
-have -> : `E_[X' | S] = `E_[Split.fst_RV C01 X | S `* [set true]].
+have -> : `E_[WP.-RV X | S] = `E_[Split.fst_RV C01 X | S `* [set true]].
   by rewrite emean_cond_split.
 rewrite sqrBC.
 apply: (@le_trans _ _ (`V_[ Split.fst_RV C01 X | S `* [set: bool]] *
@@ -629,12 +625,12 @@ Qed.
 
 (**md ## lemma 1.4, page 5 (part 1) *)
 Lemma bound_mean_emean : invariant ->
-  `| `E_[ X | S ] - `E X' | <= Num.sqrt (`V_[ X | S ] * 2 * eps / (2 - eps)) +
-                           Num.sqrt (`V X' * 2 * eps / (1 - eps)).
+  `| `E_[ X | S ] - `E (WP.-RV X) | <= Num.sqrt (`V_[ X | S ] * 2 * eps / (2 - eps)) +
+                           Num.sqrt (`V (WP.-RV X) * 2 * eps / (1 - eps)).
 Proof.
 move=> IC.
 have I1C : invariantW by exact: invariant_impl.
-apply: (le_trans (ler_distD `E_[ X' | S ] `E_[ X | S ] (`E X'))).
+apply: (le_trans (ler_distD `E_[ (WP.-RV X) | S ] `E_[ X | S ] (`E (WP.-RV X)))).
 have ? : 0 <= eps by rewrite -pr_cplt_S; apply/RleP/Pr_ge0.
 apply: lerD.
 - rewrite -(ger0_norm (sqrtr_ge0 _)).
@@ -699,15 +695,14 @@ Hypotheses (C01 : is01 C) (PC0 : Weighted.total P C != 0)
   (pr_cplt_S : Pr P cplt_S = eps) (low_eps : eps <= eps_max).
 
 Let WP := Weighted.d PC0.
-Let X' := X : {RV WP -> R}.
 
 Let eps0 : 0 <= eps. Proof. rewrite -pr_cplt_S. exact/RleP/Pr_ge0. Qed.
 
 (* Let mu := `E_[X | S]. *)
 (* Let var := `V_[X | S]. *)
 
-(* Let mu_hat := `E X'. *)
-(* Let var_hat := `V X'. *)
+(* Let mu_hat := `E (WP.-RV X). *)
+(* Let var_hat := `V (WP.-RV X). *)
 
 Let tau := sq_dev X PC0.
 Let tau_max := sq_dev_max X PC0.
@@ -718,9 +713,9 @@ Let invariantW := invariantW S eps PC0.
 (**md ## lemma 1.4, page 5 (part 2) *)
 (**md ## eqn A.6--A.9, page 63 *)
 Lemma bound_empirical_variance_S :
-  16 * `V_[X | S] <= `V X' ->
+  16 * `V_[X | S] <= `V (WP.-RV X) ->
   invariant ->
-  \sum_(i in S) C i * P i * tau i <= 1/4 * (1 - eps) * `V X'.
+  \sum_(i in S) C i * P i * tau i <= 1/4 * (1 - eps) * `V (WP.-RV X).
 Proof.
 move => var16 IC.
 have I1C : invariantW. (* todo: repeated, factor out *)
@@ -731,37 +726,37 @@ have Heps2 : 0 <= 2 - eps by move: low_eps; lra.
 have Heps2' : 0 < 2 - eps by move: low_eps; lra.
 have Heps2'' : 0 <= 2 * eps by move: eps0; lra.
 have H44eps2 : 0 <= 4 * 4 * (2 - eps) by move: low_eps; lra.
-have Hvar_hat0 : 0 <= `V X' by exact: variance_ge0'.
-have Hvar_hat_2_eps : 0 <= `V X' * 2 * eps
+have Hvar_hat0 : 0 <= `V (WP.-RV X) by exact: variance_ge0'.
+have Hvar_hat_2_eps : 0 <= `V (WP.-RV X) * 2 * eps
   by rewrite -mulrA; apply: mulr_ge0.
 have Hvar0 : 0 <= `V_[X | S] by exact: cvariance_ge0'.
 have ? := pr_S_gt0 pr_cplt_S low_eps.
 (*a6*)
-apply (@le_trans _ _ ((1 - eps) * (`V_[X | S] + (`E_[X | S] - `E X')^+2))).
+apply (@le_trans _ _ ((1 - eps) * (`V_[X | S] + (`E_[X | S] - `E (WP.-RV X))^+2))).
   by rewrite -!(pr_S pr_cplt_S) mulrC -ler_pdivrMr//; apply: weight_contrib => //; rewrite pr_cplt_S.
 (*a6-a7*)
 apply (@le_trans _ _ ((1 - eps) * (`V_[X | S] + (Num.sqrt (`V_[X | S] * 2 * eps / (2 - eps)) +
-                                            Num.sqrt (`V X' * 2 * eps / (1 - eps)))^+2))).
+                                            Num.sqrt (`V (WP.-RV X) * 2 * eps / (1 - eps)))^+2))).
   apply ler_wpM2l.
     by rewrite -pr_cplt_S subr_ge0; exact/RleP/Pr_1.
   rewrite lerD2l -ler_abs_sqr.
   rewrite [x in _ <= x]ger0_norm; first exact: bound_mean_emean.
   exact/addr_ge0/sqrtr_ge0/sqrtr_ge0.
 (*a7-a8*)
-apply (@le_trans _ _ ((1 - eps) * `V X' *
+apply (@le_trans _ _ ((1 - eps) * `V (WP.-RV X) *
                         (16^-1 + 2 * eps *
                                  ((4 * Num.sqrt (2 - eps))^-1 + (Num.sqrt (1 - eps))^-1)^+2))).
   rewrite -(mulrA (1 - eps)).
   rewrite ler_wpM2l //.
   rewrite [leRHS]mulrDr lerD //; first by rewrite lter_pdivlMr// mulrC.
   rewrite 2!mulrA -(sqr_sqrtr Hvar_hat_2_eps).
-  rewrite -exprMn (mulrDr (Num.sqrt (`V X' * 2 * eps))).
+  rewrite -exprMn (mulrDr (Num.sqrt (`V (WP.-RV X) * 2 * eps))).
   rewrite ler_sqr ?nnegrE; last 2 first.
   - by apply/addr_ge0/sqrtr_ge0/sqrtr_ge0.
   - by rewrite ?addr_ge0 ?mulr_ge0 ?invr_ge0 ?mulr_ge0 //;
          apply/RleP; rewrite -?RsqrtE';rewrite -!coqRE; try exact/sqrt_pos.
   apply: lerD.
-    apply: (@le_trans _ _ (Num.sqrt (`V X' * 2 * eps * (4 * 4 * (2 - eps))^-1))); last first.
+    apply: (@le_trans _ _ (Num.sqrt (`V (WP.-RV X) * 2 * eps * (4 * 4 * (2 - eps))^-1))); last first.
       rewrite sqrtrM // sqrtrV //.
       rewrite (sqrtrM (2 - eps)); last lra.
       by rewrite -expr2 sqrtr_sqr ger0_norm.
@@ -776,7 +771,7 @@ apply (@le_trans _ _ ((1 - eps) * `V X' *
       by rewrite -[leLHS]mulrA -[leRHS]mulrA ler_pM // mulr_ge0.
   by rewrite -sqrtrV // -sqrtrM // sqr_sqrtr.
 (*a8-a9*)
-apply (@le_trans _ _ ((1 - eps) * `V X' *
+apply (@le_trans _ _ ((1 - eps) * `V (WP.-RV X) *
                         (1/16 + 2 * eps_max *
                                 ((4 * Num.sqrt (2 - eps_max))^-1 +
                                    (Num.sqrt (1 - eps_max))^-1)^+2))).
@@ -798,23 +793,23 @@ Qed.
 
 (**md ## eqn A.10--A.11, page 63 *)
 Lemma bound_empirical_variance_cplt_S :
-  16 * `V_[X | S] <= `V X' ->
+  16 * `V_[X | S] <= `V (WP.-RV X) ->
   invariant ->
-  2/3 * `V X' <= \sum_(i in cplt_S) C i * P i * tau i.
+  2/3 * `V (WP.-RV X) <= \sum_(i in cplt_S) C i * P i * tau i.
 Proof.
 move => var16 HiC.
 have ? := pr_S_gt0 pr_cplt_S low_eps.
 have /RleP pr1_cplt_S := Pr_1 P cplt_S.
 
 have -> : \sum_(i in cplt_S) C i * P i * tau i =
-  `V X' * (\sum_(i in U) C i * P i) - (\sum_(i in S) C i * P i * tau i).
+  `V (WP.-RV X) * (\sum_(i in U) C i * P i) - (\sum_(i in S) C i * P i * tau i).
   rewrite /Var {1}/Ex.
   apply/esym/eqP; rewrite subr_eq -bigID2 /=; under [eqRHS]eq_bigr do rewrite if_same.
   rewrite big_distrl /=; apply/eqP/eq_bigr=> i _.
   rewrite !coqRE /tau [in RHS]mulrC !mulrA.
   rewrite Weighted.dE -/(Weighted.total P C).
   by rewrite -!mulrA !mul1r mulVf // mulr1.
-apply:(@le_trans _ _ (`V X' * (1 - 3 / 2 * eps) -
+apply:(@le_trans _ _ (`V (WP.-RV X) * (1 - 3 / 2 * eps) -
                         \sum_(i in S) C i * P i * tau i)); last first.
   rewrite lerD2r ler_wpM2l // ?variance_ge0' //.
   apply: (@le_trans _ _ ((1 - eps / 2) * (1 - eps))); first nra.
@@ -823,8 +818,8 @@ apply:(@le_trans _ _ (`V X' * (1 - 3 / 2 * eps) -
     exact: S_mass.
   apply: ler_suml=> // i _ _.
   by rewrite mulr_ge0 // nneg_finfun_ge0.
-apply (@le_trans _ _ ((1 - 3 / 2 * eps - 1/4 * (1 - eps)) * `V X')); last first.
-  by rewrite mulrBl (mulrC (`V X')) lerD // lerN2 bound_empirical_variance_S.
+apply (@le_trans _ _ ((1 - 3 / 2 * eps - 1/4 * (1 - eps)) * `V (WP.-RV X))); last first.
+  by rewrite mulrBl (mulrC (`V (WP.-RV X))) lerD // lerN2 bound_empirical_variance_S.
 rewrite ler_wpM2r // ?variance_ge0' //.
 move: low_eps eps0; lra.
 Qed.
@@ -858,7 +853,6 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U)
 Hypotheses (PC0 : Weighted.total P C != 0) (C01 : is01 C).
 
 Let WP := Weighted.d PC0.
-Let X' := X : {RV WP -> R}.
 
 (* Let var_hat := evar X PC0. *)
 (* Let var := `V_[X | S]. *)
@@ -866,9 +860,9 @@ Let tau := sq_dev X PC0.
 Let tau_max := sq_dev_max X PC0.
 
 Hypotheses (pr_cplt_S : Pr P (~: S) = eps) (low_eps : eps <= 1/16)
-  (var16 : 16 * `V_[X | S] < `V X').
+  (var16 : 16 * `V_[X | S] < `V (WP.-RV X)).
 
-Lemma sq_dev_max_neq0 : 0 < `V X' -> sq_dev_max X PC0 != 0.
+Lemma sq_dev_max_neq0 : 0 < `V (WP.-RV X) -> sq_dev_max X PC0 != 0.
 Proof.
 rewrite /sq_dev_max => var_hat_gt0.
 have PCge0 := ltW (weighted_total_gt0 PC0).
@@ -975,7 +969,7 @@ Lemma filter1D_arg_decreasing (C : nneg_finfun U) (var : R) :
   0 <= var -> is01 C ->
   forall PC0 : Weighted.total P C != 0,
   let WP := wgt PC0 in
-  forall K : Rleb (`V (X : {RV WP -> R})) (16 * var) <> true,
+  forall K : Rleb (`V (WP.-RV X)) (16 * var) <> true,
   (#|0.-support (update X PC0)| < #|0.-support C|)%coq_nat.
 Proof.
 rewrite/Weighted.total=> var_ge0 C01 PCneq0 /negP/RlebP/RleP.
