@@ -241,13 +241,16 @@ Qed.
 
 End def.
 
-Definition resample {R : realType} (T : finType) (P Q : {fdist T})
-  (X : {RV P -> R}) : {RV Q -> R} := X.
 End Weighted.
 
+Definition resample {R : realType} (T1 T2 : finType) (P : {fdist T1}) (Q : {fdist T2})
+  (f : T2 -> T1) (X : {RV P -> R}) : {RV Q -> R} := X \o f.
+
 Notation wgt := Weighted.d.
-Notation "Q .-RV X" := (Weighted.resample Q X)
-  (at level 10, format "Q .-RV  X") : type_scope.
+Notation "Q .-RV X" := (resample Q idfun X)
+  (at level 10, X at level 10, format "Q .-RV  X") : type_scope.
+Notation "Q .-RV X '\o' f" := (resample Q f X)
+  (at level 10, X, f at level 10, format "Q .-RV  X  '\o'  f") : type_scope.
 
 Module Split.
 Section def.
@@ -289,11 +292,10 @@ Check d`1 : {fdist T}.
 Check P : {fdist T}.
 Check d : {fdist T * bool}.
 
-Definition fst_RV (X : {RV P -> R}) : {RV d -> R} := X \o fst.
+Definition fst_RV (X : {RV P -> R}) : {RV d -> R} := d.-RV X \o fst.
 
-(* TODO: urgent *)
-Definition fst_RV' (X : {RV P -> R}) : {RV (d`1) -> R} :=
-  d`1.-RV X.
+(* TODO(sai): urgent *)
+Definition fst_RV' (X : {RV P -> R}) : {RV (d`1) -> R} := d`1.-RV X.
 
 Lemma dE a : d a = (if a.2 then h a.1 else 1 - h a.1) * P a.1.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
@@ -402,6 +404,9 @@ Proof. by move=> Cu0; rewrite /sq_dev_max; apply/le_bigmax_cond. Qed.
 
 End sq_dev.
 
+(* TODO: moveme *)
+Lemma compfid A B (f : A -> B) : f \o idfun = f. Proof. by []. Qed.
+
 Section evar.
 Local Open Scope ring_scope.
 
@@ -416,9 +421,11 @@ Proof. by rewrite Var_cVarT. Qed.
 Lemma evar0P :
   reflect (forall i, C i * P i * sq_dev X PC0 i = 0) (`V (WP.-RV X) == 0).
 Proof.
-rewrite /Var emean_sum.
+rewrite /Var.
+rewrite /sq_dev -/WP.
 apply: (iffP idP); last first.
-  move=> H; under eq_bigr do rewrite H.
+  move=> H.
+  under eq_bigr do rewrite H.
   by rewrite big1 // mul0r.
 rewrite mulf_eq0 => /orP []; last first.
   by rewrite invr_eq0; have:= PC0; rewrite /Weighted.total=> /negPf ->.
