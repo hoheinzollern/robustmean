@@ -489,20 +489,18 @@ Let hweightedtotalgt0 := weighted_total_gt0.
 
 (**md ## eqn 1.1, page 5 *)
 Lemma weight_contrib :
-  `V X' <= `V X + (`E_[X | S] - `E X')^+2.
-  (* (\sum_(i in S) C i * P i * tau i) / Pr P S <= `V X + (`E_[X | S] - `E X')^+2. *)
+  (\sum_(i in S) C i * P i * tau i) / Pr P S <= `V_[X | S] + (`E_[X | S] - `E X')^+2.
 Proof.
-(* apply (@le_trans _ _ (`E_[tau | S])); last first. *)
-(*   rewrite le_eqVlt/tau/sq_dev; apply/orP; left. rewrite cVarDist. admit. exact/RltP. *)
-(* rewrite cExE !coqRE. ler_pM2r ?invr_gt0 //. *)
-(* apply: ler_suml=> i HiS //. *)
-(*   rewrite !coqRE (mulrC (tau i)) ler_wpM2r ?sq_dev_ge0 //. *)
-(*   have /andP [_ c1] := C01 i. *)
-(*   have hp := FDist.ge0 P i. *)
-(*   by rewrite -{2}(mul1r (P i)); apply ler_wpM2r. *)
-(* by rewrite mulr_ge0 // sq_dev_ge0. *)
-(* Qed. *)
-Admitted.
+apply (@le_trans _ _ (`E_[tau | S])); last first.
+  rewrite le_eqVlt/tau/sq_dev; apply/orP; left; exact/eqP/cVarDist/RltP.
+rewrite cExE !coqRE ler_pM2r ?invr_gt0 //.
+apply: ler_suml=> i HiS //.
+  rewrite !coqRE (mulrC (tau i)) ler_wpM2r ?sq_dev_ge0 //.
+  have /andP [_ c1] := C01 i.
+  have hp := FDist.ge0 P i.
+  by rewrite -{2}(mul1r (P i)); apply ler_wpM2r.
+by rewrite mulr_ge0 // sq_dev_ge0.
+Qed.
 
 Let invariant := invariant P C S eps.
 Let invariantW := invariantW S eps PC0.
@@ -695,14 +693,15 @@ Hypotheses (C01 : is01 C) (PC0 : Weighted.total P C != 0)
   (pr_cplt_S : Pr P cplt_S = eps) (low_eps : eps <= eps_max).
 
 Let WP := Weighted.d PC0.
+Let X' := X : {RV WP -> R}.
 
 Let eps0 : 0 <= eps. Proof. rewrite -pr_cplt_S. exact/RleP/Pr_ge0. Qed.
 
 Let mu := `E_[X | S].
 Let var := `V_[X | S].
 
-Let mu_hat := emean X PC0.
-Let var_hat := evar X PC0.
+Let mu_hat := `E X'.
+Let var_hat := `V X'.
 
 Let tau := sq_dev X PC0.
 Let tau_max := sq_dev_max X PC0.
@@ -726,10 +725,10 @@ have Heps2 : 0 <= 2 - eps by move: low_eps; lra.
 have Heps2' : 0 < 2 - eps by move: low_eps; lra.
 have Heps2'' : 0 <= 2 * eps by move: eps0; lra.
 have H44eps2 : 0 <= 4 * 4 * (2 - eps) by move: low_eps; lra.
+have Hvar_hat0 : 0 <= var_hat by exact: variance_ge0'.
 have Hvar_hat_2_eps : 0 <= var_hat * 2 * eps
-  by rewrite -mulrA; apply: mulr_ge0; [exact: evar_ge0|].
+  by rewrite -mulrA; apply: mulr_ge0.
 have Hvar0 : 0 <= var by exact: cvariance_ge0'.
-have Hvar_hat0 : 0 <= var_hat by exact: cvariance_ge0'.
 rewrite /var_hat.
 have ? := pr_S_gt0 pr_cplt_S low_eps.
 (*a6*)
