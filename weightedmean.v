@@ -243,13 +243,13 @@ End def.
 
 End Weighted.
 
-Definition resample {R : realType} (T1 T2 : finType) (P : {fdist T1}) (Q : {fdist T2})
+Definition change_dist {R : realType} (T1 T2 : finType) (P : {fdist T1}) (Q : {fdist T2})
   (f : T2 -> T1) (X : {RV P -> R}) : {RV Q -> R} := X \o f.
 
 Notation wgt := Weighted.d.
-Notation "Q .-RV X" := (resample Q idfun X)
+Notation "Q .-RV X" := (change_dist Q idfun X)
   (at level 10, X at level 10, format "Q .-RV  X") : type_scope.
-Notation "Q .-RV X '\o' f" := (resample Q f X)
+Notation "Q .-RV X '\o' f" := (change_dist Q f X)
   (at level 10, X, f at level 10, format "Q .-RV  X  '\o'  f") : type_scope.
 
 Module Split.
@@ -422,7 +422,7 @@ Lemma evar0P :
   reflect (forall i, C i * P i * sq_dev X PC0 i = 0) (`V (WP.-RV X) == 0).
 Proof.
 rewrite /Var.
-rewrite /sq_dev -/WP.
+rewrite (emean_sum (_ `^2)).
 apply: (iffP idP); last first.
   move=> H.
   under eq_bigr do rewrite H.
