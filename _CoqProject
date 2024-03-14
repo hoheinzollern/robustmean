@@ -3,6 +3,8 @@
 -arg -w -arg -notation-overridden
 -arg -w -arg -ambiguous-paths
 -arg -w -arg -notation-incompatible-format
+-arg -w -arg -opaque-let
+-arg -w -arg -hiding-delimiting-key
 
 robustmean.v
 util.v
