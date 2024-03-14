@@ -1094,7 +1094,7 @@ Let eps0 : 0 <= eps. Proof. exact/RleP/Pr_ge0. Qed.
 
 Functional Scheme filter1D_rec_ind := Induction for filter1D_rec Sort Prop.
 
-Lemma filter1D_correct :
+Theorem filter1D_correct :
   if filter1D X var_ge0 is Some mu_hat
   then `| `E_[X | S] - mu_hat | <= Num.sqrt (`V_[X | S] * (2 * eps) / (2 - eps)) +
                           Num.sqrt (16 * `V_[X | S] * (2 * eps) / (1 - eps))
