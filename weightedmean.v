@@ -684,7 +684,7 @@ Arguments invariant_impl [_ _ _ _] eps_max.
 Arguments S_mass [_ _ _ _] eps_max.
 Arguments bound_mean_emean [_ _ _] C [_] eps_max.
 
-(** WIP *)
+(** update function for the weight C *)
 Section update.
 Local Open Scope ring_scope.
 
