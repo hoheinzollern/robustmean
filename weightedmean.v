@@ -293,18 +293,14 @@ Qed.
 
 Definition d : {fdist T * bool} := locked (FDist.make f0 f1).
 
-Check d`1 : {fdist T}.
-Check P : {fdist T}.
-Check d : {fdist T * bool}.
-
 Definition fst_RV (X : {RV P -> R}) : {RV d -> R} := d.-RV X \o fst.
-
-(* TODO(sai): urgent *)
-Definition fst_RV' (X : {RV P -> R}) : {RV (d`1) -> R} := d`1.-RV X.
 
 Lemma dE a : d a = (if a.2 then h a.1 else 1 - h a.1) * P a.1.
 Proof. by rewrite /d; unlock; rewrite ffunE. Qed.
 
+(* NB: infotheo/proba.v has following two lemmas with very similar names
+Lemma Pr_XsetT E : Pr P (E `* [set: B]) = Pr (P`1) E.
+Lemma Pr_setTX F : Pr P ([set: A] `* F) = Pr (P`2) F. *)
 Lemma Pr_setXT A : Pr P A = Pr d (A `* [set: bool]).
 Proof.
 rewrite /Pr big_setX/=; apply: eq_bigr => u uS.
@@ -320,6 +316,26 @@ rewrite setT_bool big_setU1//= ?inE// big_set1.
 rewrite !dE/= /fst_RV/=.
 by rewrite -mulRDr -mulRDl addRCA addR_opp subRR addR0 mul1R.
 Qed.
+
+Section fst_RV'.
+Definition fst_RV' (X : {RV P -> R}) : {RV (d`1) -> R} := d`1.-RV X.
+
+Lemma cEx' (X : {RV P -> R}) A : `E_[X | A] = `E_[fst_RV' X | A].
+Proof.
+rewrite cEx.
+rewrite !cExE.
+rewrite Pr_XsetT.
+congr (_ / _)%coqR.
+rewrite big_setX /=.
+apply: eq_bigr=> a aA.
+rewrite /fst_RV /fst_RV' /change_dist /= -big_distrr /=.
+congr (_ * _)%coqR.
+rewrite -Pr_set1 -PrX_fst /=.
+under [RHS]eq_bigr do rewrite setX1 Pr_set1 /=.
+apply: eq_bigl => b.
+by rewrite inE.
+Qed.
+End fst_RV'.
 
 Lemma cVar (X : {RV P -> R}) A : `V_[ fst_RV X | A `* [set: bool]] = `V_[X | A].
 Proof. by rewrite /cVar/= cEx -[in LHS]cEx. Qed.
