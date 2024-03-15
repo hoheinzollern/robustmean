@@ -708,6 +708,7 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U) (S
 
 Local Notation cplt_S := (~: S).
 Local Notation eps := (Pr P cplt_S).
+Local Notation den := (4)%R.
 
 Hypotheses (C01 : is01 C) (PC0 : Weighted.total P C != 0).
 
@@ -733,14 +734,14 @@ Section key_inequality.
 Variable eps_max : R.
 Hypotheses (eps_max01: 0 < eps_max < 1) (low_eps : eps <= eps_max).
 
+Definition bound_intermediate E :=
+  16^-1 + 2 * E * ((4 * Num.sqrt (2 - E))^-1 + (Num.sqrt (1 - E))^-1) ^+ 2 :> R.
 Definition bound_evar_ineq E :=
-  1 / 4 >= 1 / 16 + 2 * E * ((4 * Num.sqrt (2 - E))^-1 + (Num.sqrt (1 - E))^-1) ^+ 2 :> R.
+  den^-1 >= bound_intermediate E.
 
-Lemma bound_evar_ineq_S :
-  bound_evar_ineq eps_max ->
-  \sum_(i in S) C i * P i * tau i <= 1/4 * (1 - eps) * `V (WP.-RV X).
+Lemma bound_evar_ineq_S_intermediate :
+  \sum_(i in S) C i * P i * tau i <= (1 - eps) * bound_intermediate eps * `V (WP.-RV X).
 Proof.
-move => key.
 have I1C : invariantW. (* todo: repeated, factor out *)
   by apply: (invariant_impl eps_max).
 have Heps1 : 0 <= 1 - eps by move: low_eps eps_max01; lra.
@@ -794,17 +795,41 @@ apply (@le_trans _ _ ((1 - eps) * `V (WP.-RV X) *
       rewrite mulrC !mulrA (_ : 4 * 4 = 16); last lra.
       by rewrite -[leLHS]mulrA -[leRHS]mulrA ler_pM // mulr_ge0.
   by rewrite -sqrtrV // -sqrtrM // sqr_sqrtr.
+by rewrite /bound_intermediate [leRHS]mulrC !mulrA (mulrC (1-eps)).
+Qed.
+
+Lemma bound_evar_ineq_S :
+  bound_evar_ineq eps_max ->
+  \sum_(i in S) C i * P i * tau i <= (1 - eps)/den * `V (WP.-RV X).
+Proof.
+rewrite /bound_evar_ineq/bound_intermediate=> key.
+have I1C : invariantW. (* todo: repeated, factor out *)
+  by apply: (invariant_impl eps_max).
+have Heps1 : 0 <= 1 - eps by move: low_eps eps_max01; lra.
+have Heps1' : 0 < 1 - eps by move: low_eps eps_max01; lra.
+have Heps2 : 0 <= 2 - eps by move: low_eps eps_max01; lra.
+have Heps2' : 0 < 2 - eps by move: low_eps eps_max01; lra.
+have Heps2'' : 0 <= 2 * eps by move: eps0; lra.
+have H44eps2 : 0 <= 4 * 4 * (2 - eps) by move: low_eps; lra.
+have Hvar_hat0 : 0 <= `V (WP.-RV X) by exact: variance_ge0'.
+have Hvar_hat_2_eps : 0 <= `V (WP.-RV X) * 2 * eps
+  by rewrite -mulrA; apply: mulr_ge0.
+have Hvar0 : 0 <= `V_[X | S] by exact: cvariance_ge0'.
+have ? := pr_S_gt0 eps_max01 low_eps.
+apply: (le_trans bound_evar_ineq_S_intermediate).
+rewrite /bound_intermediate.
 (*a8-a9*)
-apply (@le_trans _ _ ((1 - eps) * `V (WP.-RV X) *
-                        (1/16 + 2 * eps_max *
+apply (@le_trans _ _ ((1 - eps) *
+                        (16^-1 + 2 * eps_max *
                                 ((4 * Num.sqrt (2 - eps_max))^-1 +
-                                   (Num.sqrt (1 - eps_max))^-1)^+2))).
+                                   (Num.sqrt (1 - eps_max))^-1)^+2) * `V (WP.-RV X))).
   apply: ler_pM=> //.
-  - exact:mulr_ge0.
-  - apply:addr_ge0; first lra.
+  - apply:mulr_ge0 => //.
+    apply:addr_ge0; first lra.
     rewrite mulr_ge0 //.
     exact: sqr_ge0.
-  - apply: lerD; first by rewrite div1r.
+  - apply: ler_pM=> //. apply: addr_ge0; first lra. rewrite mulr_ge0//. exact: sqr_ge0.
+  - apply: lerD => //.
     apply: ler_pM=> //; [exact: sqr_ge0|by move: low_eps; lra|].
     rewrite lerXn2r // ?nnegrE ?addr_ge0 //?invr_ge0 ?mulr_ge0 // ?sqrtr_ge0 //.
     rewrite lerD ?lerXn2r // ?nnegrE ?addr_ge0 //?invr_ge0 ?mulr_ge0 // ?sqrtr_ge0 //.
@@ -812,13 +837,13 @@ apply (@le_trans _ _ ((1 - eps) * `V (WP.-RV X) *
       rewrite ?ler_pM2l // ler_wsqrtr // lerD2l lerN2 //.
     rewrite ?lef_pV2 ?posrE ?mulr_gt0 // ?sqrtr_gt0 // ; last by move: eps_max01; lra.
     rewrite ?ler_pM2l // ler_wsqrtr // lerD2l lerN2 //.
- rewrite mulrC mulrA ler_wpM2r // ler_wpM2r; [by [] | by [] |].
+rewrite ler_wpM2r// -!mulrA ler_wpM2l// mulrA.
 exact: key.
 Qed.
 End key_inequality.
 
 (* fix eps_max; key inequality holds also for 1 /17 but not 1/ 15 *)
-Local Notation eps_max := (1 / 16 : R).
+Local Notation eps_max := (1 / 100 : R).
 
 Let eps_max01 : 0 < eps_max < 1. Proof. lra. Qed.
 
@@ -826,12 +851,12 @@ Hypothesis low_eps : eps <= eps_max.
 
 (* TODO: "interval" in the identifier? *)
 Lemma bound_evar_ineq_by_interval : bound_evar_ineq eps_max.
-Proof. by apply/RleP; rewrite -!coqRE -!RsqrtE'; interval. Qed.
+Proof. by rewrite /bound_evar_ineq/bound_intermediate; apply/RleP; rewrite -!coqRE -!RsqrtE'; interval. Qed.
 
 (**md ## lemma 1.4, page 5 (part 2) *)
 (**md ## eqn A.6--A.9, page 63 *)
 Lemma bound_empirical_variance_S :
-  \sum_(i in S) C i * P i * tau i <= 1/4 * (1 - eps) * `V (WP.-RV X).
+  \sum_(i in S) C i * P i * tau i <= (1 - eps)/den * `V (WP.-RV X).
 Proof. exact/bound_evar_ineq_S/bound_evar_ineq_by_interval. Qed.
 
 (**md ## eqn A.10--A.11, page 63 *)
@@ -858,10 +883,16 @@ apply:(@le_trans _ _ (`V (WP.-RV X) * (1 - 3 / 2 * eps) -
     exact: (S_mass eps_max).
   apply: ler_suml=> // i _ _.
   by rewrite mulr_ge0 // nneg_finfun_ge0.
-apply (@le_trans _ _ ((1 - 3 / 2 * eps - 1/4 * (1 - eps)) * `V (WP.-RV X))); last first.
-  by rewrite mulrBl (mulrC (`V (WP.-RV X))) lerD // lerN2 bound_empirical_variance_S.
-rewrite ler_wpM2r // ?variance_ge0' //.
-move: low_eps eps0; lra.
+apply (@le_trans _ _ ((1 - 3 / 2 * eps - (1 - eps) * bound_intermediate eps) * `V (WP.-RV X))); last first.
+  rewrite mulrBl (mulrC (`V (WP.-RV X))) lerD // lerN2.
+  exact: (bound_evar_ineq_S_intermediate eps_max01 low_eps).
+have ->// :  2 / 3 * `V (WP.-RV X) <=
+  (1 - 3 / 2 * eps - (1 - eps) * bound_intermediate eps) *
+  `V (WP.-RV X).
+rewrite ler_wpM2r // ?variance_ge0' // mulrBl opprB addrA /bound_intermediate.
+apply/RleP. move: low_eps => /RleP. move: eps0 => /RleP.
+rewrite -!coqRE -!RsqrtE' => ? ?.
+interval.
 Qed.
 
 (**md ## eqn 1.3--1.4, page 7 *)
