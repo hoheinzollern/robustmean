@@ -463,6 +463,9 @@ Qed.
 
 End pos_evar.
 
+Notation eps_max := (10 / 127 : R)%mcR.
+Notation denom := (335 / 100 : R)%mcR.
+
 Section invariant.
 Local Open Scope ring_scope.
 
@@ -708,7 +711,6 @@ Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (C : nneg_finfun U) (S
 
 Local Notation cplt_S := (~: S).
 Local Notation eps := (Pr P cplt_S).
-Local Notation den := (4)%R.
 
 Hypotheses (C01 : is01 C) (PC0 : Weighted.total P C != 0).
 
@@ -737,7 +739,7 @@ Hypotheses (eps_max01: 0 < eps_max < 1) (low_eps : eps <= eps_max).
 Definition bound_intermediate E :=
   16^-1 + 2 * E * ((4 * Num.sqrt (2 - E))^-1 + (Num.sqrt (1 - E))^-1) ^+ 2 :> R.
 Definition bound_evar_ineq E :=
-  den^-1 >= bound_intermediate E.
+  denom^-1 >= bound_intermediate E.
 
 Lemma bound_evar_ineq_S_intermediate :
   \sum_(i in S) C i * P i * tau i <= (1 - eps) * bound_intermediate eps * `V (WP.-RV X).
@@ -800,7 +802,7 @@ Qed.
 
 Lemma bound_evar_ineq_S :
   bound_evar_ineq eps_max ->
-  \sum_(i in S) C i * P i * tau i <= (1 - eps)/den * `V (WP.-RV X).
+  \sum_(i in S) C i * P i * tau i <= (1 - eps)/denom * `V (WP.-RV X).
 Proof.
 rewrite /bound_evar_ineq/bound_intermediate=> key.
 have I1C : invariantW. (* todo: repeated, factor out *)
@@ -842,9 +844,6 @@ exact: key.
 Qed.
 End key_inequality.
 
-(* fix eps_max; key inequality holds also for 1 /17 but not 1/ 15 *)
-Local Notation eps_max := (1 / 100 : R).
-
 Let eps_max01 : 0 < eps_max < 1. Proof. lra. Qed.
 
 Hypothesis low_eps : eps <= eps_max.
@@ -856,12 +855,12 @@ Proof. by rewrite /bound_evar_ineq/bound_intermediate; apply/RleP; rewrite -!coq
 (**md ## lemma 1.4, page 5 (part 2) *)
 (**md ## eqn A.6--A.9, page 63 *)
 Lemma bound_empirical_variance_S :
-  \sum_(i in S) C i * P i * tau i <= (1 - eps)/den * `V (WP.-RV X).
+  \sum_(i in S) C i * P i * tau i <= (1 - eps)/denom * `V (WP.-RV X).
 Proof. exact/bound_evar_ineq_S/bound_evar_ineq_by_interval. Qed.
 
 (**md ## eqn A.10--A.11, page 63 *)
 Lemma bound_empirical_variance_cplt_S :
-  2/3 * `V (WP.-RV X) <= \sum_(i in cplt_S) C i * P i * tau i.
+  2/denom * `V (WP.-RV X) <= \sum_(i in cplt_S) C i * P i * tau i.
 Proof.
 have ? := pr_S_gt0 eps_max01 low_eps.
 have /RleP pr1_cplt_S := Pr_1 P cplt_S.
@@ -886,13 +885,13 @@ apply:(@le_trans _ _ (`V (WP.-RV X) * (1 - 3 / 2 * eps) -
 apply (@le_trans _ _ ((1 - 3 / 2 * eps - (1 - eps) * bound_intermediate eps) * `V (WP.-RV X))); last first.
   rewrite mulrBl (mulrC (`V (WP.-RV X))) lerD // lerN2.
   exact: (bound_evar_ineq_S_intermediate eps_max01 low_eps).
-have ->// :  2 / 3 * `V (WP.-RV X) <=
+have ->// :  2 / denom * `V (WP.-RV X) <=
   (1 - 3 / 2 * eps - (1 - eps) * bound_intermediate eps) *
   `V (WP.-RV X).
-rewrite ler_wpM2r // ?variance_ge0' // mulrBl opprB addrA /bound_intermediate.
+rewrite ler_wpM2r // ?variance_ge0' // /bound_intermediate.
 apply/RleP. move: low_eps => /RleP. move: eps0 => /RleP.
 rewrite -!coqRE -!RsqrtE' => ? ?.
-interval.
+interval with (i_prec 20, i_bisect eps).
 Qed.
 
 (**md ## eqn 1.3--1.4, page 7 *)
@@ -933,7 +932,7 @@ Let WP := Weighted.d PC0.
 Let tau := sq_dev X PC0.
 Let tau_max := sq_dev_max X PC0.
 
-Hypotheses (low_eps : eps <= 1/16) (var16 : 16 * `V_[X | S] < `V (WP.-RV X)).
+Hypotheses (low_eps : eps <= eps_max) (var16 : 16 * `V_[X | S] < `V (WP.-RV X)).
 
 Lemma sq_dev_max_neq0 : 0 < `V (WP.-RV X) -> sq_dev_max X PC0 != 0.
 Proof.
@@ -967,10 +966,8 @@ have var16':= ltW var16.
 apply: le_trans; first exact: bound_empirical_variance_S.
 rewrite -ler_pdivrMl; last by apply: divr_gt0; move: low_eps; lra.
 rewrite invf_div !mulrA.
-have -> : 2 / (1 - eps) * 1/4 * (1 - eps) = 1/2 * ((1-eps) / (1-eps)) by lra.
-rewrite divrr ?mulr1; last by rewrite unitfE; move: low_eps; lra.
-apply: le_trans; last exact: bound_empirical_variance_cplt_S.
-by rewrite ler_wpM2r //; [exact: variance_ge0'|lra].
+rewrite -(mulrA 2) mulVf ?mulr1; last by move: low_eps; lra.
+by apply: le_trans; last exact: bound_empirical_variance_cplt_S.
 Qed.
 
 Lemma is01_update : is01 (update X PC0).
@@ -1100,7 +1097,6 @@ Local Open Scope ring_scope.
 Variables (U : finType) (P : {fdist U}) (X : {RV P -> R}) (S : {set U}).
 Local Notation cplt_S := (~: S).
 Local Notation eps := (Pr P cplt_S).
-Local Notation eps_max := (1 / 16 : R).
 Hypotheses (low_eps : eps <= eps_max).
 (* Let mu := `E_[X | S]. *)
 (* Let var := `V_[X | S]. *)
