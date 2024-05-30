@@ -16,8 +16,6 @@ Local Open Scope proba_scope.
 
 Import Order.POrderTheory Order.Theory Num.Theory GRing.Theory.
 
-Notation R := real_realType.
-
 Section move_to_mathcomp.
 
 Lemma setT_bool : [set: bool] = [set true; false].

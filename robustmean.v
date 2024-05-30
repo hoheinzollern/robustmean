@@ -16,8 +16,6 @@ Local Open Scope proba_scope.
 
 Import Order.POrderTheory Order.Theory Num.Theory GRing.Theory.
 
-Notation R := real_realType.
-
 (**md**************************************************************************)
 (* # resilience, robustmean                                                   *)
 (*                                                                            *)
@@ -466,7 +464,7 @@ Proof.
   by rewrite -mulNR -mulRDl -mulNR -mulRDl.
 Qed.
 
-Lemma cEx_const_RV (k : R_eqType) F:
+Lemma cEx_const_RV (k : R) F:
   0 < Pr P F ->
   `E_[(const_RV P k) | F] = k.
 Proof.

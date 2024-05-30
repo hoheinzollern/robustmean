@@ -17,8 +17,6 @@ Local Open Scope proba_scope.
 
 Import Order.POrderTheory Order.Theory Num.Theory GRing.Theory.
 
-Notation R := real_realType.
-
 Require Import Interval.Tactic.
 Require Import Program.Wf.
 Require Import robustmean util.
@@ -78,15 +76,6 @@ rewrite /Rx -/(sqrt _) RsqrtE //.
 by have/Rge_le/RleP:= x0.
 Qed.
 
-(* PRed to infotheo *)
-Lemma sumRE (I : Type) (r : seq I) (P : pred I) (F : I -> R) :
-  (\sum_(i <- r | P i) F i)%coqR = (\sum_(i <- r | P i) F i)%mcR.
-Proof. by []. Qed.
-
-(* until we use ring_scope in infotheo *)
-Lemma Pr_to_cplt' (A : finType) (P : {fdist A}) (E : {set A}) :  Pr P E = 1 - Pr P (~: E).
-Proof. by rewrite Pr_to_cplt !coqRE. Qed.
-
 (* to ssrnum? *)
 Lemma sqrBC (R : realDomainType) (x y : R) : (x - y) ^+ 2 = (y - x) ^+ 2.
 Proof.
@@ -96,7 +85,7 @@ Qed.
 
 (* to ssrnum? *)
 Lemma ler_abs_sqr (T : realDomainType) (x y : T) : (`|x| <= `|y|) = (x ^+ 2 <= y ^+ 2).
-Proof. by rewrite -ler_sqr ?nomr_nneg // !real_normK ?num_real. Qed.
+Proof. by rewrite -[LHS]ler_sqr ?nnegrE// ?real_normK// num_real. Qed.
 
 (* TODO: use ring_scope in robustmean.v *)
 Lemma cresilience'
@@ -479,8 +468,8 @@ Qed.
 
 End pos_evar.
 
-Notation eps_max := (10 / 127 : R)%mcR.
-Notation denom := (335 / 100 : R)%mcR.
+Notation eps_max := (10 / 127)%mcR.
+Notation denom := (335 / 100)%mcR.
 
 Section invariant.
 Local Open Scope ring_scope.
@@ -617,12 +606,12 @@ apply (@le_trans _ _ (1 - (1 - eps) / 2 / Pr P S *
   by have /andP [] := C01 i.
 rewrite -pr_S -mulrA mulrCA !mulrA mulVf ?pr_S // mul1r.
 rewrite ler_pdivlMr; last by move: low_eps eps_max01; lra.
-rewrite -pr_S mulrDl mul1r {2}pr_S mulrC mulNr.
+rewrite -pr_S mulrDl mul1r {2}pr_S mulNr.
 rewrite addrC; rewrite -lerBrDr lerNl opprD opprK addrC. (* mulrA.*)
 rewrite -sumrN -big_split /=.
 under eq_bigr do rewrite -{1}(mul1r (P _)) -mulNr -mulrDl.
 under [in leRHS] eq_bigr do rewrite mulrC.
-by rewrite mulrAC -mulrA mulrC; exact: Hinv.
+by rewrite mulrC mulrA.
 Qed.
 
 (**md ## eqn page 63, line 4 *)
@@ -792,7 +781,8 @@ apply (@le_trans _ _ ((1 - eps) * `V (WP.-RV X) *
   rewrite ler_wpM2l //.
   rewrite [leRHS]mulrDr lerD //; first by move: var16; lra.
     (* or first by rewrite lter_pdivlMr// mulrC.  which looks better? *)
-  rewrite 2!mulrA -(sqr_sqrtr Hvar_hat_2_eps).
+  rewrite [leRHS]mulrA [in leRHS](mulrA _ 2) -[in leRHS](sqr_sqrtr Hvar_hat_2_eps).
+
   rewrite -exprMn (mulrDr (Num.sqrt (`V (WP.-RV X) * 2 * eps))).
   rewrite ler_sqr ?nnegrE; last 2 first.
   - by apply/addr_ge0/sqrtr_ge0/sqrtr_ge0.
@@ -813,7 +803,7 @@ apply (@le_trans _ _ ((1 - eps) * `V (WP.-RV X) *
       rewrite mulrC !mulrA (_ : 4 * 4 = 16); last lra.
       by rewrite -[leLHS]mulrA -[leRHS]mulrA ler_pM // mulr_ge0.
   by rewrite -sqrtrV // -sqrtrM // sqr_sqrtr.
-by rewrite /bound_intermediate [leRHS]mulrC !mulrA (mulrC (1-eps)).
+by rewrite /bound_intermediate [leRHS]mulrC (mulrC (1-eps)) !coqRE (_ : 2%coqR = 2)// !mulrA.
 Qed.
 
 Lemma bound_evar_ineq_S :
@@ -848,7 +838,8 @@ apply (@le_trans _ _ ((1 - eps) *
     exact: sqr_ge0.
   - apply: ler_pM=> //. apply: addr_ge0; first lra. rewrite mulr_ge0//. exact: sqr_ge0.
   - apply: lerD => //.
-    apply: ler_pM=> //; [exact: sqr_ge0|by move: low_eps; lra|].
+    apply: ler_pM=> //; first exact: sqr_ge0.
+      by move: low_eps; rewrite !coqRE (_ : 2%coqR = 2)//; lra.
     rewrite lerXn2r // ?nnegrE ?addr_ge0 //?invr_ge0 ?mulr_ge0 // ?sqrtr_ge0 //.
     rewrite lerD ?lerXn2r // ?nnegrE ?addr_ge0 //?invr_ge0 ?mulr_ge0 // ?sqrtr_ge0 //.
       rewrite ?lef_pV2 ?posrE ?mulr_gt0 // ?sqrtr_gt0 //; last by move: eps_max01; lra.
@@ -860,7 +851,13 @@ exact: key.
 Qed.
 End key_inequality.
 
-Let eps_max01 : 0 < eps_max < 1. Proof. lra. Qed.
+Local Open Scope ring_scope.
+Notation "x < y < z :> T" := ((x < y :> T) && (y < z :> T)) (at level 70, y, z at next level).
+Notation "x <= y <= z :> T" := ((x <= y :> T) && (y <= z :> T)) (at level 70, y, z at next level).
+Notation "x < y <= z :> T" := ((x < y :> T) && (y <= z :> T)) (at level 70, y, z at next level).
+Notation "x <= y < z :> T" := ((x <= y :> T) && (y < z :> T)) (at level 70, y, z at next level).
+
+Let eps_max01 : (0 < eps_max < 1 :> R). Proof. lra. Qed.
 
 Hypothesis low_eps : eps <= eps_max.
 
@@ -872,7 +869,7 @@ Proof. by rewrite /bound_evar_ineq/bound_intermediate; apply/RleP; rewrite -!coq
 (**md ## eqn A.6--A.9, page 63 *)
 Lemma bound_empirical_variance_S :
   \sum_(i in S) C i * P i * tau i <= (1 - eps)/denom * `V (WP.-RV X).
-Proof. exact/bound_evar_ineq_S/bound_evar_ineq_by_interval. Qed.
+Proof. by apply/bound_evar_ineq_S/bound_evar_ineq_by_interval; first lra. Qed.
 
 (**md ## eqn A.10--A.11, page 63 *)
 Lemma bound_empirical_variance_cplt_S :
@@ -884,7 +881,8 @@ have /RleP pr1_cplt_S := Pr_1 P cplt_S.
 have -> : \sum_(i in cplt_S) C i * P i * tau i =
   `V (WP.-RV X) * (\sum_(i in U) C i * P i) - (\sum_(i in S) C i * P i * tau i).
   rewrite /Var {1}/Ex.
-  apply/esym/eqP; rewrite subr_eq -bigID2 /=; under [eqRHS]eq_bigr do rewrite if_same.
+  apply/esym/eqP; rewrite subr_eq -bigID2 /=.
+  under [eqbRHS]eq_bigr do rewrite if_same.
   rewrite big_distrl /=; apply/eqP/eq_bigr=> i _.
   rewrite !coqRE /tau [in RHS]mulrC !mulrA.
   rewrite Weighted.dE -/(Weighted.total P C).
@@ -1139,7 +1137,7 @@ apply filter1D_rec_ind => //=.
   rewrite ler_wsqrtr // ler_wpM2r //.
     by rewrite invr_ge0; move: low_eps; lra.
   rewrite -mulrA ler_wpM2r //; first by move: eps0; lra.
-  by move: evar16; rewrite !coqRE (_ : 16%coqR = 16).
+  by move: evar16; rewrite !coqRE sixteenE.
 - move=> C C01 PC_neq0 [//|/=] evar16 _ _ PC0 _ IH Inv.
   apply/IH/invariant_update => //.
   by move/tr: evar16; rewrite !coqRE sixteenE.
